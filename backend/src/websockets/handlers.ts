@@ -29,18 +29,21 @@ export function setupWebSocketHandlers(io: Server) {
           session = sessionService.createSession(`Sessão ${new Date().toLocaleString('pt-BR')}`)
         }
 
+        // Usar o ID da sessão (pode ser o original ou o da nova sessão criada)
+        const actualSessionId = session.id
+
         // Notificar que a mensagem está sendo processada
-        socket.to(sessionId).emit('message-processing', 'Processando sua consulta...')
+        socket.to(actualSessionId).emit('message-processing', 'Processando sua consulta...')
 
         // Adicionar mensagem do usuário
-        const userMessage = sessionService.addMessage(sessionId, {
+        const userMessage = sessionService.addMessage(actualSessionId, {
           type: 'user',
           content: message
         })
 
         if (userMessage) {
           // Enviar mensagem do usuário para todos na sessão
-          io.to(sessionId).emit('message-received', userMessage)
+          io.to(actualSessionId).emit('message-received', userMessage)
         }
 
         // Simular processamento (será substituído por LLM real)
@@ -48,7 +51,7 @@ export function setupWebSocketHandlers(io: Server) {
         const queryResult = await simulateQueryExecution(sqlQuery)
 
         // Adicionar mensagem de resposta
-        const assistantMessage = sessionService.addMessage(sessionId, {
+        const assistantMessage = sessionService.addMessage(actualSessionId, {
           type: 'assistant',
           content: `Consulta processada com sucesso. SQL gerado e executado.`,
           sqlQuery,
@@ -57,7 +60,7 @@ export function setupWebSocketHandlers(io: Server) {
 
         if (assistantMessage) {
           // Enviar resposta para todos na sessão
-          io.to(sessionId).emit('message-received', assistantMessage)
+          io.to(actualSessionId).emit('message-received', assistantMessage)
         }
 
       } catch (error) {
@@ -86,7 +89,7 @@ function generateId(): string {
 
 async function simulateLLMResponse(prompt: string): Promise<string> {
   await new Promise(resolve => setTimeout(resolve, 1500))
-  
+
   if (prompt.toLowerCase().includes('universidade')) {
     return 'SELECT * FROM universidades WHERE nome LIKE \'%universidade%\' LIMIT 10;'
   } else if (prompt.toLowerCase().includes('professor')) {
@@ -100,7 +103,7 @@ async function simulateLLMResponse(prompt: string): Promise<string> {
 
 async function simulateQueryExecution(sql: string): Promise<any> {
   await new Promise(resolve => setTimeout(resolve, 800))
-  
+
   return {
     columns: ['id', 'nome', 'tipo', 'regiao'],
     rows: [

@@ -27,8 +27,11 @@ router.post('/message', async (req, res) => {
       session = sessionService.createSession(`Sessão ${new Date().toLocaleString('pt-BR')}`)
     }
 
+    // Usar o ID da sessão (pode ser o original ou o da nova sessão criada)
+    const actualSessionId = session.id
+
     // Adicionar mensagem do usuário
-    const userMessage = sessionService.addMessage(sessionId, {
+    const userMessage = sessionService.addMessage(actualSessionId, {
       type: 'user',
       content: message
     })
@@ -47,7 +50,7 @@ router.post('/message', async (req, res) => {
     const queryResult = await simulateQueryExecution(sqlQuery)
 
     // Adicionar mensagem de resposta
-    const assistantMessage = sessionService.addMessage(sessionId, {
+    const assistantMessage = sessionService.addMessage(actualSessionId, {
       type: 'assistant',
       content: `Consulta processada com sucesso. Encontrei ${queryResult.rowCount} resultados.`,
       sqlQuery,
@@ -101,7 +104,7 @@ function generateId(): string {
 async function simulateLLMResponse(prompt: string): Promise<string> {
   // Simular delay de processamento
   await new Promise(resolve => setTimeout(resolve, 1000))
-  
+
   // Gerar SQL simples baseado no prompt
   if (prompt.toLowerCase().includes('universidade')) {
     return 'SELECT * FROM universidades WHERE nome LIKE \'%universidade%\' LIMIT 10;'

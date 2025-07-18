@@ -7,16 +7,16 @@ import { MessageSquare, Plus, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function Sidebar() {
-  const { 
-    sessions, 
-    currentSession, 
-    setCurrentSession, 
-    createNewSession, 
-    deleteSession 
+  const {
+    sessions,
+    currentSession,
+    setCurrentSession,
+    createNewSession,
+    deleteSession
   } = useAppStore()
 
-  const handleNewSession = () => {
-    createNewSession()
+  const handleNewSession = async () => {
+    await createNewSession()
   }
 
   const handleSelectSession = (sessionId: string) => {

@@ -8,7 +8,7 @@ interface AppStore extends AppState {
   // Actions
   setCurrentSession: (session: ChatSession | null) => void
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
-  createNewSession: (title?: string) => void
+  createNewSession: (title?: string) => Promise<void>
   updateSessionTitle: (sessionId: string, title: string) => void
   setSelectedModel: (model: LLMModel) => void
   setDatabaseConnection: (connection: DatabaseConnection) => void
@@ -86,20 +86,43 @@ export const useAppStore = create<AppStore>()(
         })
       },
 
-      createNewSession: (title) => {
-        const newSession: ChatSession = {
-          id: crypto.randomUUID(),
-          title: title || `Nova Sessão ${new Date().toLocaleString()}`,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          messages: [],
-          model: get().selectedModel || defaultModels[0]
-        }
+      createNewSession: async (title) => {
+        try {
+          // Criar sessão no backend primeiro
+          const response = await apiService.post('/sessions', {
+            title: title || `Nova Sessão ${new Date().toLocaleString()}`,
+            model: get().selectedModel?.id || defaultModels[0].id
+          })
 
-        set((state) => ({
-          currentSession: newSession,
-          sessions: [newSession, ...state.sessions]
-        }))
+          if (response.success && response.session) {
+            const newSession: ChatSession = {
+              ...response.session,
+              createdAt: new Date(response.session.createdAt),
+              updatedAt: new Date(response.session.updatedAt)
+            }
+
+            set((state) => ({
+              currentSession: newSession,
+              sessions: [newSession, ...state.sessions]
+            }))
+          }
+        } catch (error) {
+          console.error('Erro ao criar sessão:', error)
+          // Fallback: criar sessão apenas localmente
+          const newSession: ChatSession = {
+            id: crypto.randomUUID(),
+            title: title || `Nova Sessão ${new Date().toLocaleString()}`,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            messages: [],
+            model: get().selectedModel || defaultModels[0]
+          }
+
+          set((state) => ({
+            currentSession: newSession,
+            sessions: [newSession, ...state.sessions]
+          }))
+        }
       },
 
       updateSessionTitle: (sessionId, title) => {

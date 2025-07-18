@@ -43,7 +43,7 @@ export function ChatInterface() {
 
     // Se não há sessão atual, criar uma nova
     if (!currentSession) {
-      createNewSession()
+      await createNewSession()
       return
     }
 
@@ -105,9 +105,9 @@ export function ChatInterface() {
               <MessageBubble key={message.id} message={message} />
             ))
           )}
-          
+
           {isLoading && (
-            <MessageBubble 
+            <MessageBubble
               message={{
                 id: 'loading',
                 type: 'system',
@@ -131,7 +131,7 @@ export function ChatInterface() {
               className="flex-1"
               disabled={isLoading}
             />
-            <Button 
+            <Button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isLoading}
               size="icon"
