@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/stores/app-store"
@@ -7,6 +8,7 @@ import { MessageSquare, Plus, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function Sidebar() {
+  const [isHydrated, setIsHydrated] = useState(false)
   const {
     sessions,
     currentSession,
@@ -15,12 +17,29 @@ export function Sidebar() {
     deleteSession
   } = useAppStore()
 
+  // Garantir hidratação no cliente
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+
+  // Garantir que sessions é sempre um array
+  const safeSessions = Array.isArray(sessions) ? sessions : []
+
+  // Não renderizar até estar hidratado
+  if (!isHydrated) {
+    return (
+      <div className="w-80 border-r bg-muted/10 flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Carregando...</p>
+      </div>
+    )
+  }
+
   const handleNewSession = async () => {
     await createNewSession()
   }
 
   const handleSelectSession = (sessionId: string) => {
-    const session = sessions.find(s => s.id === sessionId)
+    const session = safeSessions.find(s => s.id === sessionId)
     if (session) {
       setCurrentSession(session)
     }
@@ -44,7 +63,7 @@ export function Sidebar() {
       {/* Lista de Sessões */}
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-2">
-          {sessions.length === 0 ? (
+          {safeSessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground">
@@ -55,7 +74,7 @@ export function Sidebar() {
               </p>
             </div>
           ) : (
-            sessions.map((session) => (
+            safeSessions.map((session) => (
               <div
                 key={session.id}
                 onClick={() => handleSelectSession(session.id)}
@@ -69,7 +88,7 @@ export function Sidebar() {
                     {session.title}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {session.messages.length} mensagens
+                    {(session.messages || []).length} mensagens
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(session.updatedAt).toLocaleDateString('pt-BR')}
@@ -92,7 +111,7 @@ export function Sidebar() {
       {/* Footer da Sidebar */}
       <div className="p-4 border-t">
         <div className="text-xs text-muted-foreground space-y-1">
-          <p>Total: {sessions.length} sessões</p>
+          <p>Total: {safeSessions.length} sessões</p>
           <p>Modelo: {useAppStore.getState().selectedModel?.name}</p>
         </div>
       </div>

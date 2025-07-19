@@ -5,9 +5,11 @@ import { useAppStore } from "@/stores/app-store"
 import { Database, Settings, Zap } from "lucide-react"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { useTheme } from "@/components/theme/theme-provider"
+import { ModelSelector } from "@/components/ui/model-selector"
+import { UserMenu } from "@/components/layout/user-menu"
 
 export function Header() {
-  const { selectedModel, databaseConnection, isConnected } = useAppStore()
+  const { databaseConnection, isConnected } = useAppStore()
   const { theme } = useTheme()
 
   return (
@@ -26,11 +28,8 @@ export function Header() {
 
         {/* Status e Configurações */}
         <div className="flex items-center space-x-4">
-          {/* Status do Modelo */}
-          <div className="flex items-center space-x-2 rounded-lg border px-3 py-1.5">
-            <div className="h-2 w-2 rounded-full bg-green-500" />
-            <span className="text-sm font-medium">{selectedModel?.name || 'Nenhum modelo'}</span>
-          </div>
+          {/* Seletor de Modelo */}
+          <ModelSelector />
 
           {/* Status do Banco */}
           <div className="flex items-center space-x-2 rounded-lg border px-3 py-1.5">
@@ -44,10 +43,8 @@ export function Header() {
           {/* Seletor de Tema */}
           <ThemeToggle />
 
-          {/* Botão de Configurações */}
-          <Button variant="ghost" size="icon">
-            <Settings className="h-4 w-4" />
-          </Button>
+          {/* Menu do Usuário */}
+          <UserMenu />
         </div>
       </div>
     </header>

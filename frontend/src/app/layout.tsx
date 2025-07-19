@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { AuthInitializer } from "@/components/auth/auth-initializer";
+import { AuthDebug } from "@/components/debug/auth-debug";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,7 +27,10 @@ export default function RootLayout({
           defaultTheme="light"
           storageKey="querylab-ui-theme"
         >
-          {children}
+          <AuthInitializer>
+            {children}
+            <AuthDebug />
+          </AuthInitializer>
         </ThemeProvider>
       </body>
     </html>

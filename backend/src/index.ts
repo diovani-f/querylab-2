@@ -5,9 +5,12 @@ import { Server } from 'socket.io'
 import dotenv from 'dotenv'
 
 // Importar rotas
+import authRoutes from './routes/auth'
 import chatRoutes from './routes/chat'
 import healthRoutes from './routes/health'
 import sessionsRoutes from './routes/sessions'
+import historyRoutes from './routes/history'
+import favoritesRoutes from './routes/favorites'
 
 // Importar WebSocket handlers
 import { setupWebSocketHandlers } from './websockets/handlers'
@@ -38,9 +41,12 @@ app.use(cors({
 app.use(express.json())
 
 // Rotas
+app.use('/api/auth', authRoutes)
 app.use('/api/health', healthRoutes)
 app.use('/api/chat', chatRoutes)
 app.use('/api/sessions', sessionsRoutes)
+app.use('/api/history', historyRoutes)
+app.use('/api/favorites', favoritesRoutes)
 
 // Setup WebSocket handlers
 setupWebSocketHandlers(io)

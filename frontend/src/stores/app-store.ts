@@ -4,9 +4,23 @@ import { AppState, ChatSession, Message, LLMModel, DatabaseConnection } from '@/
 import { apiService } from '@/lib/api'
 import { websocketService } from '@/lib/websocket'
 
+// Função utilitária para normalizar datas
+const normalizeMessage = (message: any): Message => ({
+  ...message,
+  timestamp: new Date(message.timestamp)
+})
+
+const normalizeSession = (session: any): ChatSession => ({
+  ...session,
+  createdAt: new Date(session.createdAt),
+  updatedAt: new Date(session.updatedAt),
+  messages: (session.messages || []).map(normalizeMessage)
+})
+
 interface AppStore extends AppState {
   // Actions
   setCurrentSession: (session: ChatSession | null) => void
+  setSessions: (sessions: ChatSession[]) => void
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
   createNewSession: (title?: string) => Promise<void>
   updateSessionTitle: (sessionId: string, title: string) => void
@@ -14,6 +28,7 @@ interface AppStore extends AppState {
   setDatabaseConnection: (connection: DatabaseConnection) => void
   setConnectionStatus: (isConnected: boolean) => void
   loadSessions: () => void
+  loadModels: () => Promise<void>
   deleteSession: (sessionId: string) => void
   sendMessage: (content: string) => Promise<void>
   initializeWebSocket: () => void
@@ -22,25 +37,12 @@ interface AppStore extends AppState {
 
 const defaultModels: LLMModel[] = [
   {
-    id: 'gpt-4',
-    name: 'GPT-4',
-    description: 'OpenAI GPT-4 - Mais avançado para consultas complexas',
-    provider: 'openai',
-    isAvailable: true
-  },
-  {
-    id: 'gpt-3.5-turbo',
-    name: 'GPT-3.5 Turbo',
-    description: 'OpenAI GPT-3.5 - Rápido e eficiente',
-    provider: 'openai',
-    isAvailable: true
-  },
-  {
-    id: 'claude-3',
-    name: 'Claude 3',
-    description: 'Anthropic Claude 3 - Excelente para análise de dados',
-    provider: 'anthropic',
-    isAvailable: true
+    id: 'llama3-70b-8192',
+    name: 'Llama 3 70B',
+    description: 'Modelo padrão para consultas SQL',
+    provider: 'groq',
+    maxTokens: 8192,
+    isDefault: true
   }
 ]
 
@@ -57,7 +59,15 @@ export const useAppStore = create<AppStore>()(
       user: null,
 
       // Actions
-      setCurrentSession: (session) => set({ currentSession: session }),
+      setCurrentSession: (session) => {
+        const normalizedSession = session ? normalizeSession(session) : null
+        set({ currentSession: normalizedSession })
+      },
+
+      setSessions: (sessions) => {
+        const normalizedSessions = (sessions || []).map(normalizeSession)
+        set({ sessions: normalizedSessions })
+      },
 
       addMessage: (messageData) => {
         const message: Message = {
@@ -88,18 +98,23 @@ export const useAppStore = create<AppStore>()(
 
       createNewSession: async (title) => {
         try {
+          // Obter usuário do auth store
+          const { useAuthStore } = await import('./auth-store')
+          const user = useAuthStore.getState().user
+
+          if (!user) {
+            throw new Error('Usuário não autenticado')
+          }
+
           // Criar sessão no backend primeiro
           const response = await apiService.post('/sessions', {
             title: title || `Nova Sessão ${new Date().toLocaleString()}`,
-            model: get().selectedModel?.id || defaultModels[0].id
+            model: get().selectedModel?.id || defaultModels[0].id,
+            userId: user.id
           })
 
           if (response.success && response.session) {
-            const newSession: ChatSession = {
-              ...response.session,
-              createdAt: new Date(response.session.createdAt),
-              updatedAt: new Date(response.session.updatedAt)
-            }
+            const newSession = normalizeSession(response.session)
 
             set((state) => ({
               currentSession: newSession,
@@ -108,9 +123,9 @@ export const useAppStore = create<AppStore>()(
           }
         } catch (error) {
           console.error('Erro ao criar sessão:', error)
-          // Fallback: criar sessão apenas localmente
+          // Fallback: criar sessão apenas localmente (temporário)
           const newSession: ChatSession = {
-            id: crypto.randomUUID(),
+            id: `temp-${crypto.randomUUID()}`,
             title: title || `Nova Sessão ${new Date().toLocaleString()}`,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -161,6 +176,26 @@ export const useAppStore = create<AppStore>()(
         }
       },
 
+      loadModels: async () => {
+        try {
+          const response = await apiService.get('/chat/models')
+          if (response.success && response.models) {
+            set(() => ({
+              availableModels: response.models,
+              selectedModel: response.models.find((m: LLMModel) => m.isDefault) || response.models[0]
+            }))
+            console.log(`✅ ${response.models.length} modelos LLM carregados`)
+          }
+        } catch (error) {
+          console.error('❌ Erro ao carregar modelos:', error)
+          // Usar modelos padrão em caso de erro
+          set(() => ({
+            availableModels: defaultModels,
+            selectedModel: defaultModels[0]
+          }))
+        }
+      },
+
       deleteSession: (sessionId) => {
         set((state) => {
           const updatedSessions = state.sessions.filter(session => session.id !== sessionId)
@@ -182,11 +217,16 @@ export const useAppStore = create<AppStore>()(
         }
 
         try {
-          // Enviar via WebSocket
+          // Obter usuário do auth store
+          const { useAuthStore } = await import('./auth-store')
+          const user = useAuthStore.getState().user
+
+          // Enviar via WebSocket (o backend vai adicionar a mensagem e retornar via WebSocket)
           websocketService.sendMessage({
             sessionId: state.currentSession.id,
             message: content,
-            model: state.selectedModel.id
+            model: state.selectedModel.id,
+            userId: user?.id
           })
         } catch (error) {
           console.error('Erro ao enviar mensagem:', error)
@@ -195,15 +235,18 @@ export const useAppStore = create<AppStore>()(
       },
 
       initializeWebSocket: () => {
+        console.log('🔌 Inicializando WebSocket...')
         websocketService.connect()
 
         // Setup listeners
         websocketService.onMessageReceived((message: Message) => {
-          get().addMessage(message)
+          console.log('📨 Mensagem recebida via WebSocket:', message)
+          const normalizedMessage = normalizeMessage(message)
+          get().addMessage(normalizedMessage)
         })
 
         websocketService.onError((error: string) => {
-          console.error('WebSocket error:', error)
+          console.error('❌ WebSocket error:', error)
         })
       },
 

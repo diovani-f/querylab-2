@@ -12,6 +12,7 @@ import { websocketService } from "@/lib/websocket"
 export function ChatInterface() {
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
 
   const {
     currentSession,
@@ -21,6 +22,11 @@ export function ChatInterface() {
     initializeWebSocket,
     disconnectWebSocket
   } = useAppStore()
+
+  // Garantir hidratação no cliente
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   // Initialize WebSocket on component mount
   useEffect(() => {
@@ -71,6 +77,15 @@ export function ChatInterface() {
     }
   }
 
+  // Não renderizar até estar hidratado
+  if (!isHydrated) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    )
+  }
+
   if (!currentSession) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -94,14 +109,14 @@ export function ChatInterface() {
       {/* Área de Mensagens */}
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4 max-w-4xl mx-auto">
-          {currentSession.messages.length === 0 ? (
+          {(currentSession?.messages || []).length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 Digite sua primeira consulta abaixo para começar
               </p>
             </div>
           ) : (
-            currentSession.messages.map((message) => (
+            (currentSession?.messages || []).map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))
           )}
@@ -126,7 +141,7 @@ export function ChatInterface() {
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Digite sua consulta em linguagem natural..."
               className="flex-1"
               disabled={isLoading}

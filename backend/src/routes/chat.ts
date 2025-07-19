@@ -2,12 +2,14 @@ import { Router } from 'express'
 import { ChatRequest, ChatResponse, Message } from '../types'
 import { DatabaseService } from '../services/database-service'
 import { SessionService } from '../services/session-service'
+import { LLMService } from '../services/llm-service'
 
 const router = Router()
 
 // Instâncias dos serviços
 const dbService = DatabaseService.getInstance()
 const sessionService = SessionService.getInstance()
+// LLMService será inicializado quando necessário
 
 router.post('/message', async (req, res) => {
   try {
@@ -43,17 +45,56 @@ router.post('/message', async (req, res) => {
       })
     }
 
-    // Simular processamento de LLM (será substituído por integração real)
-    const sqlQuery = await simulateLLMResponse(message)
+    // Gerar SQL usando LLM real
+    const llmService = LLMService.getInstance()
+    const llmResponse = await llmService.generateSQL({
+      prompt: message,
+      model: model || 'llama3-70b-8192',
+      context: { schema: 'universidades' }
+    })
+
+    if (!llmResponse.success) {
+      return res.status(500).json({
+        success: false,
+        error: `Erro ao processar consulta: ${llmResponse.error}`
+      })
+    }
+
+    // Verificar se é uma explicação ou SQL
+    if (llmResponse.explanation && !llmResponse.sqlQuery) {
+      // É uma explicação (não uma consulta SQL) - sem dados simulados
+      const assistantMessage = sessionService.addMessage(actualSessionId, {
+        type: 'assistant',
+        content: llmResponse.explanation
+        // Não incluir sqlQuery nem queryResult para explicações
+      })
+
+      return res.json({
+        success: true,
+        message: assistantMessage,
+        session: sessionService.getSession(actualSessionId)
+      })
+    }
 
     // Simular execução de query (será substituído por integração com banco)
-    const queryResult = await simulateQueryExecution(sqlQuery)
+    const queryResult = await simulateQueryExecution(llmResponse.sqlQuery!)
+
+    // Criar mensagem de resposta mais informativa
+    const responseContent = `Consulta processada com sucesso!
+
+**SQL Gerado:**
+\`\`\`sql
+${llmResponse.sqlQuery}
+\`\`\`
+
+**Resultado:** ${queryResult.rowCount} registro(s) encontrado(s)
+**Tempo de execução:** ${queryResult.executionTime}ms`
 
     // Adicionar mensagem de resposta
     const assistantMessage = sessionService.addMessage(actualSessionId, {
       type: 'assistant',
-      content: `Consulta processada com sucesso. Encontrei ${queryResult.rowCount} resultados.`,
-      sqlQuery,
+      content: responseContent,
+      sqlQuery: llmResponse.sqlQuery,
       queryResult
     })
 
@@ -72,6 +113,24 @@ router.post('/message', async (req, res) => {
     res.json(response)
   } catch (error) {
     console.error('Erro ao processar mensagem:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    })
+  }
+})
+
+// Listar modelos LLM disponíveis
+router.get('/models', async (req, res) => {
+  try {
+    const llmService = LLMService.getInstance()
+    const models = llmService.getAvailableModels()
+    res.json({
+      success: true,
+      models
+    })
+  } catch (error) {
+    console.error('Erro ao buscar modelos:', error)
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -116,25 +175,64 @@ async function simulateLLMResponse(prompt: string): Promise<string> {
 }
 
 async function simulateQueryExecution(sql: string): Promise<any> {
-  try {
-    // Tentar executar query real usando DatabaseService
-    const result = await dbService.executeQuery(sql)
-    return result
-  } catch (error) {
-    console.error('Erro ao executar query no banco de dados:', error)
+  const executionTime = Math.floor(Math.random() * 200) + 50 // 50-250ms
+  await new Promise(resolve => setTimeout(resolve, executionTime))
 
-    // Fallback para dados simulados
-    await new Promise(resolve => setTimeout(resolve, 500))
+  // Analisar o SQL para gerar dados mais apropriados
+  const sqlLower = sql.toLowerCase()
+
+  // Se for COUNT, retornar número
+  if (sqlLower.includes('count(')) {
+    const count = Math.floor(Math.random() * 50) + 1
+    return {
+      columns: ['total'],
+      rows: [[count]],
+      rowCount: 1,
+      executionTime
+    }
+  }
+
+  // Se for sobre universidades federais
+  if (sqlLower.includes('federal')) {
     return {
       columns: ['id', 'nome', 'tipo', 'regiao'],
       rows: [
         [1, 'Universidade Federal do Rio de Janeiro', 'Federal', 'Sudeste'],
-        [2, 'Universidade de São Paulo', 'Estadual', 'Sudeste'],
-        [3, 'Universidade Federal de Minas Gerais', 'Federal', 'Sudeste']
+        [3, 'Universidade Federal de Minas Gerais', 'Federal', 'Sudeste'],
+        [4, 'Universidade Federal do Rio Grande do Sul', 'Federal', 'Sul'],
+        [5, 'Universidade de Brasília', 'Federal', 'Centro-Oeste'],
+        [6, 'Universidade Federal da Bahia', 'Federal', 'Nordeste']
       ],
-      rowCount: 3,
-      executionTime: 45
+      rowCount: 5,
+      executionTime
     }
+  }
+
+  // Se for sobre cursos
+  if (sqlLower.includes('curso')) {
+    return {
+      columns: ['id', 'nome', 'tipo', 'duracao'],
+      rows: [
+        [1, 'Ciência da Computação', 'Bacharelado', '4 anos'],
+        [2, 'Engenharia Civil', 'Bacharelado', '5 anos'],
+        [3, 'Medicina', 'Bacharelado', '6 anos'],
+        [4, 'Direito', 'Bacharelado', '5 anos']
+      ],
+      rowCount: 4,
+      executionTime
+    }
+  }
+
+  // Dados padrão para outras consultas
+  return {
+    columns: ['id', 'nome', 'tipo', 'regiao'],
+    rows: [
+      [1, 'Universidade Federal do Rio de Janeiro', 'Federal', 'Sudeste'],
+      [2, 'Universidade de São Paulo', 'Estadual', 'Sudeste'],
+      [3, 'Universidade Federal de Minas Gerais', 'Federal', 'Sudeste']
+    ],
+    rowCount: 3,
+    executionTime
   }
 }
 

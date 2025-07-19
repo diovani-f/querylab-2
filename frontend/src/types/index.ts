@@ -23,12 +23,15 @@ export interface ChatSession {
   model: LLMModel
 }
 
+export type LLMProvider = 'groq' | 'openai' | 'anthropic' | 'local'
+
 export interface LLMModel {
   id: string
   name: string
   description: string
-  provider: 'openai' | 'anthropic' | 'local'
-  isAvailable: boolean
+  provider: LLMProvider
+  maxTokens: number
+  isDefault: boolean
 }
 
 export interface DatabaseConnection {
@@ -40,10 +43,48 @@ export interface DatabaseConnection {
 }
 
 export interface User {
-  id: string
-  name: string
+  id: number
+  nome: string
   email: string
   role: 'admin' | 'user'
+  avatar?: string
+  created_at: string
+  updated_at: string
+  last_login?: string
+  is_active: boolean
+  preferences: {
+    theme: 'light' | 'dark'
+    language: string
+    default_model: string
+  }
+}
+
+export interface UserRegistration {
+  nome: string
+  email: string
+  senha: string
+}
+
+export interface UserLogin {
+  email: string
+  senha: string
+}
+
+export interface AuthResponse {
+  success: boolean
+  user?: User
+  token?: string
+  message?: string
+  error?: string
+}
+
+
+
+export interface ChatRequest {
+  sessionId: string
+  message: string
+  model?: string
+  userId?: number
 }
 
 export interface AppState {
@@ -56,11 +97,7 @@ export interface AppState {
   user: User | null
 }
 
-export interface ChatRequest {
-  sessionId: string
-  message: string
-  model: string
-}
+
 
 export interface ChatResponse {
   success: boolean

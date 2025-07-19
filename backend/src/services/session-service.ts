@@ -32,7 +32,7 @@ export class SessionService {
     try {
       const data = await fs.readFile(this.sessionsFilePath, 'utf-8')
       const sessionsArray: ChatSession[] = JSON.parse(data)
-      
+
       this.sessions.clear()
       sessionsArray.forEach(session => {
         // Converter strings de data de volta para objetos Date
@@ -41,10 +41,10 @@ export class SessionService {
         session.messages.forEach(message => {
           message.timestamp = new Date(message.timestamp)
         })
-        
+
         this.sessions.set(session.id, session)
       })
-      
+
       console.log(`✅ ${sessionsArray.length} sessões carregadas`)
     } catch (error) {
       if ((error as any).code === 'ENOENT') {
@@ -77,7 +77,7 @@ export class SessionService {
 
     this.sessions.set(session.id, session)
     this.saveSessions() // Salvar automaticamente
-    
+
     console.log(`📝 Nova sessão criada: ${session.id}`)
     return session
   }
@@ -105,7 +105,7 @@ export class SessionService {
 
     this.sessions.set(sessionId, updatedSession)
     this.saveSessions() // Salvar automaticamente
-    
+
     return updatedSession
   }
 
@@ -151,7 +151,7 @@ export class SessionService {
   getSessionStats(): any {
     const sessions = Array.from(this.sessions.values())
     const totalMessages = sessions.reduce((sum, session) => sum + session.messages.length, 0)
-    
+
     return {
       totalSessions: sessions.length,
       totalMessages,
@@ -165,9 +165,9 @@ export class SessionService {
   searchSessions(query: string): ChatSession[] {
     const queryLower = query.toLowerCase()
     return Array.from(this.sessions.values())
-      .filter(session => 
+      .filter(session =>
         session.title.toLowerCase().includes(queryLower) ||
-        session.messages.some(message => 
+        session.messages.some(message =>
           message.content.toLowerCase().includes(queryLower)
         )
       )
@@ -187,7 +187,7 @@ export class SessionService {
   // Importar sessões
   async importSessions(sessions: ChatSession[]): Promise<number> {
     let imported = 0
-    
+
     for (const session of sessions) {
       // Verificar se a sessão já existe
       if (!this.sessions.has(session.id)) {
@@ -198,7 +198,7 @@ export class SessionService {
         if (typeof session.updatedAt === 'string') {
           session.updatedAt = new Date(session.updatedAt)
         }
-        
+
         session.messages.forEach(message => {
           if (typeof message.timestamp === 'string') {
             message.timestamp = new Date(message.timestamp)
@@ -224,11 +224,12 @@ export class SessionService {
 
   private getDefaultModel(): LLMModel {
     return {
-      id: 'gpt-4',
-      name: 'GPT-4',
-      description: 'OpenAI GPT-4 - Mais avançado para consultas complexas',
-      provider: 'openai',
-      isAvailable: true
+      id: 'llama3-70b-8192',
+      name: 'Llama 3 70B',
+      description: 'Modelo padrão para consultas SQL',
+      provider: 'groq',
+      maxTokens: 8192,
+      isDefault: true
     }
   }
 
