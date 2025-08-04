@@ -1,93 +1,33 @@
 import { Server, Socket } from 'socket.io'
 import { WebSocketEvents, ChatRequest, Message, ChatSession } from '../types'
 import { SessionService } from '../services/session-service'
-import { DatabaseService } from '../services/database-service'
 import { LLMService } from '../services/llm-service'
 
 const JSON_SERVER_URL = process.env.JSON_SERVER_URL || 'http://localhost:3001'
 
 // Funções auxiliares para trabalhar com o banco de dados
 async function getSessionFromDatabase(sessionId: string): Promise<ChatSession | null> {
-  try {
-    const response = await fetch(`${JSON_SERVER_URL}/sessoes/${sessionId}`)
-    if (!response.ok) return null
-
-    const sessionData = await response.json()
-    return {
-      id: sessionData.id,
-      title: sessionData.titulo,
-      createdAt: new Date(sessionData.created_at),
-      updatedAt: new Date(sessionData.updated_at),
-      messages: sessionData.mensagens?.map((msg: any) => ({
-        id: msg.id,
-        type: msg.tipo,
-        content: msg.conteudo,
-        timestamp: new Date(msg.timestamp),
-        sqlQuery: msg.sql_query,
-        queryResult: msg.query_result
-      })) || [],
-      model: {
-        id: sessionData.modelo?.id || 'llama3-70b-8192',
-        name: sessionData.modelo?.name || 'Llama 3 70B',
-        description: sessionData.modelo?.description || 'Modelo padrão para consultas SQL',
-        provider: sessionData.modelo?.provider || 'groq',
-        maxTokens: sessionData.modelo?.maxTokens || 8192,
-        isDefault: sessionData.modelo?.isDefault || true
-      }
-    }
-  } catch (error) {
-    console.error('Erro ao buscar sessão:', error)
-    return null
-  }
+  // Agora usar o SessionService que já carrega do JSON Server
+  const sessionService = SessionService.getInstance()
+  await sessionService.loadSessions() // Garantir que as sessões estão carregadas
+  return sessionService.getSession(sessionId)
 }
 
-async function createSessionInDatabase(userId: number, title: string, model?: string): Promise<ChatSession | null> {
+async function createSessionInDatabase(userId: number | string, title: string, model?: string): Promise<ChatSession | null> {
+  // Usar o SessionService para criar a sessão
+  const sessionService = SessionService.getInstance()
+
+  const modelObj = {
+    id: model || 'llama3-70b-8192',
+    name: 'Llama 3 70B',
+    description: 'Modelo padrão para consultas SQL',
+    provider: 'groq' as const,
+    maxTokens: 8192,
+    isDefault: true
+  }
+
   try {
-    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
-    const now = new Date().toISOString()
-
-    const sessionData = {
-      id: sessionId,
-      titulo: title,
-      usuario_id: userId,
-      created_at: now,
-      updated_at: now,
-      modelo: {
-        id: model || 'llama3-70b-8192',
-        name: 'Llama 3 70B',
-        description: 'Modelo padrão para consultas SQL',
-        provider: 'groq',
-        maxTokens: 8192,
-        isDefault: true
-      },
-      mensagens: [],
-      is_favorita: false,
-      tags: []
-    }
-
-    const response = await fetch(`${JSON_SERVER_URL}/sessoes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sessionData)
-    })
-
-    if (!response.ok) return null
-
-    return {
-      id: sessionId,
-      title,
-      createdAt: new Date(now),
-      updatedAt: new Date(now),
-      messages: [],
-      model: {
-        id: model || 'llama3-70b-8192',
-        name: 'Llama 3 70B',
-        description: 'Modelo padrão para consultas SQL',
-        provider: 'groq',
-        maxTokens: 8192,
-        isDefault: true
-      }
-    }
+    return await sessionService.createSession(title, modelObj, userId)
   } catch (error) {
     console.error('Erro ao criar sessão:', error)
     return null
@@ -95,46 +35,11 @@ async function createSessionInDatabase(userId: number, title: string, model?: st
 }
 
 async function addMessageToDatabase(sessionId: string, messageData: Omit<Message, 'id' | 'timestamp'>): Promise<Message | null> {
+  // Usar o SessionService para adicionar a mensagem
+  const sessionService = SessionService.getInstance()
+
   try {
-    // Primeiro, buscar a sessão atual
-    const sessionResponse = await fetch(`${JSON_SERVER_URL}/sessoes/${sessionId}`)
-    if (!sessionResponse.ok) return null
-
-    const session = await sessionResponse.json()
-
-    // Criar nova mensagem
-    const newMessage = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-      tipo: messageData.type,
-      conteudo: messageData.content,
-      timestamp: new Date().toISOString(),
-      sql_query: messageData.sqlQuery,
-      query_result: messageData.queryResult
-    }
-
-    // Adicionar mensagem à lista
-    const updatedMessages = [...(session.mensagens || []), newMessage]
-
-    // Atualizar sessão no banco
-    const updateResponse = await fetch(`${JSON_SERVER_URL}/sessoes/${sessionId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mensagens: updatedMessages,
-        updated_at: new Date().toISOString()
-      })
-    })
-
-    if (!updateResponse.ok) return null
-
-    return {
-      id: newMessage.id,
-      type: messageData.type,
-      content: messageData.content,
-      timestamp: new Date(newMessage.timestamp),
-      sqlQuery: messageData.sqlQuery,
-      queryResult: messageData.queryResult
-    }
+    return await sessionService.addMessage(sessionId, messageData)
   } catch (error) {
     console.error('Erro ao adicionar mensagem:', error)
     return null
@@ -166,9 +71,6 @@ async function saveToHistory(userId: number, sessionId: string, consulta: string
 }
 
 export function setupWebSocketHandlers(io: Server) {
-  const sessionService = SessionService.getInstance()
-  const dbService = DatabaseService.getInstance()
-
   io.on('connection', (socket: Socket) => {
     console.log(`🔌 Cliente conectado: ${socket.id}`)
 
@@ -230,7 +132,7 @@ export function setupWebSocketHandlers(io: Server) {
 
         if (!llmResponse.success) {
           // Enviar mensagem de erro
-          const errorMessage = sessionService.addMessage(actualSessionId, {
+          const errorMessage = await addMessageToDatabase(actualSessionId, {
             type: 'error',
             content: `Erro ao processar consulta: ${llmResponse.error}`
           })

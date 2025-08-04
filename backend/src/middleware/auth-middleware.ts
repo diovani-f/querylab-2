@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express'
+import { Response, NextFunction } from 'express'
 import { AuthService } from '../services/auth-service'
 import { AuthRequest } from '../types'
 
@@ -33,7 +33,7 @@ export const authMiddleware = async (
 
     // Buscar dados completos do usuário
     const user = await authService.getUserById(decoded.userId)
-    
+
     if (!user) {
       res.status(401).json({
         success: false,
@@ -41,6 +41,12 @@ export const authMiddleware = async (
       })
       return
     }
+
+    console.log('🔐 Usuário autenticado:', {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    })
 
     // Adicionar usuário ao request
     req.user = user

@@ -43,7 +43,7 @@ export interface DatabaseConnection {
 }
 
 export interface User {
-  id: number
+  id: number | string
   nome: string
   email: string
   senha: string
@@ -80,7 +80,7 @@ export interface AuthResponse {
 }
 
 export interface JWTPayload {
-  userId: number
+  userId: number | string
   email: string
   role: string
   iat?: number

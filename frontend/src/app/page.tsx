@@ -5,16 +5,27 @@ import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { ChatInterface } from "@/components/chat/chat-interface"
 import { useAppStore } from "@/stores/app-store"
+import { useAuthStore } from "@/stores/auth-store"
 import { AuthenticatedRoute } from "@/components/auth/protected-route"
 
 export default function Home() {
-  const { loadModels, initializeWebSocket } = useAppStore()
+  const { loadModels, loadSessions, initializeWebSocket } = useAppStore()
+  const { isAuthenticated, user } = useAuthStore()
 
   // Carregar modelos e inicializar WebSocket quando a aplicação iniciar
   useEffect(() => {
     loadModels()
     initializeWebSocket()
   }, [loadModels, initializeWebSocket])
+
+  // Carregar sessões apenas quando o usuário estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('🔄 Usuário autenticado, carregando sessões...')
+      loadSessions()
+    }
+  }, [isAuthenticated, user, loadSessions])
+
   return (
     <AuthenticatedRoute>
       <div className="h-screen flex flex-col">

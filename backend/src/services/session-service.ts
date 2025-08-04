@@ -1,15 +1,12 @@
 import { ChatSession, Message, LLMModel } from '../types'
-import fs from 'fs/promises'
-import path from 'path'
 
 export class SessionService {
   private static instance: SessionService | null = null
   private sessions: Map<string, ChatSession> = new Map()
-  private sessionsFilePath: string
+  private jsonServerUrl: string
 
   private constructor() {
-    this.sessionsFilePath = path.join(process.cwd(), 'data', 'sessions.json')
-    this.ensureDataDirectory()
+    this.jsonServerUrl = process.env.JSON_SERVER_URL || 'http://localhost:3001'
   }
 
   static getInstance(): SessionService {
@@ -19,64 +16,108 @@ export class SessionService {
     return this.instance
   }
 
-  private async ensureDataDirectory(): Promise<void> {
-    try {
-      const dataDir = path.dirname(this.sessionsFilePath)
-      await fs.mkdir(dataDir, { recursive: true })
-    } catch (error) {
-      console.error('Erro ao criar diretório de dados:', error)
-    }
-  }
-
   async loadSessions(): Promise<void> {
     try {
-      const data = await fs.readFile(this.sessionsFilePath, 'utf-8')
-      const sessionsArray: ChatSession[] = JSON.parse(data)
+      const response = await fetch(`${this.jsonServerUrl}/sessoes`)
+      if (!response.ok) {
+        throw new Error('Erro ao buscar sessões do JSON Server')
+      }
+
+      const sessionsData = await response.json()
 
       this.sessions.clear()
-      sessionsArray.forEach(session => {
-        // Converter strings de data de volta para objetos Date
-        session.createdAt = new Date(session.createdAt)
-        session.updatedAt = new Date(session.updatedAt)
-        session.messages.forEach(message => {
-          message.timestamp = new Date(message.timestamp)
-        })
+      sessionsData.forEach((sessionData: any) => {
+        // Converter formato do banco para formato interno
+        const session: ChatSession = {
+          id: sessionData.id,
+          title: sessionData.titulo,
+          createdAt: new Date(sessionData.created_at),
+          updatedAt: new Date(sessionData.updated_at),
+          messages: sessionData.mensagens?.map((msg: any) => ({
+            id: msg.id,
+            type: msg.tipo,
+            content: msg.conteudo,
+            timestamp: new Date(msg.timestamp),
+            sqlQuery: msg.sql_query,
+            queryResult: msg.query_result
+          })) || [],
+          model: {
+            id: sessionData.modelo?.id || 'llama3-70b-8192',
+            name: sessionData.modelo?.name || 'Llama 3 70B',
+            description: sessionData.modelo?.description || 'Modelo padrão para consultas SQL',
+            provider: sessionData.modelo?.provider || 'groq',
+            maxTokens: sessionData.modelo?.maxTokens || 8192,
+            isDefault: sessionData.modelo?.isDefault || true
+          }
+        }
 
         this.sessions.set(session.id, session)
       })
 
-      console.log(`✅ ${sessionsArray.length} sessões carregadas`)
+      console.log(`✅ ${sessionsData.length} sessões carregadas do JSON Server`)
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
-        console.log('📁 Arquivo de sessões não encontrado, iniciando com sessões vazias')
-      } else {
-        console.error('❌ Erro ao carregar sessões:', error)
-      }
+      console.error('❌ Erro ao carregar sessões do JSON Server:', error)
     }
   }
 
   async saveSessions(): Promise<void> {
-    try {
-      const sessionsArray = Array.from(this.sessions.values())
-      await fs.writeFile(this.sessionsFilePath, JSON.stringify(sessionsArray, null, 2))
-      console.log(`💾 ${sessionsArray.length} sessões salvas`)
-    } catch (error) {
-      console.error('❌ Erro ao salvar sessões:', error)
-    }
+    // Este método agora é desnecessário pois salvamos diretamente no JSON Server
+    // Mantido para compatibilidade, mas não faz nada
+    console.log('ℹ️ saveSessions() chamado - usando JSON Server diretamente')
   }
 
-  createSession(title?: string, model?: LLMModel): ChatSession {
+  async createSession(title?: string, model?: LLMModel, userId?: number | string): Promise<ChatSession> {
+    const sessionId = this.generateId()
+    const now = new Date()
     const session: ChatSession = {
-      id: this.generateId(),
-      title: title || `Nova Sessão ${new Date().toLocaleString('pt-BR')}`,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      id: sessionId,
+      title: title || `Nova Sessão ${now.toLocaleString('pt-BR')}`,
+      createdAt: now,
+      updatedAt: now,
       messages: [],
       model: model || this.getDefaultModel()
     }
 
+    // Salvar no JSON Server se userId for fornecido
+    if (userId) {
+      try {
+        const sessionData = {
+          id: sessionId,
+          titulo: session.title,
+          usuario_id: userId,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString(),
+          modelo: {
+            id: session.model.id,
+            name: session.model.name,
+            description: session.model.description,
+            provider: session.model.provider,
+            maxTokens: session.model.maxTokens,
+            isDefault: session.model.isDefault
+          },
+          mensagens: [],
+          is_favorita: false,
+          tags: []
+        }
+
+        const response = await fetch(`${this.jsonServerUrl}/sessoes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sessionData)
+        })
+
+        if (!response.ok) {
+          throw new Error('Erro ao salvar sessão no JSON Server')
+        }
+
+        console.log(`📝 Nova sessão criada e salva no banco: ${sessionId}`)
+      } catch (error) {
+        console.error('❌ Erro ao salvar sessão no banco:', error)
+      }
+    }
+
+    // Manter na memória para compatibilidade
     this.sessions.set(session.id, session)
-    this.saveSessions() // Salvar automaticamente
 
     console.log(`📝 Nova sessão criada: ${session.id}`)
     return session
@@ -118,7 +159,7 @@ export class SessionService {
     return deleted
   }
 
-  addMessage(sessionId: string, message: Omit<Message, 'id' | 'timestamp'>): Message | null {
+  async addMessage(sessionId: string, message: Omit<Message, 'id' | 'timestamp'>): Promise<Message | null> {
     const session = this.sessions.get(sessionId)
     if (!session) {
       return null
@@ -130,11 +171,43 @@ export class SessionService {
       timestamp: new Date()
     }
 
+    // Atualizar na memória
     session.messages.push(newMessage)
     session.updatedAt = new Date()
-
     this.sessions.set(sessionId, session)
-    this.saveSessions() // Salvar automaticamente
+
+    // Atualizar no JSON Server
+    try {
+      const messageData = {
+        id: newMessage.id,
+        tipo: newMessage.type,
+        conteudo: newMessage.content,
+        timestamp: newMessage.timestamp.toISOString(),
+        sql_query: newMessage.sqlQuery,
+        query_result: newMessage.queryResult
+      }
+
+      // Buscar a sessão atual no banco
+      const sessionResponse = await fetch(`${this.jsonServerUrl}/sessoes/${sessionId}`)
+      if (sessionResponse.ok) {
+        const sessionData = await sessionResponse.json()
+        const updatedMessages = [...(sessionData.mensagens || []), messageData]
+
+        // Atualizar a sessão com a nova mensagem
+        await fetch(`${this.jsonServerUrl}/sessoes/${sessionId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mensagens: updatedMessages,
+            updated_at: new Date().toISOString()
+          })
+        })
+
+        console.log(`💬 Mensagem adicionada à sessão ${sessionId}`)
+      }
+    } catch (error) {
+      console.error('❌ Erro ao salvar mensagem no banco:', error)
+    }
 
     return newMessage
   }

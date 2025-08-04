@@ -9,8 +9,33 @@ class ApiService {
     this.baseUrl = API_BASE_URL
   }
 
+  private getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    // Tentar obter o token do localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const authData = localStorage.getItem('querylab-auth')
+        if (authData) {
+          const parsed = JSON.parse(authData)
+          if (parsed.state?.token) {
+            headers['Authorization'] = `Bearer ${parsed.state.token}`
+          }
+        }
+      } catch (error) {
+        console.warn('Erro ao obter token de autenticação:', error)
+      }
+    }
+
+    return headers
+  }
+
   async get(endpoint: string) {
-    const response = await fetch(`${this.baseUrl}${endpoint}`)
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      headers: this.getAuthHeaders()
+    })
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
@@ -20,12 +45,35 @@ class ApiService {
   async post(endpoint: string, data: any) {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     })
-    
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    return response.json()
+  }
+
+  async put(endpoint: string, data: any) {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    return response.json()
+  }
+
+  async delete(endpoint: string) {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    })
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }

@@ -13,7 +13,16 @@ router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
     const { userId } = req.params
 
     // Verificar se o usuário pode acessar essas sessões
-    if (req.user?.id !== parseInt(userId) && req.user?.role !== 'admin') {
+    // Comparar tanto como string quanto como número para compatibilidade
+    const userIdStr = userId.toString()
+    const authenticatedUserIdStr = req.user?.id?.toString()
+
+    if (authenticatedUserIdStr !== userIdStr && req.user?.role !== 'admin') {
+      console.log('🔒 Acesso negado:', {
+        requestedUserId: userIdStr,
+        authenticatedUserId: authenticatedUserIdStr,
+        userRole: req.user?.role
+      })
       return res.status(403).json({
         success: false,
         error: 'Acesso negado'
@@ -103,54 +112,17 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    // Criar sessão no banco de dados
-    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
-    const now = new Date().toISOString()
-
-    const sessionData = {
-      id: sessionId,
-      titulo: title || `Nova Sessão ${new Date().toLocaleString('pt-BR')}`,
-      usuario_id: req.user.id,
-      created_at: now,
-      updated_at: now,
-      modelo: {
-        id: model || 'llama3-70b-8192',
-        name: 'Llama 3 70B',
-        description: 'Modelo padrão para consultas SQL',
-        provider: 'groq',
-        maxTokens: 8192,
-        isDefault: true
-      },
-      mensagens: [],
-      is_favorita: false,
-      tags: []
+    // Usar o SessionService para criar a sessão
+    const modelObj = {
+      id: model || 'llama3-70b-8192',
+      name: 'Llama 3 70B',
+      description: 'Modelo padrão para consultas SQL',
+      provider: 'groq' as const,
+      maxTokens: 8192,
+      isDefault: true
     }
 
-    const response = await fetch(`${JSON_SERVER_URL}/sessoes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sessionData)
-    })
-
-    if (!response.ok) {
-      throw new Error('Erro ao criar sessão no banco')
-    }
-
-    const session = {
-      id: sessionId,
-      title: sessionData.titulo,
-      createdAt: now,
-      updatedAt: now,
-      messages: [],
-      model: {
-        id: model || 'llama3-70b-8192',
-        name: 'Llama 3 70B',
-        description: 'Modelo padrão para consultas SQL',
-        provider: 'groq',
-        maxTokens: 8192,
-        isDefault: true
-      }
-    }
+    const session = await sessionService.createSession(title, modelObj, req.user.id)
 
     res.status(201).json({
       success: true,

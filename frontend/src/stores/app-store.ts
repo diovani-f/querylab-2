@@ -27,7 +27,7 @@ interface AppStore extends AppState {
   setSelectedModel: (model: LLMModel) => void
   setDatabaseConnection: (connection: DatabaseConnection) => void
   setConnectionStatus: (isConnected: boolean) => void
-  loadSessions: () => void
+  loadSessions: () => Promise<void>
   loadModels: () => Promise<void>
   deleteSession: (sessionId: string) => void
   sendMessage: (content: string) => Promise<void>
@@ -163,15 +163,46 @@ export const useAppStore = create<AppStore>()(
 
       setConnectionStatus: (isConnected) => set({ isConnected }),
 
-      loadSessions: () => {
-        // TODO: Implementar carregamento de sessões do localStorage ou API
-        const savedSessions = localStorage.getItem('querylab-sessions')
-        if (savedSessions) {
-          try {
-            const sessions = JSON.parse(savedSessions)
-            set({ sessions })
-          } catch (error) {
-            console.error('Erro ao carregar sessões:', error)
+      loadSessions: async () => {
+        try {
+          // Obter usuário do auth store
+          const { useAuthStore } = await import('./auth-store')
+          const user = useAuthStore.getState().user
+
+          if (!user) {
+            console.log('⚠️ Usuário não autenticado - não carregando sessões')
+            return
+          }
+
+          console.log('🔄 Carregando sessões do usuário:', user.id, typeof user.id)
+
+          // Buscar sessões do usuário na API
+          const response = await apiService.get(`/sessions/user/${user.id}`)
+
+          if (response.success && response.sessions) {
+            const normalizedSessions = response.sessions.map(normalizeSession)
+            set({ sessions: normalizedSessions })
+            console.log('✅ Sessões carregadas:', normalizedSessions.length, 'sessões')
+          } else {
+            console.log('ℹ️ Nenhuma sessão encontrada para o usuário')
+            set({ sessions: [] })
+          }
+        } catch (error) {
+          console.error('❌ Erro ao carregar sessões:', error)
+          // Em caso de erro, tentar carregar do localStorage como fallback
+          const savedSessions = localStorage.getItem('querylab-sessions')
+          if (savedSessions) {
+            try {
+              const sessions = JSON.parse(savedSessions)
+              const normalizedSessions = sessions.map(normalizeSession)
+              set({ sessions: normalizedSessions })
+              console.log('📦 Sessões carregadas do localStorage como fallback')
+            } catch (parseError) {
+              console.error('Erro ao carregar sessões do localStorage:', parseError)
+              set({ sessions: [] })
+            }
+          } else {
+            set({ sessions: [] })
           }
         }
       },
@@ -221,12 +252,23 @@ export const useAppStore = create<AppStore>()(
           const { useAuthStore } = await import('./auth-store')
           const user = useAuthStore.getState().user
 
+          // Garantir que o userId seja um número válido
+          let userId = user?.id
+          if (userId && typeof userId === 'string') {
+            // Se for uma string hexadecimal como "82ec", converter para número
+            if (/^[0-9a-fA-F]+$/.test(userId)) {
+              userId = parseInt(userId, 16)
+            } else {
+              userId = parseInt(userId, 10)
+            }
+          }
+
           // Enviar via WebSocket (o backend vai adicionar a mensagem e retornar via WebSocket)
           websocketService.sendMessage({
             sessionId: state.currentSession.id,
             message: content,
             model: state.selectedModel.id,
-            userId: user?.id
+            userId: userId
           })
         } catch (error) {
           console.error('Erro ao enviar mensagem:', error)

@@ -188,7 +188,7 @@ export class AuthService {
     }
   }
 
-  async getUserById(userId: number): Promise<Omit<User, 'senha'> | null> {
+  async getUserById(userId: number | string): Promise<Omit<User, 'senha'> | null> {
     try {
       const response = await fetch(`${this.jsonServerUrl}/usuarios/${userId}`)
       if (!response.ok) {
@@ -225,7 +225,7 @@ export class AuthService {
     }
   }
 
-  private async updateLastLogin(userId: number): Promise<void> {
+  private async updateLastLogin(userId: number | string): Promise<void> {
     try {
       await fetch(`${this.jsonServerUrl}/usuarios/${userId}`, {
         method: 'PATCH',
@@ -242,7 +242,7 @@ export class AuthService {
     }
   }
 
-  private async saveToken(userId: number, token: string): Promise<void> {
+  private async saveToken(userId: number | string, token: string): Promise<void> {
     try {
       const tokenHash = await bcrypt.hash(token, 10)
       const expiresAt = new Date()

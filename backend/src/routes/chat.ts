@@ -26,14 +26,14 @@ router.post('/message', async (req, res) => {
     let session = sessionService.getSession(sessionId)
     if (!session) {
       // Criar nova sessão se não existir
-      session = sessionService.createSession(`Sessão ${new Date().toLocaleString('pt-BR')}`)
+      session = await sessionService.createSession(`Sessão ${new Date().toLocaleString('pt-BR')}`)
     }
 
     // Usar o ID da sessão (pode ser o original ou o da nova sessão criada)
     const actualSessionId = session.id
 
     // Adicionar mensagem do usuário
-    const userMessage = sessionService.addMessage(actualSessionId, {
+    const userMessage = await sessionService.addMessage(actualSessionId, {
       type: 'user',
       content: message
     })
@@ -63,7 +63,7 @@ router.post('/message', async (req, res) => {
     // Verificar se é uma explicação ou SQL
     if (llmResponse.explanation && !llmResponse.sqlQuery) {
       // É uma explicação (não uma consulta SQL) - sem dados simulados
-      const assistantMessage = sessionService.addMessage(actualSessionId, {
+      const assistantMessage = await sessionService.addMessage(actualSessionId, {
         type: 'assistant',
         content: llmResponse.explanation
         // Não incluir sqlQuery nem queryResult para explicações
@@ -91,7 +91,7 @@ ${llmResponse.sqlQuery}
 **Tempo de execução:** ${queryResult.executionTime}ms`
 
     // Adicionar mensagem de resposta
-    const assistantMessage = sessionService.addMessage(actualSessionId, {
+    const assistantMessage = await sessionService.addMessage(actualSessionId, {
       type: 'assistant',
       content: responseContent,
       sqlQuery: llmResponse.sqlQuery,

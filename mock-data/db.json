@@ -244,6 +244,21 @@
         "language": "pt-BR",
         "default_model": "llama3-70b-8192"
       }
+    },
+    {
+      "id": "82ec",
+      "nome": "Murilo Santos Leal",
+      "email": "mukaleal@gmail.com",
+      "senha": "$2b$10$g1j57SzyMUiE8HRnqEJDKeLvoR/u2hNOaEzMuM81ZGgyFDNCEL1QW",
+      "role": "user",
+      "created_at": "2025-08-04T20:34:55.970Z",
+      "updated_at": "2025-08-04T20:34:55.970Z",
+      "is_active": true,
+      "preferences": {
+        "theme": "dark",
+        "language": "pt-BR",
+        "default_model": "llama3-70b-8192"
+      }
     }
   ],
   "sessoes": [
@@ -290,6 +305,80 @@
         "universidades",
         "federais"
       ]
+    },
+    {
+      "id": "session-1754340058258-66u5ib53f",
+      "titulo": "Nova Sessão 04/08/2025, 17:40:57",
+      "usuario_id": "82ec",
+      "created_at": "2025-08-04T20:40:58.258Z",
+      "updated_at": "2025-08-04T20:41:21.063Z",
+      "modelo": {
+        "id": "llama3-70b-8192",
+        "name": "Llama 3 70B",
+        "description": "Modelo padrão para consultas SQL",
+        "provider": "groq",
+        "maxTokens": 8192,
+        "isDefault": true
+      },
+      "mensagens": [
+        {
+          "id": "msg-1754340063093-1nj9ptt4m",
+          "tipo": "user",
+          "conteudo": "oi",
+          "timestamp": "2025-08-04T20:41:03.093Z"
+        },
+        {
+          "id": "msg-1754340063799-kwkklfdc8",
+          "tipo": "assistant",
+          "conteudo": "Olá! Sou um assistente especializado em consultas SQL para dados universitários. Posso ajudar você a encontrar informações sobre universidades, cursos, professores e alunos. Exemplos: \"Quantas universidades federais existem?\", \"Liste os cursos de engenharia\", \"Mostre as universidades do Rio de Janeiro\".",
+          "timestamp": "2025-08-04T20:41:03.799Z"
+        },
+        {
+          "id": "msg-1754340080401-z8k8kmle3",
+          "tipo": "user",
+          "conteudo": "universidades em santa maria rs",
+          "timestamp": "2025-08-04T20:41:20.402Z"
+        },
+        {
+          "id": "msg-1754340081063-uy8sn7bbf",
+          "tipo": "assistant",
+          "conteudo": "Consulta processada com sucesso!\n\n**SQL Gerado:**\n```sql\nSELECT * FROM universidades WHERE cidade = 'Santa Maria' AND estado = 'RS';\n```\n\n**Resultado:** 3 registro(s) encontrado(s)\n**Tempo de execução:** 195ms",
+          "timestamp": "2025-08-04T20:41:21.063Z",
+          "sql_query": "SELECT * FROM universidades WHERE cidade = 'Santa Maria' AND estado = 'RS';",
+          "query_result": {
+            "columns": [
+              "id",
+              "nome",
+              "tipo",
+              "regiao"
+            ],
+            "rows": [
+              [
+                1,
+                "Universidade Federal do Rio de Janeiro",
+                "Federal",
+                "Sudeste"
+              ],
+              [
+                2,
+                "Universidade de São Paulo",
+                "Estadual",
+                "Sudeste"
+              ],
+              [
+                3,
+                "Universidade Federal de Minas Gerais",
+                "Federal",
+                "Sudeste"
+              ]
+            ],
+            "rowCount": 3,
+            "executionTime": 195
+          }
+        }
+      ],
+      "is_favorita": false,
+      "tags": []
     }
   ],
   "historico": [
@@ -319,6 +408,47 @@
         "federais",
         "contagem"
       ]
+    },
+    {
+      "id": "1686",
+      "usuario_id": "82ec",
+      "sessao_id": "session-1754340058258-66u5ib53f",
+      "consulta": "universidades em santa maria rs",
+      "sql_gerado": "SELECT * FROM universidades WHERE cidade = 'Santa Maria' AND estado = 'RS';",
+      "resultado": {
+        "columns": [
+          "id",
+          "nome",
+          "tipo",
+          "regiao"
+        ],
+        "rows": [
+          [
+            1,
+            "Universidade Federal do Rio de Janeiro",
+            "Federal",
+            "Sudeste"
+          ],
+          [
+            2,
+            "Universidade de São Paulo",
+            "Estadual",
+            "Sudeste"
+          ],
+          [
+            3,
+            "Universidade Federal de Minas Gerais",
+            "Federal",
+            "Sudeste"
+          ]
+        ],
+        "rowCount": 3,
+        "executionTime": 195
+      },
+      "modelo_usado": "llama3-70b-8192",
+      "timestamp": "2025-08-04T20:41:21.071Z",
+      "is_favorito": false,
+      "tags": []
     }
   ],
   "favoritos": [
@@ -516,6 +646,15 @@
       "token_hash": "$2b$10$xguT1RezqjTwzO1dih7tr.PoxSwAYLcGt9nRz2uNeMhkwC9GMHJN6",
       "expires_at": "2025-07-26T02:01:32.164Z",
       "created_at": "2025-07-19T02:01:32.164Z",
+      "is_revoked": false,
+      "device_info": "Unknown Device"
+    },
+    {
+      "id": "84cf",
+      "usuario_id": "82ec",
+      "token_hash": "$2b$10$eRP7elvCkh2HIeDazrA59Oi1bc0yPTj45ngs/66m8TEKCiBgV4wKm",
+      "expires_at": "2025-08-11T20:34:56.045Z",
+      "created_at": "2025-08-04T20:34:56.046Z",
       "is_revoked": false,
       "device_info": "Unknown Device"
     }

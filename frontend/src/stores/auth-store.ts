@@ -336,31 +336,11 @@ export const useAuthStore = create<AuthStore>()(
 
           console.log('🔄 Carregando dados do usuário:', user.id, 'API:', API_BASE_URL)
 
-          // Carregar sessões do usuário (não falhar se der erro)
+          // Carregar sessões do usuário usando o método do app-store
           try {
-            const sessionsResponse = await fetch(`${API_BASE_URL}/sessions/user/${user.id}`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            })
-
-            if (sessionsResponse.ok) {
-              const sessionsData = await sessionsResponse.json()
-              if (sessionsData.success && sessionsData.sessions && Array.isArray(sessionsData.sessions)) {
-                try {
-                  // Atualizar o app store com as sessões do usuário
-                  const { useAppStore } = await import('./app-store')
-                  useAppStore.getState().setSessions(sessionsData.sessions)
-                  console.log('✅ Sessões carregadas:', sessionsData.sessions.length, 'sessões')
-                } catch (importError) {
-                  console.error('❌ Erro ao importar app store:', importError)
-                }
-              } else {
-                console.log('ℹ️ Nenhuma sessão encontrada ou formato inválido')
-              }
-            } else {
-              console.log('⚠️ Erro ao carregar sessões:', sessionsResponse.status)
-            }
+            const { useAppStore } = await import('./app-store')
+            await useAppStore.getState().loadSessions()
+            console.log('✅ Sessões carregadas via app-store')
           } catch (sessionsError) {
             console.warn('⚠️ Falha ao carregar sessões:', sessionsError instanceof Error ? sessionsError.message : String(sessionsError))
           }
