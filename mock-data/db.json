@@ -252,13 +252,14 @@
       "senha": "$2b$10$g1j57SzyMUiE8HRnqEJDKeLvoR/u2hNOaEzMuM81ZGgyFDNCEL1QW",
       "role": "user",
       "created_at": "2025-08-04T20:34:55.970Z",
-      "updated_at": "2025-08-04T20:34:55.970Z",
+      "updated_at": "2025-08-05T16:51:31.843Z",
       "is_active": true,
       "preferences": {
         "theme": "dark",
         "language": "pt-BR",
         "default_model": "llama3-70b-8192"
-      }
+      },
+      "last_login": "2025-08-05T16:51:31.843Z"
     }
   ],
   "sessoes": [
@@ -379,8 +380,89 @@
       ],
       "is_favorita": false,
       "tags": []
+    },
+    {
+      "id": "46d5dc64-5523-4e1c-8f66-e6a97319ebfa",
+      "titulo": "Nova Sessão 05/08/2025, 13:53:03",
+      "usuario_id": "82ec",
+      "created_at": "2025-08-05T16:53:05.102Z",
+      "updated_at": "2025-08-05T16:53:24.497Z",
+      "modelo": {
+        "id": "llama3-70b-8192",
+        "name": "Llama 3 70B",
+        "description": "Modelo padrão para consultas SQL",
+        "provider": "groq",
+        "maxTokens": 8192,
+        "isDefault": true
+      },
+      "mensagens": [
+        {
+          "id": "3bb20f48-67b9-4942-9096-2c0686163da8",
+          "tipo": "user",
+          "conteudo": "bom dia",
+          "timestamp": "2025-08-05T16:53:09.443Z"
+        },
+        {
+          "id": "9bfe4661-7056-4b5e-a9fc-ec26aeb7799e",
+          "tipo": "assistant",
+          "conteudo": "Olá! Sou um assistente especializado em consultas SQL para dados universitários. Posso ajudar você a encontrar informações sobre universidades, cursos, professores e alunos. Exemplos: \"Quantas universidades federais existem?\", \"Liste os cursos de engenharia\", \"Mostre as universidades do Rio de Janeiro\".",
+          "timestamp": "2025-08-05T16:53:10.510Z"
+        },
+        {
+          "id": "63362ace-4dca-4b3e-89d5-eca65da08ccc",
+          "tipo": "user",
+          "conteudo": "Liste os cursos de engenharia",
+          "timestamp": "2025-08-05T16:53:23.773Z"
+        },
+        {
+          "id": "b60e1b99-ea82-4a5c-8467-87c2e721f67e",
+          "tipo": "assistant",
+          "conteudo": "Consulta processada com sucesso!\n\n**Resultado:** 4 registro(s) encontrado(s)\n**Tempo de execução:** 163ms",
+          "timestamp": "2025-08-05T16:53:24.474Z",
+          "sql_query": "SELECT * FROM cursos WHERE nome LIKE '%Engenharia%';",
+          "query_result": {
+            "columns": [
+              "id",
+              "nome",
+              "tipo",
+              "duracao"
+            ],
+            "rows": [
+              [
+                1,
+                "Ciência da Computação",
+                "Bacharelado",
+                "4 anos"
+              ],
+              [
+                2,
+                "Engenharia Civil",
+                "Bacharelado",
+                "5 anos"
+              ],
+              [
+                3,
+                "Medicina",
+                "Bacharelado",
+                "6 anos"
+              ],
+              [
+                4,
+                "Direito",
+                "Bacharelado",
+                "5 anos"
+              ]
+            ],
+            "rowCount": 4,
+            "executionTime": 163
+          }
+        }
+      ],
+      "is_favorita": false,
+      "tags": []
     }
   ],
+  "evaluations": [],
   "historico": [
     {
       "id": "1",
@@ -447,6 +529,53 @@
       },
       "modelo_usado": "llama3-70b-8192",
       "timestamp": "2025-08-04T20:41:21.071Z",
+      "is_favorito": false,
+      "tags": []
+    },
+    {
+      "id": "4f38",
+      "usuario_id": 33516,
+      "sessao_id": "46d5dc64-5523-4e1c-8f66-e6a97319ebfa",
+      "consulta": "Liste os cursos de engenharia",
+      "sql_gerado": "SELECT * FROM cursos WHERE nome LIKE '%Engenharia%';",
+      "resultado": {
+        "columns": [
+          "id",
+          "nome",
+          "tipo",
+          "duracao"
+        ],
+        "rows": [
+          [
+            1,
+            "Ciência da Computação",
+            "Bacharelado",
+            "4 anos"
+          ],
+          [
+            2,
+            "Engenharia Civil",
+            "Bacharelado",
+            "5 anos"
+          ],
+          [
+            3,
+            "Medicina",
+            "Bacharelado",
+            "6 anos"
+          ],
+          [
+            4,
+            "Direito",
+            "Bacharelado",
+            "5 anos"
+          ]
+        ],
+        "rowCount": 4,
+        "executionTime": 163
+      },
+      "modelo_usado": "llama3-70b-8192",
+      "timestamp": "2025-08-05T16:53:24.568Z",
       "is_favorito": false,
       "tags": []
     }
@@ -655,6 +784,24 @@
       "token_hash": "$2b$10$eRP7elvCkh2HIeDazrA59Oi1bc0yPTj45ngs/66m8TEKCiBgV4wKm",
       "expires_at": "2025-08-11T20:34:56.045Z",
       "created_at": "2025-08-04T20:34:56.046Z",
+      "is_revoked": false,
+      "device_info": "Unknown Device"
+    },
+    {
+      "id": "7378",
+      "usuario_id": "82ec",
+      "token_hash": "$2b$10$g8MwyfGlraFlfJ2.bY27peVDo1Y9tWvwwy6SmEM.HoLEJqmhAWxe2",
+      "expires_at": "2025-08-12T16:44:01.178Z",
+      "created_at": "2025-08-05T16:44:01.179Z",
+      "is_revoked": false,
+      "device_info": "Unknown Device"
+    },
+    {
+      "id": "83b9",
+      "usuario_id": "82ec",
+      "token_hash": "$2b$10$XhULpaE5e2BLKleyInmBFOZcVPfXMocHLruTDVlJqYWd1dJqYKRPu",
+      "expires_at": "2025-08-12T16:51:31.946Z",
+      "created_at": "2025-08-05T16:51:31.946Z",
       "is_revoked": false,
       "device_info": "Unknown Device"
     }

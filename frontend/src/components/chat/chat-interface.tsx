@@ -117,7 +117,11 @@ export function ChatInterface() {
             </div>
           ) : (
             (currentSession?.messages || []).map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              <MessageBubble
+                key={message.id}
+                message={message}
+                sessionId={currentSession?.id}
+              />
             ))
           )}
 

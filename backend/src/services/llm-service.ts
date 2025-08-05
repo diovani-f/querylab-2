@@ -7,12 +7,20 @@ export class LLMService {
   private availableModels: LLMModel[]
 
   private constructor() {
+    // Verificar se a API key está disponível
+    const groqApiKey = process.env.GROQ_API_KEY
+    if (!groqApiKey) {
+      throw new Error('GROQ_API_KEY é obrigatória! Verifique o arquivo .env')
+    }
+
     // Inicializar cliente Groq
     this.groqClient = new Groq({
-      apiKey: process.env.GROQ_API_KEY
+      apiKey: groqApiKey
     })
 
-    // Definir modelos disponíveis (atualizados para modelos ativos)
+    console.log('✅ LLMService inicializado com sucesso')
+
+  // Definir modelos disponíveis (atualizados para modelos ativos)
     this.availableModels = [
       {
         id: 'llama3-70b-8192',
@@ -68,7 +76,6 @@ export class LLMService {
     const { prompt, model, context } = request
 
     try {
-
       // Construir prompt otimizado para text-to-SQL
       const systemPrompt = this.buildSystemPrompt(context)
       const userPrompt = this.buildUserPrompt(prompt)
@@ -133,7 +140,7 @@ export class LLMService {
     }
   }
 
-  private buildSystemPrompt(context?: any): string {
+  private buildSystemPrompt(_context?: any): string {
     return `Você é um assistente especializado em consultas SQL para um banco de dados universitário.
 
 REGRAS IMPORTANTES:

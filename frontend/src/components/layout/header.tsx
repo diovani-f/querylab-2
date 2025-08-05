@@ -2,11 +2,12 @@
 
 import { Button } from "@/components/ui/button"
 import { useAppStore } from "@/stores/app-store"
-import { Database, Settings, Zap } from "lucide-react"
+import { Database, Settings, Zap, BarChart3 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { useTheme } from "@/components/theme/theme-provider"
 import { ModelSelector } from "@/components/ui/model-selector"
 import { UserMenu } from "@/components/layout/user-menu"
+import Link from "next/link"
 
 export function Header() {
   const { databaseConnection, isConnected } = useAppStore()
@@ -28,6 +29,14 @@ export function Header() {
 
         {/* Status e Configurações */}
         <div className="flex items-center space-x-4">
+          {/* Link para Avaliações */}
+          <Link href="/evaluations">
+            <Button variant="outline" size="sm">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Avaliações
+            </Button>
+          </Link>
+
           {/* Seletor de Modelo */}
           <ModelSelector />
 

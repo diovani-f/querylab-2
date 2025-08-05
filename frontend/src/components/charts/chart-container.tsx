@@ -112,34 +112,46 @@ export function ChartContainer({ queryResult, title }: ChartContainerProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
               {getChartIcon(chartType)}
-              <span className="ml-2">{getChartLabel(chartType)}</span>
+              <span className="ml-2">Visualização</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Tipo de visualização</DropdownMenuLabel>
+            <DropdownMenuLabel>Escolha o tipo de visualização</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            
-            <DropdownMenuItem onClick={() => setChartType('table')}>
+
+            <DropdownMenuItem
+              onClick={() => setChartType('table')}
+              className={chartType === 'table' ? 'bg-accent' : ''}
+            >
               <TableIcon className="mr-2 h-4 w-4" />
-              Tabela
+              Tabela Completa
             </DropdownMenuItem>
-            
+
             {canShowBar && (
-              <DropdownMenuItem onClick={() => setChartType('bar')}>
+              <DropdownMenuItem
+                onClick={() => setChartType('bar')}
+                className={chartType === 'bar' ? 'bg-accent' : ''}
+              >
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Gráfico de Barras
               </DropdownMenuItem>
             )}
-            
+
             {canShowPie && (
-              <DropdownMenuItem onClick={() => setChartType('pie')}>
+              <DropdownMenuItem
+                onClick={() => setChartType('pie')}
+                className={chartType === 'pie' ? 'bg-accent' : ''}
+              >
                 <PieChart className="mr-2 h-4 w-4" />
                 Gráfico de Pizza
               </DropdownMenuItem>
             )}
-            
+
             {canShowLine && (
-              <DropdownMenuItem onClick={() => setChartType('line')}>
+              <DropdownMenuItem
+                onClick={() => setChartType('line')}
+                className={chartType === 'line' ? 'bg-accent' : ''}
+              >
                 <TrendingUp className="mr-2 h-4 w-4" />
                 Gráfico de Linha
               </DropdownMenuItem>

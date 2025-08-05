@@ -32,14 +32,34 @@ class ApiService {
     return headers
   }
 
+  private async handleResponse(response: Response) {
+    // Verificar se é erro de autenticação
+    if (response.status === 401 || response.status === 403) {
+      console.log('🔒 Token inválido ou expirado - redirecionando para login')
+
+      // Limpar dados de autenticação
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('querylab-auth')
+
+        // Redirecionar para login
+        window.location.href = '/login'
+      }
+
+      throw new Error('Token inválido ou expirado')
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return response.json()
+  }
+
   async get(endpoint: string) {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       headers: this.getAuthHeaders()
     })
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    return response.json()
+    return this.handleResponse(response)
   }
 
   async post(endpoint: string, data: any) {
@@ -48,11 +68,7 @@ class ApiService {
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    return response.json()
+    return this.handleResponse(response)
   }
 
   async put(endpoint: string, data: any) {
@@ -61,11 +77,7 @@ class ApiService {
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    return response.json()
+    return this.handleResponse(response)
   }
 
   async delete(endpoint: string) {
@@ -73,11 +85,7 @@ class ApiService {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
     })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    return response.json()
+    return this.handleResponse(response)
   }
 
   // Health check
@@ -98,6 +106,24 @@ class ApiService {
   // Get session
   async getSession(sessionId: string) {
     return this.get(`/chat/sessions/${sessionId}`)
+  }
+
+  // Evaluation methods
+  async getEvaluationCriteria() {
+    return this.get('/evaluation/criteria')
+  }
+
+  async getEvaluationByMessage(messageId: string) {
+    return this.get(`/evaluation/message/${messageId}`)
+  }
+
+  async saveEvaluation(evaluationData: any) {
+    return this.post('/evaluation/evaluate', evaluationData)
+  }
+
+  async getEvaluationSummary(sessionId?: string) {
+    const endpoint = sessionId ? `/evaluation/summary/${sessionId}` : '/evaluation/summary'
+    return this.get(endpoint)
   }
 }
 

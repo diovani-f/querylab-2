@@ -7,15 +7,17 @@ import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { QueryResultsTable } from "./query-results-table"
 import { ChartContainer } from "../charts/chart-container"
+import { EvaluationModal } from "../evaluation/evaluation-modal"
+import { EvaluationTrigger } from "../evaluation/evaluation-trigger"
 
 interface MessageBubbleProps {
   message: Message
+  sessionId?: string
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
   const [showSQL, setShowSQL] = useState(false)
-  const [showFullResults, setShowFullResults] = useState(false)
-  const [showAdvancedView, setShowAdvancedView] = useState(false)
+  const [showResults, setShowResults] = useState(true) // Mostrar resultados por padrão
 
   const getIcon = () => {
     switch (message.type) {
@@ -102,81 +104,42 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         {message.queryResult && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-xs font-medium">
-                Resultado: {message.queryResult.rowCount} linhas em {message.queryResult.executionTime}ms
-              </div>
-
               {message.queryResult.rows.length > 0 && (
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowFullResults(!showFullResults)}
-                    className="text-xs"
-                  >
-                    <Table className="mr-1 h-3 w-3" />
-                    {showFullResults ? 'Ocultar Tabela' : 'Ver Tabela Completa'}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAdvancedView(!showAdvancedView)}
-                    className="text-xs"
-                  >
-                    📊 {showAdvancedView ? 'Ocultar Gráficos' : 'Ver Gráficos'}
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowResults(!showResults)}
+                  className="text-xs"
+                >
+                  <Table className="mr-1 h-3 w-3" />
+                  {showResults ? 'Ocultar Resultados' : 'Ver Resultados'}
+                </Button>
               )}
             </div>
 
-            {message.queryResult.rows.length > 0 && (
-              <>
-                {showAdvancedView ? (
-                  <div className="bg-background border rounded-lg p-4">
-                    <ChartContainer
-                      queryResult={message.queryResult}
-                      title="Visualização de Dados"
-                    />
-                  </div>
-                ) : showFullResults ? (
-                  <div className="bg-background border rounded-lg p-4">
-                    <QueryResultsTable queryResult={message.queryResult} />
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b">
-                          {message.queryResult.columns.map((col, idx) => (
-                            <th key={idx} className="text-left p-2 font-medium">
-                              {col}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {message.queryResult.rows.slice(0, 5).map((row, idx) => (
-                          <tr key={idx} className="border-b">
-                            {row.map((cell, cellIdx) => (
-                              <td key={cellIdx} className="p-2">
-                                {String(cell)}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    {message.queryResult.rows.length > 5 && (
-                      <div className="text-xs text-center py-2 opacity-70">
-                        ... e mais {message.queryResult.rows.length - 5} linhas
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
+            {message.queryResult.rows.length > 0 && showResults && (
+              <div className="bg-background border rounded-lg p-4">
+                <ChartContainer
+                  queryResult={message.queryResult}
+                  title="Resultados da Consulta"
+                />
+              </div>
             )}
+          </div>
+        )}
+
+        {/* Modal de Avaliação - apenas para mensagens de assistente com SQL */}
+        {message.type === 'assistant' && sessionId && message.sqlQuery && (
+          <div className="mt-3 pt-3 border-t">
+            <EvaluationModal
+              message={message}
+              sessionId={sessionId}
+              onEvaluationSaved={(evaluation) => {
+                console.log('Avaliação salva:', evaluation)
+              }}
+            >
+              <EvaluationTrigger messageId={message.id} />
+            </EvaluationModal>
           </div>
         )}
       </div>

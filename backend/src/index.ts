@@ -1,8 +1,11 @@
+// Carregar variáveis de ambiente PRIMEIRO
+import dotenv from 'dotenv'
+dotenv.config()
+
 import express from 'express'
 import cors from 'cors'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
-import dotenv from 'dotenv'
 
 // Importar rotas
 import authRoutes from './routes/auth'
@@ -11,6 +14,7 @@ import healthRoutes from './routes/health'
 import sessionsRoutes from './routes/sessions'
 import historyRoutes from './routes/history'
 import favoritesRoutes from './routes/favorites'
+import evaluationRoutes from './routes/evaluation'
 
 // Importar WebSocket handlers
 import { setupWebSocketHandlers } from './websockets/handlers'
@@ -19,8 +23,7 @@ import { setupWebSocketHandlers } from './websockets/handlers'
 import { DatabaseService } from './services/database-service'
 import { SessionService } from './services/session-service'
 
-// Carregar variáveis de ambiente
-dotenv.config()
+// Variáveis de ambiente já carregadas no topo
 
 const app = express()
 const server = createServer(app)
@@ -47,6 +50,7 @@ app.use('/api/chat', chatRoutes)
 app.use('/api/sessions', sessionsRoutes)
 app.use('/api/history', historyRoutes)
 app.use('/api/favorites', favoritesRoutes)
+app.use('/api/evaluation', evaluationRoutes)
 
 // Setup WebSocket handlers
 setupWebSocketHandlers(io)

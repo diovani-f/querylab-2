@@ -189,7 +189,17 @@ export const useAppStore = create<AppStore>()(
           }
         } catch (error) {
           console.error('❌ Erro ao carregar sessões:', error)
-          // Em caso de erro, tentar carregar do localStorage como fallback
+
+          // Se for erro de autenticação, não fazer nada - o interceptor vai tratar
+          if (error instanceof Error &&
+              (error.message.includes('Token inválido') ||
+               error.message.includes('401') ||
+               error.message.includes('403'))) {
+            // Deixar o interceptor global tratar
+            throw error
+          }
+
+          // Em caso de outros erros, tentar carregar do localStorage como fallback
           const savedSessions = localStorage.getItem('querylab-sessions')
           if (savedSessions) {
             try {
@@ -219,7 +229,17 @@ export const useAppStore = create<AppStore>()(
           }
         } catch (error) {
           console.error('❌ Erro ao carregar modelos:', error)
-          // Usar modelos padrão em caso de erro
+
+          // Se for erro de autenticação, não fazer nada - o interceptor vai tratar
+          if (error instanceof Error &&
+              (error.message.includes('Token inválido') ||
+               error.message.includes('401') ||
+               error.message.includes('403'))) {
+            // Deixar o interceptor global tratar
+            throw error
+          }
+
+          // Usar modelos padrão em caso de outros erros
           set(() => ({
             availableModels: defaultModels,
             selectedModel: defaultModels[0]

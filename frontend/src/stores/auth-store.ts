@@ -219,7 +219,7 @@ export const useAuthStore = create<AuthStore>()(
                 })
               } else {
                 console.log('❌ Token inválido - dados inválidos')
-                // Token inválido
+                // Token inválido - limpar estado e redirecionar
                 set({
                   user: null,
                   token: null,
@@ -227,10 +227,15 @@ export const useAuthStore = create<AuthStore>()(
                   isLoading: false,
                   isCheckingAuth: false,
                 })
+
+                // Redirecionar para login se estiver no browser
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/login'
+                }
               }
             } else {
               console.log('❌ Token inválido ou expirado - status:', response.status)
-              // Token inválido ou expirado
+              // Token inválido ou expirado - limpar estado e redirecionar
               set({
                 user: null,
                 token: null,
@@ -238,6 +243,11 @@ export const useAuthStore = create<AuthStore>()(
                 isLoading: false,
                 isCheckingAuth: false,
               })
+
+              // Redirecionar para login se estiver no browser
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login'
+              }
             }
           } catch (error) {
             console.error('❌ Erro ao verificar autenticação:', error)
@@ -248,6 +258,13 @@ export const useAuthStore = create<AuthStore>()(
               isLoading: false,
               isCheckingAuth: false,
             })
+
+            // Se o erro for relacionado a token inválido, redirecionar
+            if (error instanceof Error && error.message.includes('Token inválido')) {
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login'
+              }
+            }
           }
         },
 
@@ -269,6 +286,21 @@ export const useAuthStore = create<AuthStore>()(
               },
               body: JSON.stringify(updates),
             })
+
+            // Verificar se é erro de autenticação
+            if (response.status === 401 || response.status === 403) {
+              console.log('🔒 Token inválido ao atualizar perfil - redirecionando para login')
+              set({
+                user: null,
+                token: null,
+                isAuthenticated: false,
+                isLoading: false,
+              })
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login'
+              }
+              throw new Error('Token inválido ou expirado')
+            }
 
             const data = await response.json()
 
@@ -308,6 +340,21 @@ export const useAuthStore = create<AuthStore>()(
               },
               body: JSON.stringify({ senhaAtual, novaSenha }),
             })
+
+            // Verificar se é erro de autenticação
+            if (response.status === 401 || response.status === 403) {
+              console.log('🔒 Token inválido ao alterar senha - redirecionando para login')
+              set({
+                user: null,
+                token: null,
+                isAuthenticated: false,
+                isLoading: false,
+              })
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login'
+              }
+              throw new Error('Token inválido ou expirado')
+            }
 
             const data = await response.json()
 

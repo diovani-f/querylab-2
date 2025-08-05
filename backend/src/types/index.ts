@@ -14,6 +14,58 @@ export interface QueryResult {
   executionTime: number
 }
 
+// Sistema de Avaliação de Retornos LLM
+export interface EvaluationCriteria {
+  id: string
+  name: string
+  description: string
+  weight: number // Peso da avaliação (0-1)
+  type: 'boolean' | 'scale' | 'text'
+  scaleMin?: number
+  scaleMax?: number
+}
+
+export interface QueryEvaluation {
+  id: string
+  sessionId: string
+  messageId: string
+  evaluatorId: string
+  evaluatorName: string
+  timestamp: Date
+
+  // Dados da consulta
+  originalQuery: string
+  generatedSQL: string
+  queryResult: QueryResult
+
+  // Avaliações por critério
+  criteriaEvaluations: {
+    criteriaId: string
+    value: boolean | number | string
+    comment?: string
+  }[]
+
+  // Avaliação geral
+  overallScore: number // 0-10
+  overallComment?: string
+
+  // Flags
+  isCorrect: boolean
+  needsReview: boolean
+  isApproved: boolean
+}
+
+export interface EvaluationSummary {
+  totalEvaluations: number
+  averageScore: number
+  correctnessRate: number
+  approvalRate: number
+  criteriaAverages: {
+    criteriaId: string
+    average: number
+  }[]
+}
+
 export interface ChatSession {
   id: string
   title: string
