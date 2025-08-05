@@ -105,7 +105,7 @@ PORT=3001
 3. Renomeie para `querylab-frontend`
 4. Configure:
    - **Root Directory**: `frontend`
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `npm ci && npm run build`
    - **Start Command**: `npm start`
 
 ### 4.3 Variáveis do Frontend
@@ -219,10 +219,11 @@ Se você já criou os serviços e está tendo problemas, siga estas correções:
    - **Start Command**: `npm run start:railway`
 4. Clique em **"Redeploy"**
 
-### Frontend:
+### Frontend com erro de permissão (EACCES):
 1. **Root Directory**: `frontend`
-2. **Build Command**: `npm install && npm run build`
+2. **Build Command**: `npm ci && npm run build`
 3. **Start Command**: `npm start`
+4. Certifique-se que existe o arquivo `.npmrc` na pasta frontend
 
 ---
 
@@ -250,6 +251,14 @@ Se você já criou os serviços e está tendo problemas, siga estas correções:
 **Solução**:
 1. Verifique se `JSON_SERVER_URL` está correto
 2. Aguarde o JSON Server estar rodando antes do backend
+
+### Problema: Frontend erro EACCES (permission denied)
+**Solução**:
+1. Use `npm ci` ao invés de `npm install`
+2. Configure:
+   - **Build Command**: `npm ci && npm run build`
+3. Certifique-se que existe `.npmrc` na pasta frontend
+4. Se persistir, tente deletar e recriar o serviço
 
 ### Problema: Frontend não conecta ao Backend
 **Solução**:
