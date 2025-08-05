@@ -68,7 +68,7 @@ export default function EvaluationsPage() {
             <div className="pt-4 border-t">
               <h3 className="font-semibold mb-2">Como Avaliar</h3>
               <p className="text-sm text-muted-foreground">
-                Para cada resposta da IA que gera SQL, você pode clicar em "Avaliar" para 
+                Para cada resposta da IA que gera SQL, você pode clicar em &quot;Avaliar&quot; para
                 analisar a qualidade da resposta baseada nos critérios estabelecidos. 
                 Suas avaliações ajudam a melhorar continuamente o sistema.
               </p>

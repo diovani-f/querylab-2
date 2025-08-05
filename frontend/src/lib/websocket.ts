@@ -85,7 +85,7 @@ class WebSocketService {
     this.socket?.removeAllListeners()
   }
 
-  removeListener(event: string, callback?: Function) {
+  removeListener(event: string, callback?: (...args: any[]) => void) {
     if (callback) {
       this.socket?.off(event, callback)
     } else {
