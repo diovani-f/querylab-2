@@ -43,9 +43,9 @@
 ### 2.2 Configurar Build do Backend
 1. Na aba **"Settings"**, encontre **"Build"**
 2. Configure:
-   - **Root Directory**: deixe vazio (pasta raiz)
-   - **Build Command**: `cd backend && npm install && npm run build`
-   - **Start Command**: `cd backend && npm start`
+   - **Root Directory**: `backend`
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
 
 ### 2.3 Configurar Variáveis de Ambiente do Backend
 1. Vá para a aba **"Variables"**
@@ -197,7 +197,36 @@ GROQ_API_KEY=sua_chave_groq (opcional)
 
 ---
 
-## 🚨 **Troubleshooting**
+## � **Correção de Serviços Já Criados**
+
+Se você já criou os serviços e está tendo problemas, siga estas correções:
+
+### Backend com erro "cd not found":
+1. Vá para o serviço backend no Railway
+2. **Settings** > **Service Settings**
+3. Configure:
+   - **Root Directory**: `backend`
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
+4. Clique em **"Redeploy"**
+
+### JSON Server com erro "npm not found":
+1. Vá para o serviço JSON Server
+2. **Settings** > **Service Settings**
+3. Configure:
+   - **Root Directory**: `mock-data`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm run start:railway`
+4. Clique em **"Redeploy"**
+
+### Frontend:
+1. **Root Directory**: `frontend`
+2. **Build Command**: `npm install && npm run build`
+3. **Start Command**: `npm start`
+
+---
+
+## �🚨 **Troubleshooting**
 
 ### Problema: JSON Server não inicia
 **Solução**:
@@ -208,6 +237,14 @@ GROQ_API_KEY=sua_chave_groq (opcional)
    - **Start Command**: `npm run start:railway`
 3. Verifique se a variável `PORT` está configurada
 4. Se ainda houver erro, tente usar `json-server --watch db.json --port $PORT --host 0.0.0.0` diretamente
+
+### Problema: Backend falha no deploy ("cd not found")
+**Solução**:
+1. Configure **Root Directory** como `backend`
+2. Use comandos simples:
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
+3. Não use `cd` nos comandos
 
 ### Problema: Backend não conecta ao JSON Server
 **Solução**:
