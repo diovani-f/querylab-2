@@ -1,210 +1,287 @@
-# 🚀 Guia de Deploy - QueryLab
+# 🚀 Guia de Deploy Railway - QueryLab
 
 ## ✅ Status dos Builds
 
 - ✅ **Frontend**: Build funcionando corretamente
 - ✅ **Backend**: Build funcionando corretamente
-- ✅ **Docker**: Dockerfile criado
+- ✅ **JSON Server**: Dados mock prontos
 - ✅ **Railway**: Configuração criada
 
-## 🎯 Opções de Deploy Recomendadas
+## 🚂 Deploy no Railway - Passo a Passo Completo
 
-### 1. 🚂 Railway (Recomendado)
+### 📋 **Pré-requisitos**
+- [ ] Conta no GitHub com o repositório QueryLab
+- [ ] Conta no Railway ([railway.app](https://railway.app))
+- [ ] Builds locais funcionando
 
-**Por que Railway?**
-- ✅ Suporte nativo a monorepos
-- ✅ PostgreSQL gratuito incluído
-- ✅ WebSocket funciona perfeitamente
-- ✅ Deploy automático via Git
-- ✅ Variáveis de ambiente fáceis
+---
 
-**Como fazer deploy:**
+## 🎯 **PASSO 1: Preparação Inicial**
 
-1. **Conecte o repositório**:
-   - Acesse [railway.app](https://railway.app)
-   - Conecte seu GitHub
-   - Selecione este repositório
+### 1.1 Acesse o Railway
+1. Vá para [railway.app](https://railway.app)
+2. Clique em **"Login"**
+3. Conecte com sua conta GitHub
+4. Autorize o Railway a acessar seus repositórios
 
-2. **Configure os serviços**:
+### 1.2 Crie um Novo Projeto
+1. No dashboard, clique em **"New Project"**
+2. Selecione **"Deploy from GitHub repo"**
+3. Encontre e selecione o repositório **querylab**
+4. Clique em **"Deploy Now"**
 
-   **Opção A - Serviços Separados (Recomendado):**
-   - Crie um serviço para o backend (pasta raiz)
-   - Crie outro serviço para o frontend (pasta frontend)
+---
 
-   **Opção B - Monorepo:**
-   - Railway detectará automaticamente usando os arquivos railway.json
+## 🎯 **PASSO 2: Configurar o Backend**
 
-3. **Adicione PostgreSQL**:
-   - No dashboard, clique em "Add Service"
-   - Selecione "PostgreSQL"
-   - Railway criará automaticamente a `DATABASE_URL`
+### 2.1 Configurar o Serviço Backend
+1. Railway criará automaticamente um serviço
+2. Clique no serviço criado
+3. Vá para a aba **"Settings"**
+4. Em **"Service Name"**, renomeie para `querylab-backend`
 
-4. **Configure variáveis de ambiente**:
+### 2.2 Configurar Build do Backend
+1. Na aba **"Settings"**, encontre **"Build"**
+2. Configure:
+   - **Root Directory**: deixe vazio (pasta raiz)
+   - **Build Command**: `cd backend && npm install && npm run build`
+   - **Start Command**: `cd backend && npm start`
 
-   **Backend:**
+### 2.3 Configurar Variáveis de Ambiente do Backend
+1. Vá para a aba **"Variables"**
+2. Adicione as seguintes variáveis:
+
+```env
+NODE_ENV=production
+PORT=5000
+DB_TYPE=json-server
+JSON_SERVER_URL=https://querylab-json-server.railway.app
+JWT_SECRET=seu_jwt_secret_super_seguro_aqui_123456
+CORS_ORIGIN=https://querylab-frontend.railway.app
+FRONTEND_URL=https://querylab-frontend.railway.app
+```
+
+**⚠️ Importante**: Substitua as URLs pelos domínios reais que o Railway gerar
+
+---
+
+## 🎯 **PASSO 3: Configurar o JSON Server**
+
+### 3.1 Criar Serviço para JSON Server
+1. No dashboard do projeto, clique em **"+ New Service"**
+2. Selecione **"GitHub Repo"**
+3. Selecione o mesmo repositório **querylab**
+4. Clique em **"Deploy"**
+
+### 3.2 Configurar o JSON Server
+1. Clique no novo serviço
+2. Vá para **"Settings"**
+3. Renomeie para `querylab-json-server`
+4. Configure:
+   - **Root Directory**: `mock-data`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm run start:railway`
+
+### 3.3 Variáveis do JSON Server
+1. Vá para **"Variables"**
+2. Adicione:
+```env
+PORT=3001
+```
+
+---
+
+## 🎯 **PASSO 4: Configurar o Frontend**
+
+### 4.1 Criar Serviço Frontend
+1. No dashboard, clique em **"+ New Service"**
+2. Selecione **"GitHub Repo"**
+3. Selecione o repositório **querylab**
+4. Clique em **"Deploy"**
+
+### 4.2 Configurar Build do Frontend
+1. Clique no serviço frontend
+2. Vá para **"Settings"**
+3. Renomeie para `querylab-frontend`
+4. Configure:
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
+
+### 4.3 Variáveis do Frontend
+1. Vá para **"Variables"**
+2. Adicione (substitua pelas URLs reais):
+```env
+NEXT_PUBLIC_API_URL=https://querylab-backend.railway.app/api
+NEXT_PUBLIC_WEBSOCKET_URL=https://querylab-backend.railway.app
+```
+
+---
+
+## 🎯 **PASSO 5: Obter URLs e Atualizar Configurações**
+
+### 5.1 Copiar URLs dos Serviços
+1. Vá para cada serviço
+2. Na aba **"Settings"**, encontre **"Domains"**
+3. Copie a URL gerada (ex: `https://querylab-backend-production.up.railway.app`)
+
+### 5.2 Atualizar Variáveis com URLs Reais
+1. **Backend** - atualize:
    ```env
-   PORT=5000
-   NODE_ENV=production
-   FRONTEND_URL=https://seu-frontend.railway.app
+   CORS_ORIGIN=https://sua-url-frontend-real.railway.app
+   FRONTEND_URL=https://sua-url-frontend-real.railway.app
+   ```
+
+2. **Frontend** - atualize:
+   ```env
+   NEXT_PUBLIC_API_URL=https://sua-url-backend-real.railway.app/api
+   NEXT_PUBLIC_WEBSOCKET_URL=https://sua-url-backend-real.railway.app
+   ```
+
+3. **Backend** - atualize JSON Server URL:
+   ```env
+   JSON_SERVER_URL=https://sua-url-json-server-real.railway.app
+   ```
+
+---
+
+## 🎯 **PASSO 6: Deploy e Verificação**
+
+### 6.1 Fazer Deploy
+1. Após configurar todas as variáveis, os serviços farão redeploy automaticamente
+2. Monitore os logs de cada serviço:
+   - Clique no serviço
+   - Vá para a aba **"Deployments"**
+   - Clique no deployment ativo
+   - Monitore os logs
+
+### 6.2 Ordem de Deploy
+1. **Primeiro**: JSON Server (deve estar rodando)
+2. **Segundo**: Backend (conecta ao JSON Server)
+3. **Terceiro**: Frontend (conecta ao Backend)
+
+### 6.3 Verificar se Está Funcionando
+1. **JSON Server**: Acesse `https://sua-url-json-server.railway.app/universidades`
+2. **Backend**: Acesse `https://sua-url-backend.railway.app/api/health`
+3. **Frontend**: Acesse `https://sua-url-frontend.railway.app`
+
+---
+
+## 🎯 **PASSO 7: Configurações Finais**
+
+### 7.1 Configurar Domínios Personalizados (Opcional)
+1. Em cada serviço, vá para **"Settings" > "Domains"**
+2. Clique em **"Custom Domain"**
+3. Adicione seu domínio personalizado
+
+### 7.2 Configurar Variáveis de Produção
+1. Adicione variáveis adicionais conforme necessário:
+```env
+# Backend
+OPENAI_API_KEY=sua_chave_openai (opcional)
+ANTHROPIC_API_KEY=sua_chave_anthropic (opcional)
+GROQ_API_KEY=sua_chave_groq (opcional)
+```
+
+---
+
+## ✅ **Checklist de Verificação**
+
+- [ ] JSON Server respondendo em `/universidades`, `/pessoas`, `/cursos`
+- [ ] Backend respondendo em `/api/health`
+- [ ] Frontend carregando corretamente
+- [ ] WebSocket conectando (verificar no console do navegador)
+- [ ] Chat funcionando (enviar mensagem de teste)
+- [ ] Sessões sendo criadas e listadas
+- [ ] Sem erros de CORS no console
+
+---
+
+## 🚨 **Troubleshooting**
+
+### Problema: JSON Server não inicia
+**Solução**:
+1. Verifique se o `db.json` e `package.json` estão na pasta `mock-data`
+2. Confirme as configurações:
+   - **Root Directory**: `mock-data`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm run start:railway`
+3. Verifique se a variável `PORT` está configurada
+4. Se ainda houver erro, tente usar `json-server --watch db.json --port $PORT --host 0.0.0.0` diretamente
+
+### Problema: Backend não conecta ao JSON Server
+**Solução**:
+1. Verifique se `JSON_SERVER_URL` está correto
+2. Aguarde o JSON Server estar rodando antes do backend
+
+### Problema: Frontend não conecta ao Backend
+**Solução**:
+1. Verifique `NEXT_PUBLIC_API_URL` e `NEXT_PUBLIC_WEBSOCKET_URL`
+2. Confirme que não há erros de CORS
+
+### Problema: WebSocket não conecta
+**Solução**:
+1. Verifique se `NEXT_PUBLIC_WEBSOCKET_URL` está correto
+2. Railway suporta WebSocket automaticamente
+
+---
+
+## 🎉 **Parabéns!**
+
+Sua aplicação QueryLab está agora rodando no Railway com:
+- ✅ Frontend Next.js
+- ✅ Backend Node.js/Express
+- ✅ JSON Server com dados mock
+- ✅ WebSocket funcionando
+- ✅ Deploy automático via Git
+
+**URLs finais:**
+- Frontend: `https://sua-url-frontend.railway.app`
+- Backend API: `https://sua-url-backend.railway.app/api`
+- JSON Server: `https://sua-url-json-server.railway.app`
+
+---
+
+## 📚 **Informações Adicionais**
+
+### Migração Futura para PostgreSQL
+Quando quiser migrar do JSON Server para PostgreSQL:
+
+1. **Adicione PostgreSQL no Railway**:
+   - Clique em **"+ New Service"**
+   - Selecione **"PostgreSQL"**
+   - Railway criará automaticamente
+
+2. **Atualize variáveis do Backend**:
+   ```env
    DB_TYPE=postgresql
    DATABASE_URL=${{Postgres.DATABASE_URL}}
-   JWT_SECRET=seu_jwt_secret_super_seguro
-   CORS_ORIGIN=https://seu-frontend.railway.app
    ```
 
-   **Frontend:**
-   ```env
-   NEXT_PUBLIC_API_URL=https://seu-backend.railway.app/api
-   NEXT_PUBLIC_WEBSOCKET_URL=https://seu-backend.railway.app
-   ```
+3. **Migre os dados**:
+   - Exporte dados do `mock-data/db.json`
+   - Importe para PostgreSQL
 
-5. **Deploy**:
-   - Railway fará deploy automaticamente
-   - Monitore os logs para verificar se tudo está funcionando
+### Comandos Úteis
 
-### 2. 🎨 Render
-
-**Como fazer deploy:**
-
-1. **Backend (Web Service)**:
-   - Build Command: `cd backend && npm install && npm run build`
-   - Start Command: `cd backend && npm start`
-   - Environment: Node.js
-
-2. **Frontend (Static Site)**:
-   - Build Command: `cd frontend && npm install && npm run build`
-   - Publish Directory: `frontend/.next`
-
-3. **PostgreSQL**:
-   - Adicione um PostgreSQL service
-   - Configure a `DATABASE_URL`
-
-### 3. 🐳 Docker (Qualquer plataforma)
-
-**Backend:**
+**Verificar logs:**
 ```bash
-# Build da imagem do backend
-docker build -t querylab-backend .
-
-# Run local
-docker run -p 5000:5000 --env-file .env querylab-backend
+# No Railway, vá para Deployments > View Logs
 ```
 
-**Frontend:**
+**Redeploy manual:**
 ```bash
-# Build da imagem do frontend
-cd frontend
-docker build -t querylab-frontend .
-
-# Run local
-docker run -p 3000:3000 querylab-frontend
+# No Railway, vá para Deployments > Redeploy
 ```
 
-**Docker Compose (Recomendado):**
+**Testar localmente:**
 ```bash
-# Criar docker-compose.yml e rodar
-docker-compose up --build
+# JSON Server
+cd mock-data && json-server --watch db.json --port 3001
+
+# Backend
+cd backend && npm run dev
+
+# Frontend
+cd frontend && npm run dev
 ```
-
-## 🗄️ Configuração do Banco de Dados
-
-### PostgreSQL (Produção)
-
-Você precisará migrar os dados do JSON Server para PostgreSQL. Crie as tabelas:
-
-```sql
--- Universidades
-CREATE TABLE universidades (
-  id SERIAL PRIMARY KEY,
-  nome VARCHAR(255) NOT NULL,
-  sigla VARCHAR(10),
-  tipo VARCHAR(50),
-  regiao VARCHAR(50),
-  estado VARCHAR(50),
-  cidade VARCHAR(100),
-  fundacao INTEGER,
-  campus INTEGER,
-  alunos_total INTEGER,
-  professores_total INTEGER,
-  cursos_graduacao INTEGER,
-  cursos_pos_graduacao INTEGER
-);
-
--- Pessoas
-CREATE TABLE pessoas (
-  id SERIAL PRIMARY KEY,
-  nome VARCHAR(255) NOT NULL,
-  tipo VARCHAR(50),
-  universidade_id INTEGER REFERENCES universidades(id),
-  departamento VARCHAR(100),
-  curso VARCHAR(100),
-  titulacao VARCHAR(100),
-  area_pesquisa VARCHAR(255),
-  email VARCHAR(255)
-);
-
--- Cursos
-CREATE TABLE cursos (
-  id SERIAL PRIMARY KEY,
-  nome VARCHAR(255) NOT NULL,
-  tipo VARCHAR(50),
-  universidade_id INTEGER REFERENCES universidades(id),
-  departamento VARCHAR(100),
-  duracao INTEGER,
-  vagas_anuais INTEGER,
-  nota_corte DECIMAL(4,2),
-  modalidade VARCHAR(50)
-);
-
--- Regiões
-CREATE TABLE regioes (
-  id SERIAL PRIMARY KEY,
-  nome VARCHAR(100) NOT NULL,
-  estados TEXT[],
-  populacao BIGINT,
-  universidades_federais INTEGER,
-  universidades_estaduais INTEGER,
-  universidades_privadas INTEGER
-);
-```
-
-## 🔧 Troubleshooting
-
-### Problemas Comuns:
-
-1. **WebSocket não conecta**:
-   - Verifique se as URLs estão corretas
-   - Certifique-se que o backend suporta WebSocket
-
-2. **CORS Error**:
-   - Configure `CORS_ORIGIN` com a URL do frontend
-   - Verifique `FRONTEND_URL` no backend
-
-3. **Database Connection Error**:
-   - Verifique a `DATABASE_URL`
-   - Certifique-se que o PostgreSQL está rodando
-
-4. **Build Fails**:
-   - Verifique se todas as dependências estão instaladas
-   - Execute `npm run build` localmente primeiro
-
-## 📝 Checklist de Deploy
-
-- [ ] Builds locais funcionando (frontend e backend)
-- [ ] Variáveis de ambiente configuradas
-- [ ] Banco de dados PostgreSQL criado
-- [ ] Dados migrados do JSON Server
-- [ ] URLs de produção atualizadas
-- [ ] CORS configurado corretamente
-- [ ] WebSocket testado
-- [ ] Deploy realizado com sucesso
-- [ ] Aplicação testada em produção
-
-## 🆘 Suporte
-
-Se encontrar problemas:
-
-1. Verifique os logs da aplicação
-2. Teste localmente primeiro
-3. Confirme que todas as variáveis de ambiente estão corretas
-4. Verifique a conectividade do banco de dados
