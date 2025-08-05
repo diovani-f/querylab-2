@@ -26,8 +26,13 @@
    - Selecione este repositório
 
 2. **Configure os serviços**:
-   - Railway detectará automaticamente frontend e backend
-   - Ou crie 2 serviços separados manualmente
+
+   **Opção A - Serviços Separados (Recomendado):**
+   - Crie um serviço para o backend (pasta raiz)
+   - Crie outro serviço para o frontend (pasta frontend)
+
+   **Opção B - Monorepo:**
+   - Railway detectará automaticamente usando os arquivos railway.json
 
 3. **Adicione PostgreSQL**:
    - No dashboard, clique em "Add Service"
@@ -76,12 +81,29 @@
 
 ### 3. 🐳 Docker (Qualquer plataforma)
 
+**Backend:**
 ```bash
-# Build da imagem
-docker build -t querylab .
+# Build da imagem do backend
+docker build -t querylab-backend .
 
 # Run local
-docker run -p 5000:5000 --env-file .env querylab
+docker run -p 5000:5000 --env-file .env querylab-backend
+```
+
+**Frontend:**
+```bash
+# Build da imagem do frontend
+cd frontend
+docker build -t querylab-frontend .
+
+# Run local
+docker run -p 3000:3000 querylab-frontend
+```
+
+**Docker Compose (Recomendado):**
+```bash
+# Criar docker-compose.yml e rodar
+docker-compose up --build
 ```
 
 ## 🗄️ Configuração do Banco de Dados
