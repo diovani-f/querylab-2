@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { ChatSession, Message, LLMModel } from '../types'
 
 export class SessionService {
@@ -292,7 +293,7 @@ export class SessionService {
   }
 
   private generateId(): string {
-    return crypto.randomUUID()
+    return randomUUID()
   }
 
   private getDefaultModel(): LLMModel {
