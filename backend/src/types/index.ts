@@ -167,6 +167,7 @@ export interface WebSocketEvents {
   'message-received': (message: Message) => void
   'message-processing': (status: string) => void
   'session-joined': (sessionId: string) => void
+  'evaluation-updated': (data: { messageId: string, evaluation: QueryEvaluation }) => void
   'error': (error: string) => void
 }
 

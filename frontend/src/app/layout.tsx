@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthInitializer } from "@/components/auth/auth-initializer";
+import { ToastProvider } from "@/components/ui/toast";
 // import { AuthDebug } from "@/components/debug/auth-debug";
 
 const inter = Inter({
@@ -22,15 +23,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="h-full" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased h-full`}>
+      <body className={`${inter.variable} font-sans antialiased h-full`} suppressHydrationWarning>
         <ThemeProvider
           defaultTheme="light"
           storageKey="querylab-ui-theme"
         >
-          <AuthInitializer>
-            {children}
-            {/* <AuthDebug /> */}
-          </AuthInitializer>
+          <ToastProvider>
+            <AuthInitializer>
+              {children}
+              {/* <AuthDebug /> */}
+            </AuthInitializer>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

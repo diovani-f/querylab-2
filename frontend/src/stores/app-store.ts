@@ -22,6 +22,7 @@ interface AppStore extends AppState {
   setCurrentSession: (session: ChatSession | null) => void
   setSessions: (sessions: ChatSession[]) => void
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
+  updateMessageEvaluation: (messageId: string, evaluation: QueryEvaluation) => void
   createNewSession: (title?: string) => Promise<void>
   updateSessionTitle: (sessionId: string, title: string) => void
   setSelectedModel: (model: LLMModel) => void
@@ -29,7 +30,7 @@ interface AppStore extends AppState {
   setConnectionStatus: (isConnected: boolean) => void
   loadSessions: () => Promise<void>
   loadModels: () => Promise<void>
-  deleteSession: (sessionId: string) => void
+  deleteSession: (sessionId: string) => Promise<void>
   sendMessage: (content: string) => Promise<void>
   initializeWebSocket: () => void
   disconnectWebSocket: () => void
@@ -82,6 +83,33 @@ export const useAppStore = create<AppStore>()(
           const updatedSession = {
             ...state.currentSession,
             messages: [...state.currentSession.messages, message],
+            updatedAt: new Date()
+          }
+
+          const updatedSessions = state.sessions.map(session =>
+            session.id === updatedSession.id ? updatedSession : session
+          )
+
+          return {
+            currentSession: updatedSession,
+            sessions: updatedSessions
+          }
+        })
+      },
+
+      updateMessageEvaluation: (messageId, evaluation) => {
+        set((state) => {
+          if (!state.currentSession) return state
+
+          const updatedMessages = state.currentSession.messages.map(message =>
+            message.id === messageId
+              ? { ...message, evaluation }
+              : message
+          )
+
+          const updatedSession = {
+            ...state.currentSession,
+            messages: updatedMessages,
             updatedAt: new Date()
           }
 
@@ -247,18 +275,49 @@ export const useAppStore = create<AppStore>()(
         }
       },
 
-      deleteSession: (sessionId) => {
-        set((state) => {
-          const updatedSessions = state.sessions.filter(session => session.id !== sessionId)
-          const updatedCurrentSession = state.currentSession?.id === sessionId
-            ? null
-            : state.currentSession
+      deleteSession: async (sessionId) => {
+        try {
+          // Fazer requisição para o backend para deletar a sessão
+          const response = await apiService.delete(`/sessions/${sessionId}`)
 
-          return {
-            sessions: updatedSessions,
-            currentSession: updatedCurrentSession
+          if (response.success) {
+            // Se deletou com sucesso no backend, remover do estado local
+            set((state) => {
+              const updatedSessions = state.sessions.filter(session => session.id !== sessionId)
+              const updatedCurrentSession = state.currentSession?.id === sessionId
+                ? null
+                : state.currentSession
+
+              return {
+                sessions: updatedSessions,
+                currentSession: updatedCurrentSession
+              }
+            })
+            console.log(`✅ Sessão ${sessionId} deletada com sucesso`)
+          } else {
+            console.error('❌ Erro ao deletar sessão no backend:', response.error)
+            throw new Error(response.error || 'Erro ao deletar sessão')
           }
-        })
+        } catch (error) {
+          console.error('❌ Erro ao deletar sessão:', error)
+
+          // Em caso de erro, ainda remover localmente como fallback
+          // mas mostrar um aviso ao usuário
+          set((state) => {
+            const updatedSessions = state.sessions.filter(session => session.id !== sessionId)
+            const updatedCurrentSession = state.currentSession?.id === sessionId
+              ? null
+              : state.currentSession
+
+            return {
+              sessions: updatedSessions,
+              currentSession: updatedCurrentSession
+            }
+          })
+
+          // Re-throw o erro para que o componente possa tratar se necessário
+          throw error
+        }
       },
 
       sendMessage: async (content: string) => {
@@ -309,6 +368,11 @@ export const useAppStore = create<AppStore>()(
 
         websocketService.onError((error: string) => {
           console.error('❌ WebSocket error:', error)
+        })
+
+        websocketService.onEvaluationUpdated((data: { messageId: string, evaluation: any }) => {
+          console.log('📊 Avaliação atualizada via WebSocket:', data)
+          get().updateMessageEvaluation(data.messageId, data.evaluation)
         })
       },
 

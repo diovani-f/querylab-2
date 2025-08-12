@@ -9,16 +9,23 @@ import { apiService } from '@/lib/api'
 
 interface EvaluationTriggerProps {
   messageId: string
+  evaluation?: QueryEvaluation | null
   onClick?: () => void
 }
 
-export function EvaluationTrigger({ messageId, onClick }: EvaluationTriggerProps) {
-  const [evaluation, setEvaluation] = useState<QueryEvaluation | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export function EvaluationTrigger({ messageId, evaluation: propEvaluation, onClick }: EvaluationTriggerProps) {
+  const [evaluation, setEvaluation] = useState<QueryEvaluation | null>(propEvaluation || null)
+  const [isLoading, setIsLoading] = useState(!propEvaluation)
 
   useEffect(() => {
-    loadEvaluation()
-  }, [messageId])
+    // Se já temos a avaliação via props, não precisamos carregar
+    if (propEvaluation) {
+      setEvaluation(propEvaluation)
+      setIsLoading(false)
+    } else {
+      loadEvaluation()
+    }
+  }, [messageId, propEvaluation])
 
   const loadEvaluation = async () => {
     try {
@@ -60,9 +67,9 @@ export function EvaluationTrigger({ messageId, onClick }: EvaluationTriggerProps
 
   return (
     <div className="flex items-center space-x-2">
-      <Button 
-        variant="outline" 
-        size="sm" 
+      <Button
+        variant="outline"
+        size="sm"
         className="text-xs"
         onClick={onClick}
       >
@@ -71,7 +78,7 @@ export function EvaluationTrigger({ messageId, onClick }: EvaluationTriggerProps
           {evaluation ? 'Ver Avaliação' : 'Avaliar Consulta'}
         </span>
       </Button>
-      
+
       {evaluation && (
         <Badge variant="outline" className={getScoreColor(evaluation.overallScore)}>
           <Star className="h-3 w-3 mr-1" />

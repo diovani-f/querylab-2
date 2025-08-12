@@ -55,6 +55,12 @@ app.use('/api/evaluation', evaluationRoutes)
 // Setup WebSocket handlers
 setupWebSocketHandlers(io)
 
+// Make io instance available globally for routes
+declare global {
+  var socketIO: Server
+}
+global.socketIO = io
+
 // Inicializar serviços
 async function initializeServices() {
   try {

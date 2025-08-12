@@ -151,12 +151,30 @@ export class SessionService {
     return updatedSession
   }
 
-  deleteSession(sessionId: string): boolean {
+  async deleteSession(sessionId: string): Promise<boolean> {
+    try {
+      // Primeiro, tentar deletar do JSON Server
+      const response = await fetch(`${this.jsonServerUrl}/sessoes/${sessionId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        console.error(`❌ Erro ao deletar sessão ${sessionId} do JSON Server:`, response.status)
+        // Continuar e deletar da memória mesmo se falhar no JSON Server
+      } else {
+        console.log(`✅ Sessão ${sessionId} deletada do JSON Server`)
+      }
+    } catch (error) {
+      console.error(`❌ Erro ao conectar com JSON Server para deletar sessão ${sessionId}:`, error)
+      // Continuar e deletar da memória mesmo se falhar no JSON Server
+    }
+
+    // Deletar da memória local
     const deleted = this.sessions.delete(sessionId)
     if (deleted) {
-      this.saveSessions() // Salvar automaticamente
-      console.log(`🗑️ Sessão deletada: ${sessionId}`)
+      console.log(`🗑️ Sessão ${sessionId} removida da memória`)
     }
+
     return deleted
   }
 
@@ -317,7 +335,7 @@ export class SessionService {
 
     let deleted = 0
     for (const session of sessionsToDelete) {
-      if (this.deleteSession(session.id)) {
+      if (await this.deleteSession(session.id)) {
         deleted++
       }
     }

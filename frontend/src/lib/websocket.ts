@@ -80,6 +80,10 @@ class WebSocketService {
     this.socket?.on('error', callback)
   }
 
+  onEvaluationUpdated(callback: (data: { messageId: string, evaluation: any }) => void) {
+    this.socket?.on('evaluation-updated', callback)
+  }
+
   // Remove listeners
   removeAllListeners() {
     this.socket?.removeAllListeners()

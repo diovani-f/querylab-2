@@ -100,6 +100,14 @@ router.post('/evaluate', async (req, res) => {
       isApproved: isApproved !== undefined ? isApproved : overallScore >= 8
     })
 
+    // Emitir evento WebSocket para notificar clientes sobre a avaliação
+    if (global.socketIO) {
+      global.socketIO.to(sessionId).emit('evaluation-updated', {
+        messageId,
+        evaluation
+      })
+    }
+
     res.json({
       success: true,
       evaluation
@@ -118,7 +126,7 @@ router.get('/session/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params
     const evaluations = await evaluationService.getEvaluationsBySession(sessionId)
-    
+
     res.json({
       success: true,
       evaluations
@@ -137,7 +145,7 @@ router.get('/message/:messageId', async (req, res) => {
   try {
     const { messageId } = req.params
     const evaluation = await evaluationService.getEvaluationByMessage(messageId)
-    
+
     res.json({
       success: true,
       evaluation

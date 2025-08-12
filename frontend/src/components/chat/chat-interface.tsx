@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -13,6 +13,8 @@ export function ChatInterface() {
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const {
     currentSession,
@@ -23,10 +25,33 @@ export function ChatInterface() {
     disconnectWebSocket
   } = useAppStore()
 
+  // Função para scroll suave para o final
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'end'
+    })
+  }
+
   // Garantir hidratação no cliente
   useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  // Scroll para o final quando mensagens mudarem
+  useEffect(() => {
+    if (currentSession?.messages && currentSession.messages.length > 0) {
+      // Pequeno delay para garantir que o DOM foi atualizado
+      setTimeout(scrollToBottom, 100)
+    }
+  }, [currentSession?.messages])
+
+  // Scroll para o final quando entrar em loading (nova mensagem sendo processada)
+  useEffect(() => {
+    if (isLoading) {
+      setTimeout(scrollToBottom, 100)
+    }
+  }, [isLoading])
 
   // Initialize WebSocket on component mount
   useEffect(() => {
@@ -107,7 +132,7 @@ export function ChatInterface() {
   return (
     <div className="flex h-full flex-col">
       {/* Área de Mensagens */}
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-4 max-w-4xl mx-auto">
           {(currentSession?.messages || []).length === 0 ? (
             <div className="text-center py-8">
@@ -135,6 +160,9 @@ export function ChatInterface() {
               }}
             />
           )}
+
+          {/* Elemento invisível para scroll automático */}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 

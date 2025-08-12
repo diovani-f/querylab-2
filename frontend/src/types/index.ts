@@ -5,6 +5,7 @@ export interface Message {
   timestamp: Date
   sqlQuery?: string
   queryResult?: QueryResult
+  evaluation?: QueryEvaluation
 }
 
 export interface QueryResult {

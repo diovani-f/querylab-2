@@ -192,10 +192,37 @@ router.put('/:sessionId', async (req, res) => {
 })
 
 // Deletar sessão
-router.delete('/:sessionId', async (req, res) => {
+router.delete('/:sessionId', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { sessionId } = req.params
-    const deleted = sessionService.deleteSession(sessionId)
+
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado'
+      })
+    }
+
+    // Verificar se a sessão existe e se o usuário tem permissão para deletá-la
+    try {
+      const response = await fetch(`${JSON_SERVER_URL}/sessoes/${sessionId}`)
+      if (response.ok) {
+        const sessionData = await response.json()
+
+        // Verificar se o usuário é o dono da sessão ou é admin
+        if (sessionData.usuario_id !== req.user.id && req.user.role !== 'admin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Acesso negado: você só pode deletar suas próprias sessões'
+          })
+        }
+      }
+    } catch (error) {
+      console.warn('Não foi possível verificar a propriedade da sessão:', error)
+      // Continuar com a deleção mesmo se não conseguir verificar
+    }
+
+    const deleted = await sessionService.deleteSession(sessionId)
 
     if (!deleted) {
       return res.status(404).json({

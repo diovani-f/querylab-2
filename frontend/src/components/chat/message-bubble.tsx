@@ -2,8 +2,9 @@
 
 import { Message } from "@/types"
 import { cn } from "@/lib/utils"
-import { User, Bot, AlertCircle, Info, Table } from "lucide-react"
+import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { QueryResultsTable } from "./query-results-table"
 import { ChartContainer } from "../charts/chart-container"
@@ -67,6 +68,16 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
              message.type === 'assistant' ? 'QueryLab' :
              message.type === 'error' ? 'Erro' : 'Sistema'}
           </span>
+
+          {/* Indicador de avaliação para mensagens de assistente */}
+          {message.type === 'assistant' && message.evaluation && (
+            <Badge variant="outline" className="text-xs">
+              <Star className="h-3 w-3 mr-1" />
+              {message.evaluation.overallScore.toFixed(1)}
+              {message.evaluation.isApproved && <CheckCircle className="h-3 w-3 ml-1 text-green-500" />}
+            </Badge>
+          )}
+
           <span className="text-xs opacity-70">
             {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
               hour: '2-digit',
@@ -138,7 +149,10 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                 console.log('Avaliação salva:', evaluation)
               }}
             >
-              <EvaluationTrigger messageId={message.id} />
+              <EvaluationTrigger
+                messageId={message.id}
+                evaluation={message.evaluation}
+              />
             </EvaluationModal>
           </div>
         )}

@@ -1,14 +1,30 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import { useHydration } from "@/hooks/use-hydration"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/stores/app-store"
 import { MessageSquare, Plus, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/components/ui/toast"
+import { PulseLoader } from "react-spinners"
 
 export function Sidebar() {
-  const [isHydrated, setIsHydrated] = useState(false)
+  const isHydrated = useHydration()
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const { addToast } = useToast()
   const {
     sessions,
     currentSession,
@@ -16,11 +32,6 @@ export function Sidebar() {
     createNewSession,
     deleteSession
   } = useAppStore()
-
-  // Garantir hidratação no cliente
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
 
   // Garantir que sessions é sempre um array
   const safeSessions = Array.isArray(sessions) ? sessions : []
@@ -39,6 +50,11 @@ export function Sidebar() {
   }
 
   const handleSelectSession = (sessionId: string) => {
+    // Não permitir seleção se a sessão está sendo deletada
+    if (isDeleting && sessionToDelete === sessionId) {
+      return
+    }
+
     const session = safeSessions.find(s => s.id === sessionId)
     if (session) {
       setCurrentSession(session)
@@ -47,11 +63,59 @@ export function Sidebar() {
 
   const handleDeleteSession = (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    deleteSession(sessionId)
+    setSessionToDelete(sessionId)
+  }
+
+  const confirmDeleteSession = async () => {
+    if (!sessionToDelete) return
+
+    const sessionTitle = safeSessions.find(s => s.id === sessionToDelete)?.title || 'Sessão'
+
+    setIsDeleting(true)
+
+    try {
+      // Aguardar a conclusão da requisição
+      await deleteSession(sessionToDelete)
+
+      // Só fechar o modal após sucesso
+      setSessionToDelete(null)
+
+      // Toast de sucesso
+      addToast({
+        type: 'success',
+        title: 'Sessão deletada',
+        description: `"${sessionTitle}" foi removida com sucesso.`,
+        duration: 3000
+      })
+    } catch (error) {
+      console.error('Erro ao deletar sessão:', error)
+
+      // Em caso de erro, também fechar o modal
+      setSessionToDelete(null)
+
+      // Toast de erro
+      addToast({
+        type: 'error',
+        title: 'Erro ao deletar sessão',
+        description: 'Não foi possível deletar a sessão. Tente novamente.',
+        duration: 5000
+      })
+    } finally {
+      // Sempre limpar o loading no final
+      setIsDeleting(false)
+    }
+  }
+
+  const cancelDeleteSession = () => {
+    if (!isDeleting) {
+      setSessionToDelete(null)
+    }
   }
 
   return (
     <div className="flex h-full w-80 flex-col border-r bg-muted/10">
+
+
       {/* Header da Sidebar */}
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="text-lg font-semibold">Sessões</h2>
@@ -77,11 +141,14 @@ export function Sidebar() {
             safeSessions.map((session) => (
               <div
                 key={session.id}
-                onClick={() => handleSelectSession(session.id)}
                 className={cn(
-                  "group flex items-center justify-between rounded-lg p-3 cursor-pointer transition-colors hover:bg-accent",
-                  currentSession?.id === session.id && "bg-accent"
+                  "group flex items-center justify-between rounded-lg p-3 cursor-pointer transition-all duration-300",
+                  currentSession?.id === session.id && "bg-accent",
+                  isDeleting && sessionToDelete === session.id
+                    ? "opacity-60 cursor-not-allowed bg-muted scale-95 transform"
+                    : "hover:bg-accent hover:scale-[1.02]"
                 )}
+                onClick={() => handleSelectSession(session.id)}
               >
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-medium truncate">
@@ -99,6 +166,7 @@ export function Sidebar() {
                   size="icon"
                   className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => handleDeleteSession(session.id, e)}
+                  disabled={isDeleting}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -115,6 +183,65 @@ export function Sidebar() {
           <p>Modelo: {useAppStore.getState().selectedModel?.name}</p>
         </div>
       </div>
+
+      {/* Modal de Confirmação de Delete */}
+      <AlertDialog
+        open={!!sessionToDelete}
+        onOpenChange={(open) => !open && !isDeleting && cancelDeleteSession()}
+      >
+        <AlertDialogContent className={cn(isDeleting && "pointer-events-none")}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isDeleting ? 'Deletando Sessão...' : 'Deletar Sessão'}
+            </AlertDialogTitle>
+            {isDeleting ? (
+              <AlertDialogDescription className="text-center text-orange-600 font-medium">
+                Processando exclusão da sessão...
+              </AlertDialogDescription>
+            ) : (
+              <AlertDialogDescription>
+                Tem certeza que deseja deletar esta sessão? Esta ação não pode ser desfeita.
+                {sessionToDelete && (
+                  <span className="block mt-2 font-medium">
+                    "{safeSessions.find(s => s.id === sessionToDelete)?.title}"
+                  </span>
+                )}
+              </AlertDialogDescription>
+            )}
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSession}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deletando...' : 'Deletar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Loading Overlay Global */}
+      {isDeleting && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 shadow-xl border flex flex-col items-center gap-4">
+            <PulseLoader
+              color="#f97316"
+              size={15}
+              speedMultiplier={0.8}
+            />
+            <div className="text-center">
+              <h3 className="font-semibold text-gray-900">Deletando Sessão</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Aguarde enquanto processamos a exclusão...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -4,8 +4,8 @@ export class JsonServerAdapter implements DatabaseAdapter {
   private baseUrl: string
   private isConnected: boolean = false
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
-    this.baseUrl = baseUrl
+  constructor(baseUrl: string = process.env.JSON_SERVER_URL || 'http://localhost:3001') {
+    this.baseUrl = baseUrl;
   }
 
   async connect(): Promise<void> {
@@ -104,11 +104,11 @@ export class JsonServerAdapter implements DatabaseAdapter {
         const [, field, operator, value] = whereMatch
         if (operator.toUpperCase() === 'LIKE') {
           const searchValue = value.replace(/%/g, '')
-          filteredData = filteredData.filter(item => 
+          filteredData = filteredData.filter(item =>
             item[field] && item[field].toString().toLowerCase().includes(searchValue.toLowerCase())
           )
         } else if (operator === '=') {
-          filteredData = filteredData.filter(item => 
+          filteredData = filteredData.filter(item =>
             item[field] && item[field].toString().toLowerCase() === value.toLowerCase()
           )
         }
@@ -116,7 +116,7 @@ export class JsonServerAdapter implements DatabaseAdapter {
 
       // Extrair colunas
       const columns = filteredData.length > 0 ? Object.keys(filteredData[0]) : []
-      
+
       // Converter para formato de linhas
       const rows = filteredData.map(item => columns.map(col => item[col]))
 

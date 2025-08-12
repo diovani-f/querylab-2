@@ -20,6 +20,7 @@ import {
 import { Star, CheckCircle, AlertCircle, Clock, Send, BarChart3 } from 'lucide-react'
 import { EvaluationCriteria, QueryEvaluation, Message } from '@/types'
 import { apiService } from '@/lib/api'
+import { useAppStore } from '@/stores/app-store'
 
 interface EvaluationModalProps {
   message: Message
@@ -34,7 +35,8 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
   const [evaluation, setEvaluation] = useState<QueryEvaluation | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  
+  const { updateMessageEvaluation } = useAppStore()
+
   // Estado do formulário de avaliação
   const [criteriaValues, setCriteriaValues] = useState<Record<string, boolean | number | string>>({})
   const [criteriaComments, setCriteriaComments] = useState<Record<string, string>>({})
@@ -106,7 +108,7 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
 
     try {
       setIsSaving(true)
-      
+
       const criteriaEvaluations = criteria.map(c => ({
         criteriaId: c.id,
         value: criteriaValues[c.id],
@@ -129,9 +131,11 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
       }
 
       const data = await apiService.saveEvaluation(evaluationData)
-      
+
       if (data.success) {
         setEvaluation(data.evaluation)
+        // Atualizar a mensagem no store com a avaliação
+        updateMessageEvaluation(message.id, data.evaluation)
         onEvaluationSaved?.(data.evaluation)
         setIsOpen(false)
       } else {
@@ -177,7 +181,7 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
             )}
           </DialogTitle>
           <DialogDescription>
-            {evaluation 
+            {evaluation
               ? 'Visualize os detalhes da avaliação desta consulta SQL.'
               : 'Avalie a qualidade da consulta SQL gerada e seus resultados.'
             }
@@ -205,7 +209,7 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
                     <div className="flex items-center space-x-2">
                       <Switch
                         checked={criteriaValues[criterion.id] as boolean}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={(checked) =>
                           setCriteriaValues(prev => ({ ...prev, [criterion.id]: checked }))
                         }
                         disabled={!!evaluation}
@@ -226,7 +230,7 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
                       </div>
                       <Slider
                         value={[criteriaValues[criterion.id] as number]}
-                        onValueChange={(value) => 
+                        onValueChange={(value) =>
                           setCriteriaValues(prev => ({ ...prev, [criterion.id]: value[0] }))
                         }
                         min={criterion.scaleMin || 1}
@@ -241,7 +245,7 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
                   {criterion.type === 'text' && (
                     <Textarea
                       value={criteriaValues[criterion.id] as string}
-                      onChange={(e) => 
+                      onChange={(e) =>
                         setCriteriaValues(prev => ({ ...prev, [criterion.id]: e.target.value }))
                       }
                       placeholder="Digite sua avaliação..."
@@ -255,7 +259,7 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
                     <Label className="text-xs text-muted-foreground">Comentário (opcional)</Label>
                     <Textarea
                       value={criteriaComments[criterion.id] || ''}
-                      onChange={(e) => 
+                      onChange={(e) =>
                         setCriteriaComments(prev => ({ ...prev, [criterion.id]: e.target.value }))
                       }
                       placeholder="Adicione um comentário específico..."
@@ -269,7 +273,7 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
               {/* Configurações gerais */}
               <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
                 <h4 className="font-medium">Avaliação Geral</h4>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex items-center space-x-2">
                     <Switch
@@ -279,7 +283,7 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
                     />
                     <Label className="text-sm">Resultado Correto</Label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Switch
                       checked={needsReview}
@@ -288,7 +292,7 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
                     />
                     <Label className="text-sm">Precisa Revisão</Label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Switch
                       checked={isApproved}
