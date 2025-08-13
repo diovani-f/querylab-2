@@ -1,13 +1,5 @@
-# Dockerfile para DB2 Service
-FROM node:18-bullseye
-
-# Instalar dependências do sistema necessárias para ibm_db
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# Dockerfile para DB2 Service (Proxy Mode)
+FROM node:18-alpine
 
 # Configurar diretório de trabalho
 WORKDIR /app
@@ -16,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instalar dependências
-RUN npm ci
+RUN npm ci --only=production
 
 # Copiar código fonte
 COPY . .
@@ -25,7 +17,8 @@ COPY . .
 RUN npm run build
 
 # Criar usuário não-root
-RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
 RUN chown -R nodejs:nodejs /app
 USER nodejs
 

@@ -1,4 +1,3 @@
-import * as ibmdb from 'ibm_db'
 import axios from 'axios'
 
 export interface QueryResult {
@@ -9,38 +8,30 @@ export interface QueryResult {
 }
 
 export interface ProxyConfig {
-  enabled: boolean
   url: string
+  secret: string
   timeout: number
 }
 
 export class DB2Service {
   private static instance: DB2Service
-  private connection: any = null
   private isConnected: boolean = false
-  private connectionString: string
-  private config: any
   private proxyConfig: ProxyConfig
 
   private constructor() {
-    this.config = {
-      host: process.env.DB2_HOST || 'localhost',
-      port: parseInt(process.env.DB2_PORT || '50000'),
-      database: process.env.DB2_DATABASE || 'UNIVDB',
-      username: process.env.DB2_USERNAME || '',
-      password: process.env.DB2_PASSWORD || '',
-      ssl: process.env.DB2_SSL_ENABLED === 'true',
-      connectTimeout: parseInt(process.env.DB2_CONNECTION_TIMEOUT || '30000'),
-      queryTimeout: parseInt(process.env.DB2_QUERY_TIMEOUT || '60000')
-    }
-
     this.proxyConfig = {
-      enabled: process.env.USE_DB2_PROXY === 'true',
       url: process.env.DB2_PROXY_URL || '',
+      secret: process.env.DB2_PROXY_SECRET || '',
       timeout: parseInt(process.env.DB2_PROXY_TIMEOUT || '30000')
     }
 
-    this.connectionString = this.buildConnectionString()
+    // Validar configuração obrigatória
+    if (!this.proxyConfig.url) {
+      throw new Error('DB2_PROXY_URL é obrigatório')
+    }
+    if (!this.proxyConfig.secret) {
+      throw new Error('DB2_PROXY_SECRET é obrigatório')
+    }
   }
 
   static getInstance(): DB2Service {
@@ -50,54 +41,17 @@ export class DB2Service {
     return DB2Service.instance
   }
 
-  private buildConnectionString(): string {
-    let connStr = `DATABASE=${this.config.database};HOSTNAME=${this.config.host};PORT=${this.config.port};PROTOCOL=TCPIP;UID=${this.config.username};PWD=${this.config.password};`
-
-    if (this.config.ssl) {
-      connStr += 'SECURITY=SSL;'
-    }
-
-    return connStr
-  }
-
   async initialize(): Promise<void> {
     try {
-      if (this.proxyConfig.enabled) {
-        console.log('🔄 Inicializando DB2 Service via Proxy...')
-        console.log(`📡 Proxy URL: ${this.proxyConfig.url}`)
+      console.log('🔄 Inicializando DB2 Service via Proxy...')
+      console.log(`📡 Proxy URL: ${this.proxyConfig.url}`)
 
-        // Testar conexão com proxy
-        await this.testProxyConnection()
-        this.isConnected = true
-        console.log('✅ Conectado ao DB2 via proxy com sucesso!')
-      } else {
-        console.log('🔄 Conectando ao DB2 diretamente...')
-        console.log(`📡 Host: ${this.config.host}:${this.config.port}`)
-        console.log(`🗄️ Database: ${this.config.database}`)
-
-        this.connection = await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error(`Timeout de conexão (${this.config.connectTimeout}ms)`))
-          }, this.config.connectTimeout)
-
-          ibmdb.open(this.connectionString, (err: any, conn: any) => {
-            clearTimeout(timeout)
-            if (err) {
-              reject(err)
-            } else {
-              resolve(conn)
-            }
-          })
-        })
-
-        this.isConnected = true
-        console.log('✅ Conectado ao DB2 diretamente com sucesso!')
-
-        // Testar conexão
-        await this.testConnection()
-      }
+      // Testar conexão com proxy
+      await this.testProxyConnection()
+      this.isConnected = true
+      console.log('✅ Conectado ao DB2 via proxy com sucesso!')
     } catch (error) {
-      console.error('❌ Erro ao conectar ao DB2:', error)
+      console.error('❌ Erro ao conectar ao DB2 via proxy:', error)
       throw error
     }
   }
@@ -127,8 +81,8 @@ export class DB2Service {
 
   async testConnection(): Promise<boolean> {
     try {
-      console.log('🔄 Testando conexão DB2...')
-      const result = await this.executeQuery('SELECT 1 FROM SYSIBM.SYSDUMMY1')
+      console.log('🔄 Testando conexão DB2 via proxy...')
+      await this.executeQuery('SELECT 1 FROM SYSIBM.SYSDUMMY1')
       console.log(`✅ Teste de conexão DB2 bem-sucedido`)
       return true
     } catch (error) {
@@ -138,48 +92,11 @@ export class DB2Service {
   }
 
   async executeQuery(sql: string): Promise<QueryResult> {
-    // Se proxy estiver habilitado, usar proxy ao invés de conexão direta
-    if (this.proxyConfig.enabled) {
-      return this.executeQueryViaProxy(sql)
+    if (!this.isConnected) {
+      throw new Error('DB2 Service não está inicializado')
     }
 
-    if (!this.isConnected || !this.connection) {
-      throw new Error('DB2 não está conectado')
-    }
-
-    const startTime = Date.now()
-
-    try {
-      console.log(`🔄 Executando query DB2: ${sql}`)
-
-      const result = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error(`Timeout de query (${this.config.queryTimeout}ms)`))
-        }, this.config.queryTimeout)
-
-        this.connection.query(sql, (err: any, data: any) => {
-          clearTimeout(timeout)
-          if (err) {
-            reject(err)
-          } else {
-            resolve(data)
-          }
-        })
-      })
-
-      const executionTime = Date.now() - startTime
-
-      // Processar resultado
-      const processedResult = this.processQueryResult(result as any[], executionTime)
-
-      console.log(`✅ Query executada em ${executionTime}ms - ${processedResult.rowCount} linhas`)
-
-      return processedResult
-    } catch (error) {
-      const executionTime = Date.now() - startTime
-      console.error(`❌ Erro na query (${executionTime}ms):`, error)
-      throw error
-    }
+    return this.executeQueryViaProxy(sql)
   }
 
   private async executeQueryViaProxy(sql: string): Promise<QueryResult> {
@@ -193,7 +110,7 @@ export class DB2Service {
         { sql },
         {
           headers: {
-            'Authorization': `Bearer ${process.env.DB2_PROXY_SECRET}`,
+            'Authorization': `Bearer ${this.proxyConfig.secret}`,
             'Content-Type': 'application/json'
           },
           timeout: this.proxyConfig.timeout
@@ -249,34 +166,15 @@ export class DB2Service {
   }
 
   async disconnect(): Promise<void> {
-    if (this.connection) {
-      try {
-        await new Promise((resolve, reject) => {
-          this.connection.close((err: any) => {
-            if (err) {
-              reject(err)
-            } else {
-              resolve(undefined)
-            }
-          })
-        })
-        console.log('✅ Desconectado do DB2')
-      } catch (error) {
-        console.error('❌ Erro ao desconectar do DB2:', error)
-      }
-
-      this.connection = null
-      this.isConnected = false
-    }
+    this.isConnected = false
+    console.log('✅ DB2 Service desconectado')
   }
 
   getConnectionInfo() {
     return {
       isConnected: this.isConnected,
-      host: this.config.host,
-      port: this.config.port,
-      database: this.config.database,
-      ssl: this.config.ssl
+      proxyUrl: this.proxyConfig.url,
+      mode: 'proxy'
     }
   }
 }

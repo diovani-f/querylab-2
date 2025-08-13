@@ -93,8 +93,7 @@ Vá para **"Variables"** e adicione:
 NODE_ENV=production
 DB2_SERVICE_PORT=5001
 
-# Configuração do Proxy
-USE_DB2_PROXY=true
+# Configuração do Proxy (OBRIGATÓRIO)
 DB2_PROXY_URL=https://3002-user-workspace.githubpreview.dev
 DB2_PROXY_SECRET=chave_super_secreta_123456
 DB2_PROXY_TIMEOUT=30000
@@ -102,6 +101,10 @@ DB2_PROXY_TIMEOUT=30000
 # CORS
 CORS_ORIGIN=https://seu-frontend.railway.app
 ```
+
+**⚠️ IMPORTANTE**:
+- `DB2_PROXY_URL` deve ser a URL do VS Code tunnel
+- `DB2_PROXY_SECRET` deve ser igual ao `PROXY_SECRET` do proxy local
 
 ### **ETAPA 4: Integrar com Backend Principal**
 

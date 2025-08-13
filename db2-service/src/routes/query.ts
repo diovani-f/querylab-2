@@ -1,7 +1,7 @@
-import { Router } from 'express'
+import { Router, type Router as RouterType } from 'express'
 import { DB2Service } from '../services/db2-service'
 
-export const queryRoutes = Router()
+export const queryRoutes: RouterType = Router()
 
 // Executar query SQL
 queryRoutes.post('/execute', async (req, res) => {
@@ -25,7 +25,7 @@ queryRoutes.post('/execute', async (req, res) => {
     })
   } catch (error) {
     console.error('❌ Erro ao executar query:', error)
-    
+
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro desconhecido',

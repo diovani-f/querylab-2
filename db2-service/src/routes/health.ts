@@ -1,7 +1,7 @@
-import { Router } from 'express'
+import { Router, type Router as RouterType } from 'express'
 import { DB2Service } from '../services/db2-service'
 
-export const healthRoutes = Router()
+export const healthRoutes: RouterType = Router()
 
 // Health check básico
 healthRoutes.get('/', (req, res) => {

@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { Express } from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import { DB2Service } from './services/db2-service'
@@ -8,7 +8,7 @@ import { queryRoutes } from './routes/query'
 // Carregar variáveis de ambiente
 dotenv.config()
 
-const app = express()
+const app: Express = express()
 const PORT = process.env.DB2_SERVICE_PORT || 5001
 
 // Middlewares
