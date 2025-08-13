@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "preinstall": "chmod +x scripts/preinstall.sh && ./scripts/preinstall.sh || true",
+    "postinstall": "node scripts/install-ibm-db.js || true",
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
@@ -23,11 +25,14 @@
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "groq-sdk": "^0.27.0",
-    "ibm_db": "^3.3.2",
+
     "jsonwebtoken": "^9.0.2",
     "nodemon": "^3.1.10",
     "socket.io": "^4.8.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
+  },
+  "optionalDependencies": {
+    "ibm_db": "^3.3.2"
   }
 }
