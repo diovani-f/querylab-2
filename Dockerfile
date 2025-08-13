@@ -1,30 +1,48 @@
-# Dockerfile simplificado para backend apenas
-FROM node:18-alpine AS builder
+# Dockerfile para backend com suporte ao IBM DB2
+FROM node:18-bullseye AS builder
 
-# Instalar dependências do backend
+# Instalar dependências do sistema necessárias para ibm_db
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configurar diretório de trabalho
 WORKDIR /app
-COPY backend/package*.json ./
-RUN npm ci --only=production
 
-# Copiar código fonte e compilar
+# Copiar arquivos de dependências
+COPY backend/package*.json ./
+
+# Instalar dependências (incluindo devDependencies para build)
+RUN npm ci
+
+# Copiar código fonte
 COPY backend/ ./
+
+# Compilar TypeScript
 RUN npm run build
 
 # Imagem final
-FROM node:18-alpine AS production
+FROM node:18-bullseye AS production
+
+# Instalar dependências mínimas do sistema para runtime
+RUN apt-get update && apt-get install -y \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Copiar dependências
+# Copiar dependências e código compilado
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
-
-# Copiar código compilado
 COPY --from=builder /app/dist ./dist
 
 # Criar usuário não-root
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
-USER nextjs
+RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
+RUN chown -R nodejs:nodejs /app
+USER nodejs
 
 # Expor porta
 EXPOSE 5000

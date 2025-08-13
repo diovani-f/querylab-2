@@ -1,0 +1,49 @@
+# Dockerfile alternativo sem IBM DB2 (para ambientes que não suportam)
+FROM node:18-alpine AS builder
+
+# Instalar dependências básicas de build
+RUN apk add --no-cache python3 make g++
+
+# Configurar diretório de trabalho
+WORKDIR /app
+
+# Copiar package.json sem ibm_db
+COPY backend/package.json ./package.json.original
+
+# Criar package.json temporário sem ibm_db
+RUN cat package.json.original | \
+    sed '/"ibm_db"/d' > package.json
+
+# Copiar package-lock.json se existir
+COPY backend/package-lock.json* ./
+
+# Instalar dependências
+RUN npm ci
+
+# Copiar código fonte
+COPY backend/ ./
+
+# Compilar TypeScript
+RUN npm run build
+
+# Imagem final
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Copiar dependências e código compilado
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/dist ./dist
+
+# Criar usuário não-root
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+RUN chown -R nodejs:nodejs /app
+USER nodejs
+
+# Expor porta
+EXPOSE 5000
+
+# Comando para iniciar
+CMD ["npm", "start"]
