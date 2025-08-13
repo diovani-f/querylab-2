@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Database, Wifi, WifiOff, Shield, ShieldCheck } from 'lucide-react'
 import { apiService } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -31,14 +31,17 @@ interface DatabaseStatus {
   }
 }
 
-export function DatabaseStatus() {
+function DatabaseStatusComponent() {
   const [status, setStatus] = useState<DatabaseStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastFetch, setLastFetch] = useState<Date | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const fetchStatus = async (isManual = false) => {
+  // Ref para evitar requisições duplicadas no React Strict Mode
+  const hasInitialized = useRef(false)
+
+  const fetchStatus = useCallback(async (isManual = false) => {
     try {
       if (isManual) {
         setIsRefreshing(true)
@@ -51,31 +54,33 @@ export function DatabaseStatus() {
       setLastFetch(new Date())
       setRetryCount(0) // Reset retry count on success
 
+      // Log apenas para refresh manual ou erros
       if (isManual) {
         console.log('🔄 Status atualizado manualmente:', data.status)
       }
     } catch (error) {
-      console.error('Erro ao buscar status:', error)
+      console.error('❌ Erro ao buscar status:', error)
       setRetryCount(prev => prev + 1)
     } finally {
       setLoading(false)
       setIsRefreshing(false)
     }
-  }
+  }, []) // Sem dependências pois usa apenas setters
 
-  const handleManualRefresh = () => {
+  const handleManualRefresh = useCallback(() => {
     fetchStatus(true)
-  }
+  }, [fetchStatus])
 
   useEffect(() => {
-    // Buscar status inicial
-    fetchStatus()
+    // Buscar status inicial apenas uma vez (evita duplicação no React Strict Mode)
+    if (!hasInitialized.current) {
+      hasInitialized.current = true
+      fetchStatus()
+    }
+  }, []) // Array vazio = executa apenas uma vez
 
-    // Estratégia inteligente de atualização:
-    // - Se tudo OK: atualizar a cada 5 minutos
-    // - Se há problemas: atualizar a cada 2 minutos
-    // - Se muitos erros: atualizar a cada 30 segundos (máximo 5 tentativas)
-
+  useEffect(() => {
+    // Configurar intervalo baseado no status atual
     const getUpdateInterval = () => {
       if (retryCount > 5) return 300000 // 5 minutos se muitos erros
       if (retryCount > 0) return 30000  // 30 segundos se há erros
@@ -84,12 +89,38 @@ export function DatabaseStatus() {
       return 60000 // 1 minuto por padrão
     }
 
-    const interval = setInterval(() => {
-      fetchStatus()
-    }, getUpdateInterval())
+    // Só configurar intervalo se já temos um status inicial
+    // E não estamos no carregamento inicial
+    if (status && !loading) {
+      const interval = setInterval(() => {
+        fetchStatus()
+      }, getUpdateInterval())
 
-    return () => clearInterval(interval)
-  }, [status?.status, retryCount])
+      return () => clearInterval(interval)
+    }
+  }, [status?.status, retryCount]) // Remover loading da dependência
+
+  // Memoizar valores calculados para evitar re-renderizações desnecessárias
+  const statusInfo = useMemo(() => {
+    if (!status) return null
+
+    const isQueryDbConnected = status.services.queries.connected
+    const isVpnConnected = status.services.vpn.status === 'connected'
+    const queryDbType = status.services.queries.type
+
+    const statusColor = isQueryDbConnected ? 'bg-green-500' : 'bg-red-500'
+    const statusText = isQueryDbConnected
+      ? `${queryDbType.toUpperCase()} Conectado`
+      : 'DB Desconectado'
+
+    return {
+      isQueryDbConnected,
+      isVpnConnected,
+      queryDbType,
+      statusColor,
+      statusText
+    }
+  }, [status])
 
   if (loading) {
     return (
@@ -100,7 +131,7 @@ export function DatabaseStatus() {
     )
   }
 
-  if (!status) {
+  if (!status || !statusInfo) {
     return (
       <div className="flex items-center space-x-2 rounded-lg border px-3 py-1.5">
         <Database className="h-4 w-4 text-red-500" />
@@ -108,22 +139,6 @@ export function DatabaseStatus() {
         <div className="h-2 w-2 rounded-full bg-red-500" />
       </div>
     )
-  }
-
-  const isQueryDbConnected = status.services.queries.connected
-  const isVpnConnected = status.services.vpn.status === 'connected'
-  const queryDbType = status.services.queries.type
-
-  const getStatusColor = () => {
-    if (isQueryDbConnected) return 'bg-green-500'
-    return 'bg-red-500'
-  }
-
-  const getStatusText = () => {
-    if (isQueryDbConnected) {
-      return `${queryDbType.toUpperCase()} Conectado`
-    }
-    return 'DB Desconectado'
   }
 
   const getTooltipContent = () => {
@@ -167,11 +182,11 @@ export function DatabaseStatus() {
           <div className="flex items-center justify-between">
             <span>VPN:</span>
             <span className={`text-xs px-2 py-1 rounded ${
-              isVpnConnected
+              statusInfo.isVpnConnected
                 ? 'bg-blue-100 text-blue-800'
                 : 'bg-gray-100 text-gray-800'
             }`}>
-              {isVpnConnected ? status.services.vpn.name || 'Conectada' : 'Desconectada'}
+              {statusInfo.isVpnConnected ? status.services.vpn.name || 'Conectada' : 'Desconectada'}
             </span>
           </div>
         </div>
@@ -207,10 +222,10 @@ export function DatabaseStatus() {
             className="flex items-center space-x-2"
           >
             {/* Ícone do banco de dados */}
-            <Database className={`h-4 w-4 ${isQueryDbConnected ? 'text-green-600' : 'text-red-600'} ${isRefreshing ? 'animate-pulse' : ''}`} />
+            <Database className={`h-4 w-4 ${statusInfo.isQueryDbConnected ? 'text-green-600' : 'text-red-600'} ${isRefreshing ? 'animate-pulse' : ''}`} />
 
             {/* Ícone da VPN */}
-            {isVpnConnected ? (
+            {statusInfo.isVpnConnected ? (
               <Shield className="h-3 w-3 text-blue-600" />
             ) : (
               <Wifi className="h-3 w-3 text-gray-400" />
@@ -218,11 +233,11 @@ export function DatabaseStatus() {
 
             {/* Status text */}
             <span className="text-sm font-medium">
-              {getStatusText()}
+              {statusInfo.statusText}
             </span>
 
             {/* Status indicator */}
-            <div className={`h-2 w-2 rounded-full ${getStatusColor()}`} />
+            <div className={`h-2 w-2 rounded-full ${statusInfo.statusColor}`} />
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="w-64">
@@ -232,3 +247,6 @@ export function DatabaseStatus() {
     </TooltipProvider>
   )
 }
+
+// Memoizar o componente para evitar re-renderizações desnecessárias
+export const DatabaseStatus = React.memo(DatabaseStatusComponent)

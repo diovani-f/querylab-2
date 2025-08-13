@@ -25,7 +25,7 @@ class ApiService {
           }
         }
       } catch (error) {
-        console.warn('Erro ao obter token de autenticação:', error)
+        // Token inválido ou erro de parsing - ignorar silenciosamente
       }
     }
 
@@ -35,12 +35,9 @@ class ApiService {
   private async handleResponse(response: Response) {
     // Verificar se é erro de autenticação
     if (response.status === 401 || response.status === 403) {
-      console.log('🔒 Token inválido ou expirado - redirecionando para login')
-
       // Limpar dados de autenticação
       if (typeof window !== 'undefined') {
         localStorage.removeItem('querylab-auth')
-
         // Redirecionar para login
         window.location.href = '/login'
       }

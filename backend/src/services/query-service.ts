@@ -26,7 +26,6 @@ export class QueryService {
    * Executa uma consulta SQL usando o banco configurado
    */
   async executeQuery(sql: string): Promise<QueryResult> {
-    console.log('🔍 Executando consulta SQL no banco de dados...')
     return await this.queryDbService.executeQuery(sql)
   }
 

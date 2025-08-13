@@ -6,19 +6,15 @@ export function setupWebSocketHandlers(io: Server) {
   const chatService = ChatService.getInstance()
 
   io.on('connection', (socket: Socket) => {
-    console.log(`🔌 Cliente conectado: ${socket.id}`)
-
     // Entrar em uma sessão
     socket.on('join-session', (sessionId: string) => {
       socket.join(sessionId)
       socket.emit('session-joined', sessionId)
-      console.log(`📝 Cliente ${socket.id} entrou na sessão: ${sessionId}`)
     })
 
     // Processar mensagem de chat
     socket.on('send-message', async (data: ChatRequest & { userId?: number }) => {
       try {
-        console.log(`📨 Mensagem recebida via WebSocket:`, data)
         const { sessionId, message, model, userId } = data
 
         // Notificar que a mensagem está sendo processada
@@ -47,6 +43,12 @@ export function setupWebSocketHandlers(io: Server) {
 
         // Enviar mensagem de resposta para todos na sessão
         if (result.assistantMessage) {
+          console.log('📤 Enviando mensagem do assistente via WebSocket:', {
+            id: result.assistantMessage.id,
+            hasExplanation: result.assistantMessage.hasExplanation,
+            hasSqlQuery: !!result.assistantMessage.sqlQuery,
+            hasQueryResult: !!result.assistantMessage.queryResult
+          })
           io.to(actualSessionId).emit('message-received', result.assistantMessage)
         }
 
@@ -59,12 +61,11 @@ export function setupWebSocketHandlers(io: Server) {
     // Sair de uma sessão
     socket.on('disconnect-session', (sessionId: string) => {
       socket.leave(sessionId)
-      console.log(`📤 Cliente ${socket.id} saiu da sessão: ${sessionId}`)
     })
 
     // Desconexão
     socket.on('disconnect', () => {
-      console.log(`🔌 Cliente desconectado: ${socket.id}`)
+      // Cliente desconectado silenciosamente
     })
   })
 }

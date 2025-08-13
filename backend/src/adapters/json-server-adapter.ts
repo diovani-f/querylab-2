@@ -14,7 +14,6 @@ export class JsonServerAdapter implements DatabaseAdapter {
       const response = await fetch(`${this.baseUrl}/universidades?_limit=1`)
       if (response.ok) {
         this.isConnected = true
-        console.log('✅ Conectado ao JSON Server')
       } else {
         throw new Error('Falha ao conectar com JSON Server')
       }
@@ -49,7 +48,6 @@ export class JsonServerAdapter implements DatabaseAdapter {
 
   async disconnect(): Promise<void> {
     this.isConnected = false
-    console.log('🔌 Desconectado do JSON Server')
   }
 
   async testConnection(): Promise<boolean> {

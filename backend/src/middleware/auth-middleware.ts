@@ -9,7 +9,7 @@ export const authMiddleware = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({
         success: false,
@@ -19,10 +19,10 @@ export const authMiddleware = async (
     }
 
     const token = authHeader.substring(7) // Remove 'Bearer '
-    
+
     const authService = AuthService.getInstance()
     const decoded = await authService.verifyToken(token)
-    
+
     if (!decoded) {
       res.status(401).json({
         success: false,
@@ -41,12 +41,6 @@ export const authMiddleware = async (
       })
       return
     }
-
-    console.log('🔐 Usuário autenticado:', {
-      id: user.id,
-      email: user.email,
-      role: user.role
-    })
 
     // Adicionar usuário ao request
     req.user = user
@@ -91,12 +85,12 @@ export const optionalAuthMiddleware = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization
-    
+
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7)
       const authService = AuthService.getInstance()
       const decoded = await authService.verifyToken(token)
-      
+
       if (decoded) {
         const user = await authService.getUserById(decoded.userId)
         if (user) {
@@ -104,7 +98,7 @@ export const optionalAuthMiddleware = async (
         }
       }
     }
-    
+
     next()
   } catch (error) {
     console.error('Erro no middleware de autenticação opcional:', error)

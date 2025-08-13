@@ -138,6 +138,14 @@ export class ChatService {
         hasExplanation: true // Flag para indicar que tem explicação textual
       })
 
+      console.log('📤 Mensagem do assistente criada:', {
+        id: assistantMessage?.id,
+        hasExplanation: assistantMessage?.hasExplanation,
+        hasSqlQuery: !!assistantMessage?.sqlQuery,
+        hasQueryResult: !!assistantMessage?.queryResult,
+        queryResultRows: assistantMessage?.queryResult?.rows?.length || 0
+      })
+
       // Salvar no histórico também
       if (userId && llmResponse.sqlQuery) {
         await this.saveToHistory(userId, actualSessionId, message, llmResponse.sqlQuery, queryResult, model || 'llama3-70b-8192')

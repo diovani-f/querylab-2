@@ -17,7 +17,7 @@ export class DatabaseService {
   async initialize(type?: DatabaseType): Promise<void> {
     try {
       const dbType = type || (process.env.DB_TYPE as DatabaseType) || 'json-server'
-      
+
       let config: any
       switch (dbType) {
         case 'json-server':
@@ -47,9 +47,7 @@ export class DatabaseService {
     }
 
     try {
-      console.log(`🔍 Executando query: ${sql}`)
       const result = await this.adapter.query(sql)
-      console.log(`✅ Query executada com sucesso: ${result.rowCount} linhas retornadas`)
       return result
     } catch (error) {
       console.error('❌ Erro ao executar query:', error)
@@ -94,7 +92,9 @@ export class DatabaseService {
   }
 
   getCurrentDatabaseType(): DatabaseType | null {
-    return DatabaseFactory.getCurrentType()
+    // Retornar o tipo atual do DatabaseFactory se disponível, senão usar a configuração
+    const factoryType = DatabaseFactory.getCurrentType()
+    return factoryType || (process.env.DB_TYPE as DatabaseType) || 'json-server'
   }
 
   async getDatabaseInfo(): Promise<any> {
@@ -117,13 +117,13 @@ export class DatabaseService {
   // Métodos específicos para queries universitárias
   async getUniversidades(filters?: any): Promise<QueryResult> {
     let sql = 'SELECT * FROM universidades'
-    
+
     if (filters) {
       const conditions = []
       if (filters.tipo) conditions.push(`tipo = '${filters.tipo}'`)
       if (filters.regiao) conditions.push(`regiao = '${filters.regiao}'`)
       if (filters.nome) conditions.push(`nome LIKE '%${filters.nome}%'`)
-      
+
       if (conditions.length > 0) {
         sql += ` WHERE ${conditions.join(' AND ')}`
       }
@@ -138,13 +138,13 @@ export class DatabaseService {
 
   async getPessoas(filters?: any): Promise<QueryResult> {
     let sql = 'SELECT * FROM pessoas'
-    
+
     if (filters) {
       const conditions = []
       if (filters.tipo) conditions.push(`tipo = '${filters.tipo}'`)
       if (filters.universidade_id) conditions.push(`universidade_id = ${filters.universidade_id}`)
       if (filters.nome) conditions.push(`nome LIKE '%${filters.nome}%'`)
-      
+
       if (conditions.length > 0) {
         sql += ` WHERE ${conditions.join(' AND ')}`
       }
@@ -159,13 +159,13 @@ export class DatabaseService {
 
   async getCursos(filters?: any): Promise<QueryResult> {
     let sql = 'SELECT * FROM cursos'
-    
+
     if (filters) {
       const conditions = []
       if (filters.tipo) conditions.push(`tipo = '${filters.tipo}'`)
       if (filters.universidade_id) conditions.push(`universidade_id = ${filters.universidade_id}`)
       if (filters.nome) conditions.push(`nome LIKE '%${filters.nome}%'`)
-      
+
       if (conditions.length > 0) {
         sql += ` WHERE ${conditions.join(' AND ')}`
       }
@@ -183,7 +183,7 @@ export class DatabaseService {
     try {
       // Validar e sanitizar SQL se necessário
       const sanitizedSQL = this.sanitizeSQL(sql)
-      
+
       // Adicionar contexto se fornecido
       if (context?.limit && !sanitizedSQL.toLowerCase().includes('limit')) {
         sql += ` LIMIT ${context.limit}`

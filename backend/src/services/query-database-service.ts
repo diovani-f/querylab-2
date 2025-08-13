@@ -1,6 +1,8 @@
 import { DatabaseAdapter, QueryResult } from '../types'
-import { DatabaseFactory } from '../adapters/database-factory'
+import { DatabaseFactory, DatabaseType } from '../adapters/database-factory'
 import { VPNDetector } from '../utils/vpn-detector'
+import { JsonServerAdapter } from '../adapters/json-server-adapter'
+import { DB2Adapter } from '../adapters/db2-adapter'
 
 /**
  * Serviço dedicado para execução de consultas SQL
@@ -34,23 +36,24 @@ export class QueryDatabaseService {
     }
 
     try {
-      console.log(`🔄 Inicializando QueryDatabaseService com ${this.queryDbType}`)
-
-      let config: any
+      // Criar adapter próprio sem interferir no DatabaseFactory singleton
       switch (this.queryDbType) {
         case 'db2':
-          config = await this.getDB2Config()
+          const db2Config = await this.getDB2Config()
+          this.adapter = new DB2Adapter(db2Config)
           break
         case 'json-server':
-          config = DatabaseFactory.getJsonServerConfig()
+          const jsonConfig = DatabaseFactory.getJsonServerConfig()
+          this.adapter = new JsonServerAdapter(jsonConfig.baseUrl)
           break
         default:
           throw new Error(`Tipo de banco não suportado para consultas: ${this.queryDbType}`)
       }
 
-      this.adapter = await DatabaseFactory.getInstance(this.queryDbType as any, config)
+      // Conectar o adapter
+      await this.adapter.connect()
       this.isInitialized = true
-      
+
       console.log(`✅ QueryDatabaseService inicializado com ${this.queryDbType}`)
     } catch (error) {
       console.error('❌ Erro ao inicializar QueryDatabaseService:', error)
@@ -66,12 +69,10 @@ export class QueryDatabaseService {
       // Detectar VPN para escolher configuração apropriada
       const vpnDetector = VPNDetector.getInstance()
       const vpnStatus = await vpnDetector.detectGlobalProtect()
-      
+
       if (vpnStatus.isConnected && process.env.DB2_VPN_HOST) {
-        console.log('🔗 Usando configuração DB2 via VPN')
         return DatabaseFactory.getDB2VPNConfig()
       } else {
-        console.log('🏠 Usando configuração DB2 local')
         return DatabaseFactory.getDB2Config()
       }
     } catch (error) {
@@ -93,10 +94,7 @@ export class QueryDatabaseService {
     }
 
     try {
-      console.log(`🔍 Executando consulta SQL via ${this.queryDbType}`)
       const result = await this.adapter.query(sql)
-      
-      console.log(`✅ Consulta executada: ${result.rowCount} linhas em ${result.executionTime}ms`)
       return result
     } catch (error) {
       console.error('❌ Erro ao executar consulta:', error)
@@ -189,12 +187,11 @@ export class QueryDatabaseService {
     if (this.adapter) {
       try {
         await this.adapter.disconnect()
-        console.log('🔌 QueryDatabaseService desconectado')
       } catch (error) {
         console.error('❌ Erro ao desconectar QueryDatabaseService:', error)
       }
     }
-    
+
     this.adapter = null
     this.isInitialized = false
   }

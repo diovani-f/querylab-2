@@ -55,7 +55,7 @@ export class SessionService {
         this.sessions.set(session.id, session)
       })
 
-      console.log(`✅ ${sessionsData.length} sessões carregadas do JSON Server`)
+
     } catch (error) {
       console.error('❌ Erro ao carregar sessões do JSON Server:', error)
     }
@@ -64,7 +64,7 @@ export class SessionService {
   async saveSessions(): Promise<void> {
     // Este método agora é desnecessário pois salvamos diretamente no JSON Server
     // Mantido para compatibilidade, mas não faz nada
-    console.log('ℹ️ saveSessions() chamado - usando JSON Server diretamente')
+
   }
 
   async createSession(title?: string, model?: LLMModel, userId?: number | string): Promise<ChatSession> {
@@ -111,7 +111,7 @@ export class SessionService {
           throw new Error('Erro ao salvar sessão no JSON Server')
         }
 
-        console.log(`📝 Nova sessão criada e salva no banco: ${sessionId}`)
+
       } catch (error) {
         console.error('❌ Erro ao salvar sessão no banco:', error)
       }
@@ -120,7 +120,7 @@ export class SessionService {
     // Manter na memória para compatibilidade
     this.sessions.set(session.id, session)
 
-    console.log(`📝 Nova sessão criada: ${session.id}`)
+
     return session
   }
 
@@ -161,8 +161,6 @@ export class SessionService {
       if (!response.ok) {
         console.error(`❌ Erro ao deletar sessão ${sessionId} do JSON Server:`, response.status)
         // Continuar e deletar da memória mesmo se falhar no JSON Server
-      } else {
-        console.log(`✅ Sessão ${sessionId} deletada do JSON Server`)
       }
     } catch (error) {
       console.error(`❌ Erro ao conectar com JSON Server para deletar sessão ${sessionId}:`, error)
@@ -171,9 +169,7 @@ export class SessionService {
 
     // Deletar da memória local
     const deleted = this.sessions.delete(sessionId)
-    if (deleted) {
-      console.log(`🗑️ Sessão ${sessionId} removida da memória`)
-    }
+
 
     return deleted
   }
@@ -222,7 +218,7 @@ export class SessionService {
           })
         })
 
-        console.log(`💬 Mensagem adicionada à sessão ${sessionId}`)
+
       }
     } catch (error) {
       console.error('❌ Erro ao salvar mensagem no banco:', error)
@@ -304,7 +300,7 @@ export class SessionService {
 
     if (imported > 0) {
       await this.saveSessions()
-      console.log(`📥 ${imported} sessões importadas`)
+
     }
 
     return imported
@@ -340,9 +336,7 @@ export class SessionService {
       }
     }
 
-    if (deleted > 0) {
-      console.log(`🧹 ${deleted} sessões antigas removidas`)
-    }
+
 
     return deleted
   }

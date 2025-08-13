@@ -78,8 +78,6 @@ async function initializeServices() {
     await sessionService.loadSessions()
 
     console.log('✅ Serviços inicializados com sucesso')
-    console.log(`📊 Banco de dados da aplicação: ${process.env.DB_TYPE || 'json-server'}`)
-    console.log(`🔍 Banco de dados de consultas: ${process.env.QUERY_DB_TYPE || 'json-server'}`)
   } catch (error) {
     console.error('❌ Erro ao inicializar serviços:', error)
   }
@@ -88,8 +86,6 @@ async function initializeServices() {
 // Iniciar servidor
 server.listen(PORT, async () => {
   console.log(`🚀 Servidor QueryLab rodando na porta ${PORT}`)
-  console.log(`📡 WebSocket habilitado`)
-  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}`)
 
   // Inicializar serviços
   await initializeServices()

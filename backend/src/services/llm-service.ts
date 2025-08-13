@@ -18,8 +18,6 @@ export class LLMService {
       apiKey: groqApiKey
     })
 
-    console.log('✅ LLMService inicializado com sucesso')
-
   // Definir modelos disponíveis (atualizados para modelos ativos)
     this.availableModels = [
       {
@@ -80,8 +78,6 @@ export class LLMService {
       const systemPrompt = this.buildSystemPrompt(context)
       const userPrompt = this.buildUserPrompt(prompt)
 
-      console.log(`🤖 Enviando consulta para ${model}: ${prompt}`)
-
       const completion = await this.groqClient.chat.completions.create({
         messages: [
           { role: 'system', content: systemPrompt },
@@ -102,8 +98,6 @@ export class LLMService {
 
       // Verificar se é uma explicação ou SQL
       if (response.startsWith('EXPLICAÇÃO:')) {
-        console.log(`💬 Explicação gerada: ${response}`)
-
         return {
           success: true,
           explanation: response.replace('EXPLICAÇÃO:', '').trim(),
@@ -114,8 +108,6 @@ export class LLMService {
       } else {
         // Extrair SQL da resposta
         const sqlQuery = this.extractSQL(response)
-
-        console.log(`✅ SQL gerado: ${sqlQuery}`)
 
         return {
           success: true,

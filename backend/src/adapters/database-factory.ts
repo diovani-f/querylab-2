@@ -30,7 +30,6 @@ export class DatabaseFactory {
     // Testar conexão
     try {
       await adapter.connect()
-      console.log(`✅ Adaptador ${type} criado e conectado com sucesso`)
     } catch (error) {
       console.error(`❌ Erro ao conectar adaptador ${type}:`, error)
       throw error
@@ -58,8 +57,6 @@ export class DatabaseFactory {
   }
 
   static async switchDatabase(type: DatabaseType, config?: any): Promise<DatabaseAdapter> {
-    console.log(`🔄 Mudando banco de dados para: ${type}`)
-
     if (this.instance) {
       await this.instance.disconnect()
     }

@@ -16,15 +16,11 @@ const authRoutes = [
 ]
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-  
   // Verificar se há token no localStorage (não é possível no middleware)
   // O middleware do Next.js roda no servidor, então não temos acesso ao localStorage
   // Vamos deixar a verificação para os componentes do lado do cliente
-  
-  console.log('🛡️ Middleware - Rota acessada:', pathname)
-  
-  // Por enquanto, apenas loggar e permitir todas as rotas
+
+  // Por enquanto, apenas permitir todas as rotas
   // A verificação real será feita nos componentes ProtectedRoute
   return NextResponse.next()
 }
