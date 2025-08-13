@@ -1,0 +1,40 @@
+# Ignorar diretórios não relacionados ao backend
+frontend/
+db2-service/
+mock-data/
+scripts/
+docs/
+
+# Arquivos de desenvolvimento
+*.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Node modules (serão instalados durante o build)
+node_modules/
+
+# Arquivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentação
+README.md
+DEPLOY.md
+*.md
+
+# Arquivos de configuração não necessários
+docker-compose.yml
+start-all.bat

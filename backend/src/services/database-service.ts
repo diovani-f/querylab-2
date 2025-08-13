@@ -23,29 +23,14 @@ export class DatabaseService {
         case 'json-server':
           config = DatabaseFactory.getJsonServerConfig()
           break
-        case 'db2':
-          // Verificar se é ambiente VPN
-          if (process.env.DB2_VPN_HOST) {
-            config = DatabaseFactory.getDB2VPNConfig()
-          } else {
-            config = DatabaseFactory.getDB2Config()
-          }
-          break
+
       }
 
       try {
         this.adapter = await DatabaseFactory.getInstance(dbType, config)
         console.log(`✅ DatabaseService inicializado com ${dbType}`)
       } catch (dbError) {
-        // Se falhar com DB2, tentar fallback para JSON Server
-        if (dbType === 'db2') {
-          console.warn('⚠️ Falha ao conectar DB2, usando JSON Server como fallback')
-          const fallbackConfig = DatabaseFactory.getJsonServerConfig()
-          this.adapter = await DatabaseFactory.getInstance('json-server', fallbackConfig)
-          console.log('✅ DatabaseService inicializado com json-server (fallback)')
-        } else {
-          throw dbError
-        }
+        throw dbError
       }
     } catch (error) {
       console.error('❌ Erro ao inicializar DatabaseService:', error)
@@ -86,12 +71,8 @@ export class DatabaseService {
         case 'json-server':
           config = DatabaseFactory.getJsonServerConfig()
           break
-        case 'db2':
-          if (process.env.DB2_VPN_HOST) {
-            config = DatabaseFactory.getDB2VPNConfig()
-          } else {
-            config = DatabaseFactory.getDB2Config()
-          }
+        case 'db2-http':
+          config = DatabaseFactory.getDB2HttpConfig()
           break
       }
 

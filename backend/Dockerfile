@@ -5,13 +5,13 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Copiar arquivos de dependências
-COPY backend/package*.json ./
+COPY package*.json ./
 
 # Instalar dependências
 RUN npm ci
 
 # Copiar código fonte
-COPY backend/ ./
+COPY . ./
 
 # Compilar TypeScript
 RUN npm run build
