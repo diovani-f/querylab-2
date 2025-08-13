@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import { DatabaseService } from '../services/database-service'
 import { QueryDatabaseService } from '../services/query-database-service'
-import { VPNDetector } from '../utils/vpn-detector'
 
 const router = Router()
 
@@ -48,10 +47,6 @@ router.get('/status', async (req, res) => {
     const queryDbConnected = await queryDbService.testConnection()
     const queryDbStatus = queryDbService.getStatus()
 
-    // Status da VPN
-    const vpnDetector = VPNDetector.getInstance()
-    const vpnStatus = await vpnDetector.detectGlobalProtect()
-
     res.json({
       status: appDbConnected && queryDbConnected ? 'ok' : 'partial',
       timestamp: new Date().toISOString(),
@@ -67,11 +62,6 @@ router.get('/status', async (req, res) => {
           connected: queryDbConnected,
           type: queryDbStatus.queryDbType,
           initialized: queryDbStatus.isInitialized
-        },
-        vpn: {
-          status: vpnStatus.isConnected ? 'connected' : 'disconnected',
-          name: vpnStatus.vpnName,
-          error: vpnStatus.error
         }
       }
     })

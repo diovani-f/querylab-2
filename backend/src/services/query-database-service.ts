@@ -1,8 +1,7 @@
 import { DatabaseAdapter, QueryResult } from '../types'
-import { DatabaseFactory, DatabaseType } from '../adapters/database-factory'
-import { VPNDetector } from '../utils/vpn-detector'
+import { DatabaseFactory } from '../adapters/database-factory'
 import { JsonServerAdapter } from '../adapters/json-server-adapter'
-import { DB2Adapter } from '../adapters/db2-adapter'
+import { DB2HttpAdapter } from '../adapters/db2-http-adapter'
 
 /**
  * Serviço dedicado para execução de consultas SQL
@@ -17,7 +16,7 @@ export class QueryDatabaseService {
   private queryDbType: string
 
   private constructor() {
-    this.queryDbType = process.env.QUERY_DB_TYPE || 'json-server'
+    this.queryDbType = process.env.QUERY_DB_TYPE || 'db2-http'
   }
 
   static getInstance(): QueryDatabaseService {
@@ -38,9 +37,9 @@ export class QueryDatabaseService {
     try {
       // Criar adapter próprio sem interferir no DatabaseFactory singleton
       switch (this.queryDbType) {
-        case 'db2':
-          const db2Config = await this.getDB2Config()
-          this.adapter = new DB2Adapter(db2Config)
+        case 'db2-http':
+          const serviceUrl = process.env.DB2_SERVICE_URL || 'http://localhost:5001'
+          this.adapter = new DB2HttpAdapter(serviceUrl)
           break
         case 'json-server':
           const jsonConfig = DatabaseFactory.getJsonServerConfig()
@@ -51,35 +50,33 @@ export class QueryDatabaseService {
       }
 
       // Conectar o adapter
-      await this.adapter.connect()
-      this.isInitialized = true
-
-      console.log(`✅ QueryDatabaseService inicializado com ${this.queryDbType}`)
-    } catch (error) {
-      console.error('❌ Erro ao inicializar QueryDatabaseService:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Obtém configuração DB2 baseada no status da VPN
-   */
-  private async getDB2Config(): Promise<any> {
-    try {
-      // Detectar VPN para escolher configuração apropriada
-      const vpnDetector = VPNDetector.getInstance()
-      const vpnStatus = await vpnDetector.detectGlobalProtect()
-
-      if (vpnStatus.isConnected && process.env.DB2_VPN_HOST) {
-        return DatabaseFactory.getDB2VPNConfig()
-      } else {
-        return DatabaseFactory.getDB2Config()
+      try {
+        await this.adapter.connect()
+        this.isInitialized = true
+        console.log(`✅ QueryDatabaseService inicializado com ${this.queryDbType}`)
+      } catch (connectError) {
+        // Se falhar com DB2 via HTTP, tentar JSON Server como fallback
+        if (this.queryDbType === 'db2-http') {
+          console.warn('⚠️ Falha ao conectar DB2 Service, usando JSON Server como fallback')
+          const jsonConfig = DatabaseFactory.getJsonServerConfig()
+          this.adapter = new JsonServerAdapter(jsonConfig.baseUrl)
+          await this.adapter.connect()
+          this.queryDbType = 'json-server'
+          this.isInitialized = true
+          console.log('✅ QueryDatabaseService inicializado com json-server (fallback)')
+        } else {
+          throw connectError
+        }
       }
     } catch (error) {
-      console.warn('⚠️ Erro ao detectar VPN, usando configuração local:', error)
-      return DatabaseFactory.getDB2Config()
+      console.error('❌ Erro ao inicializar QueryDatabaseService:', error)
+      // Não fazer throw do erro - permitir que o sistema continue funcionando
+      console.log('💡 Sistema continuará funcionando com funcionalidade limitada')
+      this.isInitialized = false
     }
   }
+
+
 
   /**
    * Executa uma consulta SQL

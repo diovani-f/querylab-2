@@ -1,13 +1,5 @@
-# Dockerfile para backend com suporte ao IBM DB2
-FROM node:18-bullseye AS builder
-
-# Instalar dependências do sistema necessárias para ibm_db
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# Dockerfile para backend principal (sem IBM DB2)
+FROM node:18-alpine AS builder
 
 # Configurar diretório de trabalho
 WORKDIR /app
@@ -15,7 +7,7 @@ WORKDIR /app
 # Copiar arquivos de dependências
 COPY backend/package*.json ./
 
-# Instalar dependências (incluindo devDependencies para build)
+# Instalar dependências
 RUN npm ci
 
 # Copiar código fonte
@@ -25,12 +17,7 @@ COPY backend/ ./
 RUN npm run build
 
 # Imagem final
-FROM node:18-bullseye AS production
-
-# Instalar dependências mínimas do sistema para runtime
-RUN apt-get update && apt-get install -y \
-    python3 \
-    && rm -rf /var/lib/apt/lists/*
+FROM node:18-alpine AS production
 
 WORKDIR /app
 
@@ -40,7 +27,8 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 
 # Criar usuário não-root
-RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
 RUN chown -R nodejs:nodejs /app
 USER nodejs
 

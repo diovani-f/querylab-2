@@ -18,6 +18,14 @@ QueryLab é uma plataforma que permite aos usuários fazer consultas em linguage
 
 ## 🏗️ Arquitetura
 
+### Arquitetura de Microserviços
+
+O QueryLab utiliza uma arquitetura de microserviços para resolver problemas de dependências nativas:
+
+- **Frontend**: Next.js 14 com interface moderna
+- **Backend Principal**: API REST + WebSocket (sem dependências nativas)
+- **DB2 Service**: Microserviço dedicado para consultas IBM DB2
+
 ### Frontend (Next.js 14)
 - **Framework**: Next.js 14 com App Router
 - **Linguagem**: TypeScript
@@ -25,12 +33,19 @@ QueryLab é uma plataforma que permite aos usuários fazer consultas em linguage
 - **Estado**: Zustand
 - **WebSocket**: Socket.io-client
 
-### Backend (Node.js)
+### Backend Principal (Node.js)
 - **Runtime**: Node.js com Express
 - **Linguagem**: TypeScript
 - **WebSocket**: Socket.io
-- **Banco Mock**: JSON Server
-- **Banco Produção**: DB2 (preparado)
+- **LLM**: Groq SDK (Llama 3, Mixtral)
+- **Banco**: JSON Server (auth/sessões) + HTTP Client para DB2 Service
+
+### DB2 Service (Microserviço)
+- **Runtime**: Node.js com Express
+- **Linguagem**: TypeScript
+- **Banco**: IBM DB2 (driver nativo)
+- **API**: REST endpoints para consultas SQL
+- **Deploy**: Ambiente separado com suporte a dependências nativas
 
 ### Dados
 - **Desenvolvimento**: JSON Server (porta 3001)
@@ -40,7 +55,7 @@ QueryLab é uma plataforma que permite aos usuários fazer consultas em linguage
 ## 🚀 Instalação e Execução
 
 ### Pré-requisitos
-- Node.js 18+ 
+- Node.js 18+
 - npm ou yarn
 - Git
 
@@ -135,7 +150,7 @@ npm run dev
 
 A aplicação suporta 3 temas:
 - **Claro**: Design limpo e moderno
-- **Escuro**: Cores suaves para uso noturno  
+- **Escuro**: Cores suaves para uso noturno
 - **Alto Contraste**: Máximo contraste para acessibilidade
 
 Altere o tema usando o seletor no header.
@@ -173,13 +188,18 @@ querylab/
 │   │   ├── lib/       # Utilities
 │   │   ├── stores/    # Zustand stores
 │   │   └── types/     # TypeScript types
-├── backend/           # Node.js API
+├── backend/           # Backend principal (sem IBM DB2)
 │   ├── src/
 │   │   ├── routes/    # Express routes
 │   │   ├── services/  # Business logic
 │   │   ├── adapters/  # Database adapters
 │   │   └── websockets/ # Socket.io handlers
+├── db2-service/       # Microserviço para IBM DB2
+│   ├── src/
+│   │   ├── services/  # DB2 connection logic
+│   │   └── routes/    # REST API endpoints
 ├── mock-data/         # JSON Server data
+├── scripts/           # Scripts de desenvolvimento
 └── docs/             # Documentação
 ```
 
@@ -190,10 +210,20 @@ querylab/
 - `npm run build` - Build para produção
 - `npm run start` - Servidor de produção
 
-#### Backend
+#### Backend Principal
 - `npm run dev` - Servidor de desenvolvimento (nodemon)
 - `npm run build` - Compilar TypeScript
 - `npm run start` - Servidor de produção
+
+#### DB2 Service
+- `npm run dev` - Servidor de desenvolvimento
+- `npm run build` - Compilar TypeScript
+- `npm run start` - Servidor de produção
+
+#### Scripts de Desenvolvimento
+- `./scripts/start-dev.sh` - Menu interativo para desenvolvimento
+- `docker-compose up db2-service` - Apenas DB2 Service
+- `docker-compose up` - Stack completo
 
 ### APIs Disponíveis
 

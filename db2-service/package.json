@@ -1,33 +1,26 @@
 {
-  "name": "backend",
+  "name": "querylab-db2-service",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Serviço dedicado para consultas DB2",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": ["db2", "microservice", "sql"],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.0.14",
-    "axios": "^1.7.7",
-    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
-    "groq-sdk": "^0.27.0",
-
-    "jsonwebtoken": "^9.0.2",
+    "ibm_db": "^3.3.2",
     "nodemon": "^3.1.10",
-    "socket.io": "^4.8.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }

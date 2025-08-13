@@ -18,6 +18,22 @@ services:
       timeout: 10s
       retries: 3
 
+  # Serviço dedicado para DB2
+  db2-service:
+    build:
+      context: ./db2-service
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - DB2_HOST=${DB2_HOST}
+      - DB2_PORT=${DB2_PORT}
+      - DB2_DATABASE=${DB2_DATABASE}
+      - DB2_USERNAME=${DB2_USERNAME}
+      - DB2_PASSWORD=${DB2_PASSWORD}
+      - DB2_SSL_ENABLED=${DB2_SSL_ENABLED}
+    restart: unless-stopped
+
   # Backend API
   backend:
     build: .
@@ -27,6 +43,8 @@ services:
       - NODE_ENV=production
       - PORT=5000
       - DB_TYPE=postgresql
+      - QUERY_DB_TYPE=db2-http
+      - DB2_SERVICE_URL=http://db2-service:5001
       - DATABASE_URL=postgresql://querylab:querylab123@postgres:5432/querylab
       - FRONTEND_URL=http://localhost:3000
       - CORS_ORIGIN=http://localhost:3000
@@ -34,6 +52,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      db2-service:
+        condition: service_started
     volumes:
       - ./backend/.env:/app/.env:ro
     restart: unless-stopped

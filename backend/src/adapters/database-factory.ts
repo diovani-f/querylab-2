@@ -1,8 +1,8 @@
 import { DatabaseAdapter } from '../types'
 import { JsonServerAdapter } from './json-server-adapter'
-import { DB2Adapter } from './db2-adapter'
+import { DB2HttpAdapter } from './db2-http-adapter'
 
-export type DatabaseType = 'json-server' | 'db2'
+export type DatabaseType = 'json-server' | 'db2-http'
 
 export class DatabaseFactory {
   private static instance: DatabaseAdapter | null = null
@@ -16,11 +16,9 @@ export class DatabaseFactory {
         adapter = new JsonServerAdapter(config?.baseUrl || 'http://localhost:3001')
         break
 
-      case 'db2':
-        if (!config) {
-          throw new Error('Configuração DB2 é obrigatória')
-        }
-        adapter = new DB2Adapter(config)
+      case 'db2-http':
+        const serviceUrl = config?.serviceUrl || process.env.DB2_SERVICE_URL || 'http://localhost:5001'
+        adapter = new DB2HttpAdapter(serviceUrl)
         break
 
       default:
@@ -91,36 +89,9 @@ export class DatabaseFactory {
     }
   }
 
-  static getDB2Config(): any {
+  static getDB2HttpConfig(): any {
     return {
-      host: process.env.DB2_HOST || 'localhost',
-      port: parseInt(process.env.DB2_PORT || '50000'),
-      database: process.env.DB2_DATABASE || 'UNIVDB',
-      username: process.env.DB2_USERNAME || '',
-      password: process.env.DB2_PASSWORD || '',
-      ssl: process.env.DB2_SSL_ENABLED === 'true',
-      connectTimeout: parseInt(process.env.DB2_CONNECTION_TIMEOUT || '30000'),
-      queryTimeout: parseInt(process.env.DB2_QUERY_TIMEOUT || '60000'),
-      retryAttempts: parseInt(process.env.DB2_RETRY_ATTEMPTS || '3'),
-      retryDelay: parseInt(process.env.DB2_RETRY_DELAY || '5000')
-    }
-  }
-
-  // Método para configuração via VPN universitária
-  static getDB2VPNConfig(): any {
-    return {
-      host: process.env.DB2_VPN_HOST || '',
-      port: parseInt(process.env.DB2_VPN_PORT || '50000'),
-      database: process.env.DB2_VPN_DATABASE || 'UNIVDB',
-      username: process.env.DB2_VPN_USERNAME || '',
-      password: process.env.DB2_VPN_PASSWORD || '',
-      // Usar configuração SSL do ambiente, não forçar
-      ssl: process.env.DB2_SSL_ENABLED === 'true',
-      connectTimeout: parseInt(process.env.DB2_CONNECTION_TIMEOUT || '30000'),
-      queryTimeout: parseInt(process.env.DB2_QUERY_TIMEOUT || '60000'),
-      // Configurações de retry para conexões instáveis via VPN
-      retryAttempts: parseInt(process.env.DB2_RETRY_ATTEMPTS || '3'),
-      retryDelay: parseInt(process.env.DB2_RETRY_DELAY || '5000')
+      serviceUrl: process.env.DB2_SERVICE_URL || 'http://localhost:5001'
     }
   }
 
