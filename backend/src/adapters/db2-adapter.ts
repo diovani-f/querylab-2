@@ -1,9 +1,22 @@
 import { DatabaseAdapter, QueryResult } from '../types'
 
+// Importação condicional do driver IBM DB2
+let ibmdb: any = null
+try {
+  ibmdb = require('ibm_db')
+} catch (error) {
+  console.warn('⚠️ Driver IBM DB2 não encontrado. Usando modo simulado.')
+}
+
 export class DB2Adapter implements DatabaseAdapter {
   private connectionString: string
   private isConnected: boolean = false
   private connection: any = null
+  private config: any
+  private retryAttempts: number
+  private retryDelay: number
+  private connectionTimeout: number
+  private queryTimeout: number
 
   constructor(connectionConfig: {
     host: string
@@ -11,25 +24,91 @@ export class DB2Adapter implements DatabaseAdapter {
     database: string
     username: string
     password: string
+    ssl?: boolean
+    connectTimeout?: number
+    queryTimeout?: number
+    retryAttempts?: number
+    retryDelay?: number
   }) {
-    this.connectionString = `DATABASE=${connectionConfig.database};HOSTNAME=${connectionConfig.host};PORT=${connectionConfig.port};PROTOCOL=TCPIP;UID=${connectionConfig.username};PWD=${connectionConfig.password};`
+    this.config = connectionConfig
+    this.retryAttempts = connectionConfig.retryAttempts || 3
+    this.retryDelay = connectionConfig.retryDelay || 5000
+    this.connectionTimeout = connectionConfig.connectTimeout || 30000
+    this.queryTimeout = connectionConfig.queryTimeout || 60000
+
+    // Construir string de conexão DB2
+    this.connectionString = this.buildConnectionString(connectionConfig)
+  }
+
+  private buildConnectionString(config: any): string {
+    let connStr = `DATABASE=${config.database};HOSTNAME=${config.host};PORT=${config.port};PROTOCOL=TCPIP;UID=${config.username};PWD=${config.password};`
+
+    // Adicionar configurações SSL se habilitado
+    if (config.ssl) {
+      connStr += 'SECURITY=SSL;'
+    }
+
+    // Adicionar timeouts
+    connStr += `CONNECTTIMEOUT=${Math.floor(this.connectionTimeout / 1000)};`
+
+    return connStr
   }
 
   async connect(): Promise<void> {
-    try {
-      // TODO: Implementar conexão real com DB2
-      // const ibmdb = require('ibm_db')
-      // this.connection = await ibmdb.open(this.connectionString)
-      
-      console.log('🔄 Simulando conexão com DB2...')
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      this.isConnected = true
-      console.log('✅ Conectado ao DB2 (simulado)')
-    } catch (error) {
-      this.isConnected = false
-      throw new Error(`Erro ao conectar com DB2: ${error}`)
+    if (this.isConnected) {
+      return
     }
+
+    let lastError: any = null
+
+    for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
+      try {
+        console.log(`🔄 Tentativa ${attempt}/${this.retryAttempts} - Conectando ao DB2...`)
+        console.log(`📡 Host: ${this.config.host}:${this.config.port}`)
+        console.log(`🗄️ Database: ${this.config.database}`)
+
+        if (ibmdb) {
+          // Conexão real com DB2
+          this.connection = await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error(`Timeout de conexão (${this.connectionTimeout}ms)`))
+            }, this.connectionTimeout)
+
+            ibmdb.open(this.connectionString, (err: any, conn: any) => {
+              clearTimeout(timeout)
+              if (err) {
+                reject(err)
+              } else {
+                resolve(conn)
+              }
+            })
+          })
+
+          this.isConnected = true
+          console.log('✅ Conectado ao DB2 com sucesso!')
+          return
+        } else {
+          // Modo simulado quando driver não está disponível
+          console.log('🔄 Driver DB2 não disponível - usando modo simulado...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          this.isConnected = true
+          console.log('✅ Conectado ao DB2 (modo simulado)')
+          return
+        }
+      } catch (error) {
+        lastError = error
+        this.isConnected = false
+
+        console.error(`❌ Tentativa ${attempt} falhou:`, error)
+
+        if (attempt < this.retryAttempts) {
+          console.log(`⏳ Aguardando ${this.retryDelay}ms antes da próxima tentativa...`)
+          await new Promise(resolve => setTimeout(resolve, this.retryDelay))
+        }
+      }
+    }
+
+    throw new Error(`Falha ao conectar com DB2 após ${this.retryAttempts} tentativas: ${lastError?.message || lastError}`)
   }
 
   async query(sql: string): Promise<QueryResult> {
@@ -40,52 +119,124 @@ export class DB2Adapter implements DatabaseAdapter {
     const startTime = Date.now()
 
     try {
-      // TODO: Implementar execução real de query no DB2
-      // const result = await this.connection.query(sql)
-      
-      console.log(`🔄 Executando query DB2: ${sql}`)
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
-      // Simulação de resultado
-      const mockResult = this.generateMockResult(sql)
-      const executionTime = Date.now() - startTime
+      console.log(`🔄 Executando query DB2: ${sql.substring(0, 100)}${sql.length > 100 ? '...' : ''}`)
 
-      return {
-        columns: mockResult.columns,
-        rows: mockResult.rows,
-        rowCount: mockResult.rows.length,
-        executionTime
+      if (ibmdb && this.connection) {
+        // Execução real da query
+        const result = await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error(`Timeout de query (${this.queryTimeout}ms)`))
+          }, this.queryTimeout)
+
+          this.connection.query(sql, (err: any, data: any) => {
+            clearTimeout(timeout)
+            if (err) {
+              reject(err)
+            } else {
+              resolve(data)
+            }
+          })
+        })
+
+        const executionTime = Date.now() - startTime
+
+        // Processar resultado real do DB2
+        const processedResult = this.processDB2Result(result)
+
+        console.log(`✅ Query executada em ${executionTime}ms - ${processedResult.rowCount} linhas`)
+
+        return {
+          ...processedResult,
+          executionTime
+        }
+      } else {
+        // Modo simulado
+        await new Promise(resolve => setTimeout(resolve, 800))
+        const mockResult = this.generateMockResult(sql)
+        const executionTime = Date.now() - startTime
+
+        console.log(`✅ Query simulada executada em ${executionTime}ms - ${mockResult.rows.length} linhas`)
+
+        return {
+          columns: mockResult.columns,
+          rows: mockResult.rows,
+          rowCount: mockResult.rows.length,
+          executionTime
+        }
       }
     } catch (error) {
+      const executionTime = Date.now() - startTime
+      console.error(`❌ Erro na query após ${executionTime}ms:`, error)
       throw new Error(`Erro ao executar query DB2: ${error}`)
+    }
+  }
+
+  private processDB2Result(result: any): { columns: string[], rows: any[][], rowCount: number } {
+    if (!result || !Array.isArray(result)) {
+      return { columns: [], rows: [], rowCount: 0 }
+    }
+
+    if (result.length === 0) {
+      return { columns: [], rows: [], rowCount: 0 }
+    }
+
+    // Extrair nomes das colunas do primeiro registro
+    const columns = Object.keys(result[0])
+
+    // Converter registros em arrays de valores
+    const rows = result.map((row: any) => columns.map(col => row[col]))
+
+    return {
+      columns,
+      rows,
+      rowCount: result.length
     }
   }
 
   async disconnect(): Promise<void> {
     try {
-      // TODO: Implementar desconexão real
-      // if (this.connection) {
-      //   await this.connection.close()
-      // }
-      
+      if (ibmdb && this.connection) {
+        // Desconexão real
+        await new Promise<void>((resolve, reject) => {
+          this.connection.close((err: any) => {
+            if (err) {
+              reject(err)
+            } else {
+              resolve()
+            }
+          })
+        })
+      }
+
       this.isConnected = false
       this.connection = null
       console.log('🔌 Desconectado do DB2')
     } catch (error) {
-      console.error('Erro ao desconectar do DB2:', error)
+      console.error('❌ Erro ao desconectar do DB2:', error)
+      // Forçar desconexão mesmo com erro
+      this.isConnected = false
+      this.connection = null
     }
   }
 
   async testConnection(): Promise<boolean> {
     try {
-      // TODO: Implementar teste real de conexão
-      // const testQuery = 'SELECT 1 FROM SYSIBM.SYSDUMMY1'
-      // await this.query(testQuery)
-      
       console.log('🔄 Testando conexão DB2...')
-      await new Promise(resolve => setTimeout(resolve, 500))
-      return true
-    } catch {
+
+      if (ibmdb) {
+        // Teste real com query simples do DB2
+        const testQuery = 'SELECT 1 FROM SYSIBM.SYSDUMMY1'
+        await this.query(testQuery)
+        console.log('✅ Teste de conexão DB2 bem-sucedido')
+        return true
+      } else {
+        // Teste simulado
+        await new Promise(resolve => setTimeout(resolve, 500))
+        console.log('✅ Teste de conexão DB2 simulado bem-sucedido')
+        return true
+      }
+    } catch (error) {
+      console.error('❌ Teste de conexão DB2 falhou:', error)
       return false
     }
   }

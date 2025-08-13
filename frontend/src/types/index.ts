@@ -6,6 +6,7 @@ export interface Message {
   sqlQuery?: string
   queryResult?: QueryResult
   evaluation?: QueryEvaluation
+  hasExplanation?: boolean // Flag para indicar se tem explicação textual
 }
 
 export interface QueryResult {

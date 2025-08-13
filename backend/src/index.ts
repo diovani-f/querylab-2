@@ -22,6 +22,7 @@ import { setupWebSocketHandlers } from './websockets/handlers'
 // Importar serviços
 import { DatabaseService } from './services/database-service'
 import { SessionService } from './services/session-service'
+import { QueryDatabaseService } from './services/query-database-service'
 
 // Variáveis de ambiente já carregadas no topo
 
@@ -64,15 +65,21 @@ global.socketIO = io
 // Inicializar serviços
 async function initializeServices() {
   try {
-    // Inicializar DatabaseService
+    // Inicializar DatabaseService (JSON Server - auth, sessões)
     const dbService = DatabaseService.getInstance()
     await dbService.initialize()
+
+    // Inicializar QueryDatabaseService (DB2 - consultas SQL)
+    const queryDbService = QueryDatabaseService.getInstance()
+    await queryDbService.initialize()
 
     // Inicializar SessionService
     const sessionService = SessionService.getInstance()
     await sessionService.loadSessions()
 
     console.log('✅ Serviços inicializados com sucesso')
+    console.log(`📊 Banco de dados da aplicação: ${process.env.DB_TYPE || 'json-server'}`)
+    console.log(`🔍 Banco de dados de consultas: ${process.env.QUERY_DB_TYPE || 'json-server'}`)
   } catch (error) {
     console.error('❌ Erro ao inicializar serviços:', error)
   }

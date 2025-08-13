@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { AppState, ChatSession, Message, LLMModel, DatabaseConnection } from '@/types'
+import { AppState, ChatSession, Message, LLMModel, DatabaseConnection, QueryEvaluation } from '@/types'
 import { apiService } from '@/lib/api'
 import { websocketService } from '@/lib/websocket'
 

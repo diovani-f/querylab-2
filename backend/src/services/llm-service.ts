@@ -202,4 +202,85 @@ Retorne apenas o SQL válido:`
     // Fallback: retornar a resposta completa limpa
     return response.trim()
   }
+
+  /**
+   * Gera explicação textual dos resultados de uma consulta
+   */
+  async generateExplanation(params: {
+    query: string
+    result: any
+    originalPrompt: string
+  }): Promise<{ success: boolean; explanation?: string; error?: string }> {
+    try {
+      const { query, result, originalPrompt } = params
+
+      // Criar prompt para explicação
+      const explanationPrompt = `
+Você é um assistente especializado em análise de dados universitários.
+
+PERGUNTA ORIGINAL DO USUÁRIO:
+"${originalPrompt}"
+
+CONSULTA SQL EXECUTADA:
+\`\`\`sql
+${query}
+\`\`\`
+
+RESULTADOS OBTIDOS:
+- Número de registros: ${result.rowCount}
+- Colunas: ${result.columns.join(', ')}
+- Tempo de execução: ${result.executionTime}ms
+
+DADOS (primeiras 5 linhas):
+${result.rows.slice(0, 5).map((row: any[], index: number) =>
+  `${index + 1}. ${result.columns.map((col: string, i: number) => `${col}: ${row[i]}`).join(', ')}`
+).join('\n')}
+
+INSTRUÇÕES:
+1. Responda em português brasileiro
+2. Explique os resultados de forma clara e didática
+3. Destaque insights importantes dos dados
+4. Mencione o número total de registros encontrados
+5. Se houver dados interessantes, comente sobre eles
+6. Mantenha um tom conversacional e educativo
+7. NÃO repita o SQL na resposta
+8. Foque na interpretação dos dados, não na consulta técnica
+
+Forneça uma explicação completa e útil dos resultados:
+`
+
+      const response = await this.groqClient.chat.completions.create({
+        messages: [
+          {
+            role: 'user',
+            content: explanationPrompt
+          }
+        ],
+        model: 'llama3-70b-8192',
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+
+      const explanation = response.choices[0]?.message?.content?.trim()
+
+      if (!explanation) {
+        return {
+          success: false,
+          error: 'Não foi possível gerar explicação'
+        }
+      }
+
+      return {
+        success: true,
+        explanation
+      }
+
+    } catch (error) {
+      console.error('Erro ao gerar explicação:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      }
+    }
+  }
 }

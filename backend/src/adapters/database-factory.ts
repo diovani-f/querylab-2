@@ -15,14 +15,14 @@ export class DatabaseFactory {
       case 'json-server':
         adapter = new JsonServerAdapter(config?.baseUrl || 'http://localhost:3001')
         break
-      
+
       case 'db2':
         if (!config) {
           throw new Error('Configuração DB2 é obrigatória')
         }
         adapter = new DB2Adapter(config)
         break
-      
+
       default:
         throw new Error(`Tipo de banco não suportado: ${type}`)
     }
@@ -59,7 +59,7 @@ export class DatabaseFactory {
 
   static async switchDatabase(type: DatabaseType, config?: any): Promise<DatabaseAdapter> {
     console.log(`🔄 Mudando banco de dados para: ${type}`)
-    
+
     if (this.instance) {
       await this.instance.disconnect()
     }
@@ -100,7 +100,12 @@ export class DatabaseFactory {
       port: parseInt(process.env.DB2_PORT || '50000'),
       database: process.env.DB2_DATABASE || 'UNIVDB',
       username: process.env.DB2_USERNAME || '',
-      password: process.env.DB2_PASSWORD || ''
+      password: process.env.DB2_PASSWORD || '',
+      ssl: process.env.DB2_SSL_ENABLED === 'true',
+      connectTimeout: parseInt(process.env.DB2_CONNECTION_TIMEOUT || '30000'),
+      queryTimeout: parseInt(process.env.DB2_QUERY_TIMEOUT || '60000'),
+      retryAttempts: parseInt(process.env.DB2_RETRY_ATTEMPTS || '3'),
+      retryDelay: parseInt(process.env.DB2_RETRY_DELAY || '5000')
     }
   }
 
@@ -112,14 +117,13 @@ export class DatabaseFactory {
       database: process.env.DB2_VPN_DATABASE || 'UNIVDB',
       username: process.env.DB2_VPN_USERNAME || '',
       password: process.env.DB2_VPN_PASSWORD || '',
-      // Configurações específicas para VPN
-      ssl: true,
-      sslMode: 'require',
-      connectTimeout: 30000,
-      queryTimeout: 60000,
+      // Usar configuração SSL do ambiente, não forçar
+      ssl: process.env.DB2_SSL_ENABLED === 'true',
+      connectTimeout: parseInt(process.env.DB2_CONNECTION_TIMEOUT || '30000'),
+      queryTimeout: parseInt(process.env.DB2_QUERY_TIMEOUT || '60000'),
       // Configurações de retry para conexões instáveis via VPN
-      retryAttempts: 3,
-      retryDelay: 5000
+      retryAttempts: parseInt(process.env.DB2_RETRY_ATTEMPTS || '3'),
+      retryDelay: parseInt(process.env.DB2_RETRY_DELAY || '5000')
     }
   }
 

@@ -88,14 +88,14 @@ class ApiService {
     return this.handleResponse(response)
   }
 
-  // Health check
+  // Health check (rota pública)
   async healthCheck() {
-    return this.get('/health')
+    return this.getPublic('/health')
   }
 
-  // Database health check
+  // Database health check (rota pública)
   async databaseHealthCheck() {
-    return this.get('/health/database')
+    return this.getPublic('/health/database')
   }
 
   // Send chat message
@@ -124,6 +124,27 @@ class ApiService {
   async getEvaluationSummary(sessionId?: string) {
     const endpoint = sessionId ? `/evaluation/summary/${sessionId}` : '/evaluation/summary'
     return this.get(endpoint)
+  }
+
+  // Método para buscar status dos serviços (sem autenticação)
+  async getSystemStatus() {
+    return this.getPublic('/health/status')
+  }
+
+  // Método GET sem autenticação (para rotas públicas)
+  private async getPublic(endpoint: string) {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return response.json()
   }
 }
 

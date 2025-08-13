@@ -5,6 +5,7 @@ export interface Message {
   timestamp: Date
   sqlQuery?: string
   queryResult?: QueryResult
+  hasExplanation?: boolean // Flag para indicar se a mensagem tem explicação textual
 }
 
 export interface QueryResult {

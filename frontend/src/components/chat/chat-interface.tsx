@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/stores/app-store"
 import { Send, MessageSquare } from "lucide-react"
 import { MessageBubble } from "./message-bubble"
+import { TypingIndicator, SQLExecutionIndicator } from "./typing-indicator"
 import { websocketService } from "@/lib/websocket"
 
 export function ChatInterface() {
@@ -151,14 +152,7 @@ export function ChatInterface() {
           )}
 
           {isLoading && (
-            <MessageBubble
-              message={{
-                id: 'loading',
-                type: 'system',
-                content: 'Processando sua consulta...',
-                timestamp: new Date()
-              }}
-            />
+            <TypingIndicator />
           )}
 
           {/* Elemento invisível para scroll automático */}

@@ -1,16 +1,15 @@
 'use client'
 
 import { Button } from "@/components/ui/button"
-import { useAppStore } from "@/stores/app-store"
-import { Database, Settings, Zap, BarChart3 } from "lucide-react"
+import { Zap, BarChart3 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { useTheme } from "@/components/theme/theme-provider"
 import { ModelSelector } from "@/components/ui/model-selector"
 import { UserMenu } from "@/components/layout/user-menu"
+import { DatabaseStatus } from "@/components/layout/database-status"
 import Link from "next/link"
 
 export function Header() {
-  const { databaseConnection, isConnected } = useAppStore()
   const { theme } = useTheme()
 
   return (
@@ -41,13 +40,7 @@ export function Header() {
           <ModelSelector />
 
           {/* Status do Banco */}
-          <div className="flex items-center space-x-2 rounded-lg border px-3 py-1.5">
-            <Database className="h-4 w-4" />
-            <span className="text-sm font-medium">
-              {isConnected ? 'Conectado' : 'Desconectado'}
-            </span>
-            <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          </div>
+          <DatabaseStatus />
 
           {/* Seletor de Tema */}
           <ThemeToggle />

@@ -2,7 +2,7 @@
 
 import { Message } from "@/types"
 import { cn } from "@/lib/utils"
-import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star } from "lucide-react"
+import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
@@ -17,8 +17,8 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
   const [showSQL, setShowSQL] = useState(false)
-  const [showResults, setShowResults] = useState(true) // Mostrar resultados por padrão
 
   const getIcon = () => {
     switch (message.type) {
@@ -91,49 +91,76 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
           {message.content}
         </div>
 
-        {/* SQL Query (se houver) */}
-        {message.sqlQuery && (
-          <div className="space-y-2">
+        {/* Botões de ação para mensagens com dados técnicos */}
+        {message.type === 'assistant' && message.hasExplanation && (message.sqlQuery || message.queryResult) && (
+          <div className="flex items-center gap-2 pt-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowSQL(!showSQL)}
+              onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
               className="text-xs"
             >
-              {showSQL ? 'Ocultar SQL' : 'Ver SQL Gerado'}
+              {showTechnicalDetails ? (
+                <>
+                  <EyeOff className="mr-1 h-3 w-3" />
+                  Ocultar Detalhes Técnicos
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-1 h-3 w-3" />
+                  Ver Detalhes Técnicos
+                </>
+              )}
             </Button>
-
-            {showSQL && (
-              <div className="bg-black/10 rounded p-3 font-mono text-xs overflow-x-auto">
-                <pre>{message.sqlQuery}</pre>
-              </div>
-            )}
           </div>
         )}
 
-        {/* Resultado da Query (se houver) */}
-        {message.queryResult && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              {message.queryResult.rows.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowResults(!showResults)}
-                  className="text-xs"
-                >
-                  <Table className="mr-1 h-3 w-3" />
-                  {showResults ? 'Ocultar Resultados' : 'Ver Resultados'}
-                </Button>
-              )}
-            </div>
+        {/* Detalhes técnicos (SQL + Resultados) */}
+        {showTechnicalDetails && (
+          <div className="space-y-3 mt-3 p-3 bg-muted/50 rounded-lg border">
+            {/* SQL Query */}
+            {message.sqlQuery && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Code className="h-4 w-4" />
+                  <span className="text-sm font-medium">SQL Gerado</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSQL(!showSQL)}
+                    className="text-xs h-6"
+                  >
+                    {showSQL ? 'Ocultar' : 'Mostrar'}
+                  </Button>
+                </div>
 
-            {message.queryResult.rows.length > 0 && showResults && (
-              <div className="bg-background border rounded-lg p-4">
-                <ChartContainer
-                  queryResult={message.queryResult}
-                  title="Resultados da Consulta"
-                />
+                {showSQL && (
+                  <div className="bg-black/10 rounded p-3 font-mono text-xs overflow-x-auto">
+                    <pre>{message.sqlQuery}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Resultados da Query */}
+            {message.queryResult && message.queryResult.rows.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Table className="h-4 w-4" />
+                  <span className="text-sm font-medium">
+                    Resultados ({message.queryResult.rowCount} linha{message.queryResult.rowCount !== 1 ? 's' : ''})
+                  </span>
+                  <Badge variant="secondary" className="text-xs">
+                    {message.queryResult.executionTime}ms
+                  </Badge>
+                </div>
+
+                <div className="bg-background border rounded-lg p-4">
+                  <ChartContainer
+                    queryResult={message.queryResult}
+                    title="Dados da Consulta"
+                  />
+                </div>
               </div>
             )}
           </div>
