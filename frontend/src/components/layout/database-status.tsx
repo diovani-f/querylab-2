@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Database, Wifi, WifiOff, Shield, ShieldCheck } from 'lucide-react'
+import { Database } from 'lucide-react'
 import { apiService } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,10 +23,6 @@ interface DatabaseStatus {
       status: 'ok' | 'error'
       connected: boolean
       type: string
-    }
-    vpn: {
-      status: 'connected' | 'disconnected'
-      name?: string
     }
   }
 }
@@ -105,7 +101,6 @@ function DatabaseStatusComponent() {
     if (!status) return null
 
     const isQueryDbConnected = status.services.queries.connected
-    const isVpnConnected = status.services.vpn.status === 'connected'
     const queryDbType = status.services.queries.type
 
     const statusColor = isQueryDbConnected ? 'bg-green-500' : 'bg-red-500'
@@ -115,7 +110,6 @@ function DatabaseStatusComponent() {
 
     return {
       isQueryDbConnected,
-      isVpnConnected,
       queryDbType,
       statusColor,
       statusText
@@ -179,16 +173,7 @@ function DatabaseStatusComponent() {
             </span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span>VPN:</span>
-            <span className={`text-xs px-2 py-1 rounded ${
-              statusInfo.isVpnConnected
-                ? 'bg-blue-100 text-blue-800'
-                : 'bg-gray-100 text-gray-800'
-            }`}>
-              {statusInfo.isVpnConnected ? status.services.vpn.name || 'Conectada' : 'Desconectada'}
-            </span>
-          </div>
+
         </div>
 
         <div className="pt-2 border-t text-xs text-gray-500">
@@ -224,12 +209,7 @@ function DatabaseStatusComponent() {
             {/* Ícone do banco de dados */}
             <Database className={`h-4 w-4 ${statusInfo.isQueryDbConnected ? 'text-green-600' : 'text-red-600'} ${isRefreshing ? 'animate-pulse' : ''}`} />
 
-            {/* Ícone da VPN */}
-            {statusInfo.isVpnConnected ? (
-              <Shield className="h-3 w-3 text-blue-600" />
-            ) : (
-              <Wifi className="h-3 w-3 text-gray-400" />
-            )}
+
 
             {/* Status text */}
             <span className="text-sm font-medium">
