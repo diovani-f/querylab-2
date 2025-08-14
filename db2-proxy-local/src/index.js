@@ -28,20 +28,20 @@ function rateLimit(req, res, next) {
   const ip = req.ip || req.connection.remoteAddress
   const now = Date.now()
   const windowStart = now - WINDOW_MS
-  
+
   if (!requestCounts.has(ip)) {
     requestCounts.set(ip, [])
   }
-  
+
   const requests = requestCounts.get(ip).filter(time => time > windowStart)
-  
+
   if (requests.length >= RATE_LIMIT) {
-    return res.status(429).json({ 
+    return res.status(429).json({
       error: 'Rate limit exceeded',
       retryAfter: Math.ceil(WINDOW_MS / 1000)
     })
   }
-  
+
   requests.push(now)
   requestCounts.set(ip, requests)
   next()
@@ -52,17 +52,17 @@ app.use(rateLimit)
 // Middleware de autenticação
 function authenticate(req, res, next) {
   const authHeader = req.headers.authorization
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Token de autorização necessário' })
   }
-  
+
   const token = authHeader.substring(7)
-  
+
   if (token !== SECRET) {
     return res.status(403).json({ error: 'Token inválido' })
   }
-  
+
   next()
 }
 
@@ -80,11 +80,11 @@ const db2Config = {
 
 function buildConnectionString() {
   let connStr = `DATABASE=${db2Config.database};HOSTNAME=${db2Config.host};PORT=${db2Config.port};PROTOCOL=TCPIP;UID=${db2Config.username};PWD=${db2Config.password};`
-  
+
   if (db2Config.ssl) {
     connStr += 'SECURITY=SSL;'
   }
-  
+
   return connStr
 }
 
@@ -100,26 +100,21 @@ app.get('/health', (req, res) => {
   })
 })
 
-// Rota para executar queries (protegida)
-app.post('/query', authenticate, async (req, res) => {
-  const { sql } = req.body
-  
-  if (!sql) {
-    return res.status(400).json({ error: 'SQL query é obrigatória' })
-  }
-  
+// Rota para descobrir schema (protegida)
+app.get('/schema/:schemaName', authenticate, async (req, res) => {
+  const { schemaName } = req.params
   const startTime = Date.now()
   let connection = null
-  
+
   try {
-    console.log(`🔄 Executando query: ${sql}`)
-    
+    console.log(`🔍 Descobrindo schema: ${schemaName}`)
+
     // Conectar ao DB2
     connection = await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Timeout de conexão (${db2Config.connectTimeout}ms)`))
       }, db2Config.connectTimeout)
-      
+
       ibmdb.open(connectionString, (err, conn) => {
         clearTimeout(timeout)
         if (err) {
@@ -129,13 +124,196 @@ app.post('/query', authenticate, async (req, res) => {
         }
       })
     })
-    
+
+    // Query para obter todas as tabelas do schema
+    const tablesQuery = `
+      SELECT
+        TABNAME as TABLE_NAME,
+        TABSCHEMA as SCHEMA_NAME,
+        TYPE as TABLE_TYPE,
+        REMARKS as TABLE_COMMENT
+      FROM SYSCAT.TABLES
+      WHERE TABSCHEMA = '${schemaName.toUpperCase()}'
+      ORDER BY TABNAME
+    `
+
+    const tables = await executeQuery(connection, tablesQuery)
+
+    // Para cada tabela, obter informações das colunas
+    const schemaInfo = {
+      schemaName: schemaName.toUpperCase(),
+      tables: [],
+      discoveredAt: new Date().toISOString(),
+      totalTables: tables.length
+    }
+
+    for (const table of tables) {
+      const columnsQuery = `
+        SELECT
+          COLNAME as COLUMN_NAME,
+          TYPENAME as DATA_TYPE,
+          LENGTH as COLUMN_LENGTH,
+          SCALE as COLUMN_SCALE,
+          NULLS as IS_NULLABLE,
+          DEFAULT as COLUMN_DEFAULT,
+          REMARKS as COLUMN_COMMENT,
+          COLNO as ORDINAL_POSITION
+        FROM SYSCAT.COLUMNS
+        WHERE TABSCHEMA = '${schemaName.toUpperCase()}'
+          AND TABNAME = '${table.TABLE_NAME}'
+        ORDER BY COLNO
+      `
+
+      const columns = await executeQuery(connection, columnsQuery)
+
+      // Query para obter chaves primárias
+      const primaryKeysQuery = `
+        SELECT COLNAME as COLUMN_NAME
+        FROM SYSCAT.KEYCOLUSE k
+        JOIN SYSCAT.TABCONST t ON k.CONSTNAME = t.CONSTNAME
+        WHERE t.TABSCHEMA = '${schemaName.toUpperCase()}'
+          AND t.TABNAME = '${table.TABLE_NAME}'
+          AND t.TYPE = 'P'
+        ORDER BY k.COLSEQ
+      `
+
+      const primaryKeys = await executeQuery(connection, primaryKeysQuery)
+
+      // Query para obter índices
+      const indexesQuery = `
+        SELECT
+          INDNAME as INDEX_NAME,
+          UNIQUERULE as IS_UNIQUE,
+          COLNAMES as COLUMNS
+        FROM SYSCAT.INDEXES
+        WHERE TABSCHEMA = '${schemaName.toUpperCase()}'
+          AND TABNAME = '${table.TABLE_NAME}'
+        ORDER BY INDNAME
+      `
+
+      const indexes = await executeQuery(connection, indexesQuery)
+
+      // Query para obter uma amostra dos dados (primeiras 5 linhas)
+      const sampleQuery = `
+        SELECT * FROM ${schemaName.toUpperCase()}.${table.TABLE_NAME}
+        FETCH FIRST 5 ROWS ONLY
+      `
+
+      let sampleData = []
+      try {
+        sampleData = await executeQuery(connection, sampleQuery)
+      } catch (sampleError) {
+        console.warn(`⚠️ Não foi possível obter amostra da tabela ${table.TABLE_NAME}:`, sampleError.message)
+      }
+
+      schemaInfo.tables.push({
+        name: table.TABLE_NAME,
+        type: table.TABLE_TYPE,
+        comment: table.TABLE_COMMENT,
+        columns: columns.map(col => ({
+          name: col.COLUMN_NAME,
+          dataType: col.DATA_TYPE,
+          length: col.COLUMN_LENGTH,
+          scale: col.COLUMN_SCALE,
+          nullable: col.IS_NULLABLE === 'Y',
+          defaultValue: col.COLUMN_DEFAULT,
+          comment: col.COLUMN_COMMENT,
+          position: col.ORDINAL_POSITION
+        })),
+        primaryKeys: primaryKeys.map(pk => pk.COLUMN_NAME),
+        indexes: indexes.map(idx => ({
+          name: idx.INDEX_NAME,
+          unique: idx.IS_UNIQUE === 'U',
+          columns: idx.COLUMNS
+        })),
+        sampleData: sampleData.slice(0, 3) // Apenas 3 linhas para não sobrecarregar
+      })
+    }
+
+    const executionTime = Date.now() - startTime
+    console.log(`✅ Schema ${schemaName} descoberto em ${executionTime}ms - ${schemaInfo.tables.length} tabelas`)
+
+    res.json({
+      success: true,
+      data: schemaInfo
+    })
+
+  } catch (error) {
+    const executionTime = Date.now() - startTime
+    console.error(`❌ Erro ao descobrir schema ${schemaName} (${executionTime}ms):`, error.message)
+
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      executionTime
+    })
+  } finally {
+    if (connection) {
+      try {
+        await new Promise((resolve) => {
+          connection.close(() => resolve())
+        })
+      } catch (closeError) {
+        console.error('Erro ao fechar conexão:', closeError)
+      }
+    }
+  }
+})
+
+// Função auxiliar para executar queries
+async function executeQuery(connection, sql) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error(`Timeout de query (${db2Config.queryTimeout}ms)`))
+    }, db2Config.queryTimeout)
+
+    connection.query(sql, (err, data) => {
+      clearTimeout(timeout)
+      if (err) {
+        reject(err)
+      } else {
+        resolve(data || [])
+      }
+    })
+  })
+}
+
+// Rota para executar queries (protegida)
+app.post('/query', authenticate, async (req, res) => {
+  const { sql } = req.body
+
+  if (!sql) {
+    return res.status(400).json({ error: 'SQL query é obrigatória' })
+  }
+
+  const startTime = Date.now()
+  let connection = null
+
+  try {
+    console.log(`🔄 Executando query: ${sql}`)
+
+    // Conectar ao DB2
+    connection = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Timeout de conexão (${db2Config.connectTimeout}ms)`))
+      }, db2Config.connectTimeout)
+
+      ibmdb.open(connectionString, (err, conn) => {
+        clearTimeout(timeout)
+        if (err) {
+          reject(err)
+        } else {
+          resolve(conn)
+        }
+      })
+    })
+
     // Executar query
     const result = await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Timeout de query (${db2Config.queryTimeout}ms)`))
       }, db2Config.queryTimeout)
-      
+
       connection.query(sql, (err, data) => {
         clearTimeout(timeout)
         if (err) {
@@ -145,23 +323,23 @@ app.post('/query', authenticate, async (req, res) => {
         }
       })
     })
-    
+
     const executionTime = Date.now() - startTime
-    
+
     // Processar resultado
     const processedResult = processQueryResult(result, executionTime)
-    
+
     console.log(`✅ Query executada em ${executionTime}ms - ${processedResult.rowCount} linhas`)
-    
+
     res.json({
       success: true,
       data: processedResult
     })
-    
+
   } catch (error) {
     const executionTime = Date.now() - startTime
     console.error(`❌ Erro na query (${executionTime}ms):`, error.message)
-    
+
     res.status(500).json({
       success: false,
       error: error.message,
@@ -190,13 +368,13 @@ function processQueryResult(data, executionTime) {
       executionTime
     }
   }
-  
+
   // Extrair nomes das colunas
   const columns = Object.keys(data[0])
-  
+
   // Converter dados para formato de matriz
   const rows = data.map(row => columns.map(col => row[col]))
-  
+
   return {
     columns,
     rows,

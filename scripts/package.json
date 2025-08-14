@@ -1,0 +1,17 @@
+{
+  "name": "querylab-scripts",
+  "version": "1.0.0",
+  "description": "Scripts utilitários para o QueryLab",
+  "main": "discover-schema.js",
+  "scripts": {
+    "discover-inep": "node discover-schema.js",
+    "install-deps": "npm install"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {},
+  "keywords": ["db2", "schema", "discovery", "inep"],
+  "author": "QueryLab",
+  "license": "MIT"
+}
