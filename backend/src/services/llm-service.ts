@@ -1,10 +1,12 @@
 import Groq from 'groq-sdk'
 import { LLMModel, LLMProvider, LLMRequest, LLMResponse } from '../types'
+import { SchemaDiscoveryService } from './schema-discovery-service'
 
 export class LLMService {
   private static instance: LLMService
   private groqClient: Groq
   private availableModels: LLMModel[]
+  private schemaService: SchemaDiscoveryService
 
   private constructor() {
     // Verificar se a API key está disponível
@@ -17,6 +19,9 @@ export class LLMService {
     this.groqClient = new Groq({
       apiKey: groqApiKey
     })
+
+    // Inicializar serviço de schema discovery
+    this.schemaService = SchemaDiscoveryService.getInstance()
 
   // Definir modelos disponíveis (atualizados para modelos ativos)
     this.availableModels = [
@@ -75,7 +80,7 @@ export class LLMService {
 
     try {
       // Construir prompt otimizado para text-to-SQL
-      const systemPrompt = this.buildSystemPrompt(context)
+      const systemPrompt = await this.buildSystemPrompt(context)
       const userPrompt = this.buildUserPrompt(prompt)
 
       const completion = await this.groqClient.chat.completions.create({
@@ -132,30 +137,61 @@ export class LLMService {
     }
   }
 
-  private buildSystemPrompt(_context?: any): string {
-    return `Você é um assistente especializado em consultas SQL para um banco de dados universitário.
+  private async buildSystemPrompt(context?: any): Promise<string> {
+    // Obter schema real do banco de dados
+    const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'INEP')
+
+    const basePrompt = `Você é um assistente especializado em consultas SQL para banco de dados DB2.
 
 REGRAS IMPORTANTES:
 1. Se a mensagem for uma saudação (oi, olá, hello, etc.) ou pergunta geral sobre o que você faz, responda SEMPRE com "EXPLICAÇÃO:" seguido da explicação
 2. Se for uma consulta específica sobre dados (quantas, liste, mostre, etc.), gere APENAS o SQL válido
 3. NUNCA misture explicação com SQL
+4. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema
+5. Para DB2, use sintaxe específica: FETCH FIRST n ROWS ONLY ao invés de LIMIT
 
-SCHEMA DO BANCO DE DADOS:
-- universidades: id, nome, sigla, tipo, regiao, estado, cidade, fundacao, campus, alunos_total, professores_total, cursos_graduacao, cursos_pos_graduacao
-- pessoas: id, nome, tipo, universidade_id, departamento, curso, titulacao, area_pesquisa, email
-- cursos: id, nome, tipo, universidade_id, departamento, duracao, vagas_anuais, nota_corte, modalidade
-- regioes: id, nome, estados, populacao, universidades_federais, estaduais, privadas
+SCHEMA DO BANCO DE DADOS:`
+
+    if (schemaInfo && schemaInfo.tables && schemaInfo.tables.length > 0) {
+      const schemaDescription = schemaInfo.tables.map((table: any) => {
+        const keyColumns = table.keyColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || ''
+        const importantColumns = table.importantColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || ''
+
+        return `- ${table.name}: ${table.columnCount} colunas
+  Chaves: ${keyColumns}
+  Colunas importantes: ${importantColumns}
+  Tipo: ${table.type}${table.comment ? ` - ${table.comment}` : ''}`
+      }).join('\n')
+
+      return `${basePrompt}
+${schemaDescription}
+
+RELACIONAMENTOS IDENTIFICADOS:
+${schemaInfo.relationships?.map((rel: any) => `- ${rel.fromTable}.${rel.fromColumn} → ${rel.toTable} (${rel.type})`).join('\n') || 'Nenhum relacionamento identificado'}
 
 EXEMPLOS CORRETOS:
 
 Entrada: "oi"
-Saída: EXPLICAÇÃO: Olá! Sou um assistente especializado em consultas SQL para dados universitários. Posso ajudar você a encontrar informações sobre universidades, cursos, professores e alunos. Exemplos: "Quantas universidades federais existem?", "Liste os cursos de engenharia", "Mostre as universidades do Rio de Janeiro".
+Saída: EXPLICAÇÃO: Olá! Sou um assistente especializado em consultas SQL para dados do INEP. Posso ajudar você a encontrar informações sobre instituições de ensino, cursos, avaliações e indicadores educacionais. Exemplos: "Quantas instituições existem?", "Liste os cursos de uma área específica", "Mostre dados de avaliação".
 
-Entrada: "Quantas universidades federais existem?"
-Saída: SELECT COUNT(*) as total FROM universidades WHERE tipo = 'Federal';
+Entrada: "Quantas instituições existem?"
+Saída: SELECT COUNT(*) as total FROM ${schemaInfo.tables[0]?.name || 'TABELA'};
 
 Entrada: "o que você faz?"
-Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL para buscar dados universitários. Posso ajudar com informações sobre universidades, cursos, professores e alunos.`
+Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do INEP. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores.`
+    }
+
+    // Fallback para schema básico se não conseguir carregar
+    return `${basePrompt}
+- Schema não disponível no momento. Use consultas genéricas.
+
+EXEMPLOS CORRETOS:
+
+Entrada: "oi"
+Saída: EXPLICAÇÃO: Olá! Sou um assistente especializado em consultas SQL. No momento, o schema detalhado não está disponível, mas posso ajudar com consultas básicas.
+
+Entrada: "o que você faz?"
+Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL. No momento, estou com acesso limitado ao schema do banco.`
   }
 
   private buildUserPrompt(prompt: string): string {

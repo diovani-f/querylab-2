@@ -76,11 +76,11 @@ export class ChatService {
         }
       }
 
-      // Gerar SQL usando LLM real
+      // Gerar SQL usando LLM real com schema discovery
       const llmResponse = await this.llmService.generateSQL({
         prompt: message,
         model: model || 'llama3-70b-8192',
-        context: { schema: 'universidades' }
+        context: { schemaName: 'INEP' }
       })
 
       if (!llmResponse.success) {

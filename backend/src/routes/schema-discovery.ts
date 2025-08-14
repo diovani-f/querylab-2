@@ -3,8 +3,12 @@ import axios from 'axios'
 import fs from 'fs'
 import path from 'path'
 import { authMiddleware } from '../middleware/auth-middleware'
+import { SchemaDiscoveryService } from '../services/schema-discovery-service'
 
 const router = Router()
+
+// Instância do serviço de schema discovery
+const schemaService = SchemaDiscoveryService.getInstance()
 
 // Configurações do proxy DB2
 const PROXY_URL = process.env.DB2_PROXY_URL || 'http://localhost:3002'
@@ -260,5 +264,154 @@ function findPotentialRelationships(tables: any[]) {
 
   return relationships
 }
+
+/**
+ * Obter schema otimizado para LLM
+ */
+router.get('/llm/:schemaName', authMiddleware, async (req, res) => {
+  try {
+    const { schemaName } = req.params
+
+    const schema = await schemaService.getSchemaForLLM(schemaName)
+
+    if (!schema) {
+      return res.status(404).json({
+        success: false,
+        error: `Schema ${schemaName} não encontrado ou não disponível`
+      })
+    }
+
+    res.json({
+      success: true,
+      data: schema
+    })
+
+  } catch (error) {
+    console.error('❌ Erro ao obter schema para LLM:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    })
+  }
+})
+
+/**
+ * Obter estatísticas do schema
+ */
+router.get('/stats/:schemaName', authMiddleware, async (req, res) => {
+  try {
+    const { schemaName } = req.params
+
+    const stats = await schemaService.getSchemaStats(schemaName)
+
+    if (!stats) {
+      return res.status(404).json({
+        success: false,
+        error: `Estatísticas do schema ${schemaName} não disponíveis`
+      })
+    }
+
+    res.json({
+      success: true,
+      data: stats
+    })
+
+  } catch (error) {
+    console.error('❌ Erro ao obter estatísticas do schema:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    })
+  }
+})
+
+/**
+ * Buscar tabelas por padrão
+ */
+router.get('/search/:schemaName', authMiddleware, async (req, res) => {
+  try {
+    const { schemaName } = req.params
+    const { pattern } = req.query
+
+    if (!pattern || typeof pattern !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Parâmetro pattern é obrigatório'
+      })
+    }
+
+    const tables = await schemaService.searchTables(schemaName, pattern)
+
+    res.json({
+      success: true,
+      data: {
+        pattern,
+        tablesFound: tables.length,
+        tables
+      }
+    })
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar tabelas:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    })
+  }
+})
+
+/**
+ * Listar schemas disponíveis (sem autenticação para teste)
+ */
+router.get('/available', async (req, res) => {
+  try {
+    const schemas = schemaService.getAvailableSchemas()
+
+    res.json({
+      success: true,
+      data: {
+        count: schemas.length,
+        schemas
+      }
+    })
+
+  } catch (error) {
+    console.error('❌ Erro ao listar schemas disponíveis:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    })
+  }
+})
+
+/**
+ * Recarregar schema do disco
+ */
+router.post('/reload/:schemaName', authMiddleware, async (req, res) => {
+  try {
+    const { schemaName } = req.params
+
+    const success = await schemaService.reloadSchema(schemaName)
+
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: `Não foi possível recarregar o schema ${schemaName}`
+      })
+    }
+
+    res.json({
+      success: true,
+      message: `Schema ${schemaName} recarregado com sucesso`
+    })
+
+  } catch (error) {
+    console.error('❌ Erro ao recarregar schema:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    })
+  }
+})
 
 export default router
