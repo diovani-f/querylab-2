@@ -31,13 +31,13 @@ export function ChartContainer({ queryResult, title }: ChartContainerProps) {
   // Analisar dados para determinar quais tipos de gráfico são apropriados
   const analyzeData = () => {
     const { columns, rows } = queryResult
-    
+
     if (rows.length === 0) {
       return { canShowBar: false, canShowPie: false, canShowLine: false }
     }
 
     // Verificar se há pelo menos uma coluna numérica
-    const hasNumericData = rows.some(row => 
+    const hasNumericData = rows.some(row =>
       row.some(cell => typeof cell === 'number' || !isNaN(Number(cell)))
     )
 
@@ -103,9 +103,6 @@ export function ChartContainer({ queryResult, title }: ChartContainerProps) {
       <div className="flex items-center justify-between">
         <div>
           {title && <h3 className="text-lg font-semibold">{title}</h3>}
-          <p className="text-sm text-muted-foreground">
-            {queryResult.rowCount} registro(s) • {queryResult.executionTime}ms
-          </p>
         </div>
 
         <DropdownMenu>

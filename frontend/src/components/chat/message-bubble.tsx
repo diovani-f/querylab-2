@@ -6,7 +6,6 @@ import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeO
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
-import { QueryResultsTable } from "./query-results-table"
 import { ChartContainer } from "../charts/chart-container"
 import { EvaluationModal } from "../evaluation/evaluation-modal"
 import { EvaluationTrigger } from "../evaluation/evaluation-trigger"
@@ -18,7 +17,6 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
-  const [showSQL, setShowSQL] = useState(false)
 
   const getIcon = () => {
     switch (message.type) {
@@ -124,21 +122,11 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                 <div className="flex items-center gap-2">
                   <Code className="h-4 w-4" />
                   <span className="text-sm font-medium">SQL Gerado</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSQL(!showSQL)}
-                    className="text-xs h-6"
-                  >
-                    {showSQL ? 'Ocultar' : 'Mostrar'}
-                  </Button>
                 </div>
 
-                {showSQL && (
-                  <div className="bg-black/10 rounded p-3 font-mono text-xs overflow-x-auto">
-                    <pre>{message.sqlQuery}</pre>
-                  </div>
-                )}
+                <div className="bg-black/10 rounded p-3 font-mono text-xs overflow-x-auto">
+                  <pre>{message.sqlQuery}</pre>
+                </div>
               </div>
             )}
 
@@ -148,11 +136,8 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                 <div className="flex items-center gap-2">
                   <Table className="h-4 w-4" />
                   <span className="text-sm font-medium">
-                    Resultados ({message.queryResult.rowCount} linha{message.queryResult.rowCount !== 1 ? 's' : ''})
+                    Resultados
                   </span>
-                  <Badge variant="secondary" className="text-xs">
-                    {message.queryResult.executionTime}ms
-                  </Badge>
                 </div>
 
                 <div className="bg-background border rounded-lg p-4">
