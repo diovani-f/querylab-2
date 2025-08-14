@@ -10,7 +10,7 @@ export class SchemaDiscoveryService {
   private readonly schemaDir: string
 
   private constructor() {
-    this.schemaDir = path.join(__dirname, '..', '..', 'data', 'schema-discovery')
+    this.schemaDir = path.join(process.cwd(), 'data', 'schema-discovery');
   }
 
   public static getInstance(): SchemaDiscoveryService {
@@ -33,20 +33,20 @@ export class SchemaDiscoveryService {
 
       // Tentar carregar schema summary
       const summaryPath = path.join(this.schemaDir, `${schemaName.toLowerCase()}-schema-summary.json`)
-      
+
       if (!fs.existsSync(summaryPath)) {
         console.warn(`⚠️ Schema summary não encontrado: ${summaryPath}`)
         return null
       }
 
       const schemaData = JSON.parse(fs.readFileSync(summaryPath, 'utf8'))
-      
+
       // Processar e otimizar para LLM
       const optimizedSchema = this.optimizeSchemaForLLM(schemaData)
-      
+
       // Cachear resultado
       this.schemaCache.set(cacheKey, optimizedSchema)
-      
+
       console.log(`✅ Schema ${schemaName} carregado para LLM (${optimizedSchema.tables.length} tabelas)`)
       return optimizedSchema
 
@@ -62,7 +62,7 @@ export class SchemaDiscoveryService {
   async getFullSchema(schemaName: string = 'INEP'): Promise<any> {
     try {
       const fullPath = path.join(this.schemaDir, `${schemaName.toLowerCase()}-schema-full.json`)
-      
+
       if (!fs.existsSync(fullPath)) {
         console.warn(`⚠️ Schema completo não encontrado: ${fullPath}`)
         return null
@@ -116,7 +116,7 @@ export class SchemaDiscoveryService {
         return null
       }
 
-      const table = schema.tables.find((t: any) => 
+      const table = schema.tables.find((t: any) =>
         t.name.toLowerCase() === tableName.toLowerCase()
       )
 
@@ -229,7 +229,7 @@ export class SchemaDiscoveryService {
     try {
       const cacheKey = `${schemaName.toLowerCase()}-llm`
       this.schemaCache.delete(cacheKey)
-      
+
       const schema = await this.getSchemaForLLM(schemaName)
       return schema !== null
 
