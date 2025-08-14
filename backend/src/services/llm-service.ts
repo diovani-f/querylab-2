@@ -149,6 +149,7 @@ REGRAS IMPORTANTES:
 3. NUNCA misture explicação com SQL
 4. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema
 5. Para DB2, use sintaxe específica: FETCH FIRST n ROWS ONLY ao invés de LIMIT
+6. Sempre prefixe o nome da tabela com o schema INEP (ex: INEP.CENSO_IES)
 
 SCHEMA DO BANCO DE DADOS:`
 
