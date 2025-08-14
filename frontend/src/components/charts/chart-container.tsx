@@ -98,12 +98,12 @@ export function ChartContainer({ queryResult, title }: ChartContainerProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Header com controles */}
       <div className="flex items-center justify-between">
-        <div>
-          {title && <h3 className="text-lg font-semibold">{title}</h3>}
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {queryResult.rowCount} registro(s) • Executado em {queryResult.executionTime}ms
+        </p>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -158,9 +158,7 @@ export function ChartContainer({ queryResult, title }: ChartContainerProps) {
       </div>
 
       {/* Conteúdo do gráfico */}
-      <div className="border rounded-lg p-4 bg-background">
-        {renderChart()}
-      </div>
+      {renderChart()}
     </div>
   )
 }

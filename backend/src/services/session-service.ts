@@ -54,8 +54,6 @@ export class SessionService {
 
         this.sessions.set(session.id, session)
       })
-
-
     } catch (error) {
       console.error('❌ Erro ao carregar sessões do JSON Server:', error)
     }
@@ -110,8 +108,6 @@ export class SessionService {
         if (!response.ok) {
           throw new Error('Erro ao salvar sessão no JSON Server')
         }
-
-
       } catch (error) {
         console.error('❌ Erro ao salvar sessão no banco:', error)
       }
@@ -119,8 +115,6 @@ export class SessionService {
 
     // Manter na memória para compatibilidade
     this.sessions.set(session.id, session)
-
-
     return session
   }
 
@@ -169,8 +163,6 @@ export class SessionService {
 
     // Deletar da memória local
     const deleted = this.sessions.delete(sessionId)
-
-
     return deleted
   }
 
@@ -217,8 +209,6 @@ export class SessionService {
             updated_at: new Date().toISOString()
           })
         })
-
-
       }
     } catch (error) {
       console.error('❌ Erro ao salvar mensagem no banco:', error)
@@ -335,9 +325,6 @@ export class SessionService {
         deleted++
       }
     }
-
-
-
     return deleted
   }
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import ReactMarkdown from 'react-markdown'
 import { Message } from "@/types"
 import { cn } from "@/lib/utils"
 import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeOff } from "lucide-react"
@@ -86,7 +87,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
 
         {/* Conteúdo da mensagem */}
         <div className="text-sm whitespace-pre-wrap">
-          {message.content}
+          <ReactMarkdown>{message.content}</ReactMarkdown>
         </div>
 
         {/* Botões de ação para mensagens com dados técnicos */}
@@ -153,7 +154,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
 
         {/* Modal de Avaliação - apenas para mensagens de assistente com SQL */}
         {message.type === 'assistant' && sessionId && message.sqlQuery && (
-          <div className="mt-3 pt-3 border-t">
+          <div>
             <EvaluationModal
               message={message}
               sessionId={sessionId}

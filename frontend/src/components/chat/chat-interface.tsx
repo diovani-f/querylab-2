@@ -12,18 +12,18 @@ import { websocketService } from "@/lib/websocket"
 
 export function ChatInterface() {
   const [inputValue, setInputValue] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const {
+    isProcessing,
     currentSession,
     addMessage,
     createNewSession,
     sendMessage,
     initializeWebSocket,
-    disconnectWebSocket
+    disconnectWebSocket,
   } = useAppStore()
 
   // Função para scroll suave para o final
@@ -49,10 +49,10 @@ export function ChatInterface() {
 
   // Scroll para o final quando entrar em loading (nova mensagem sendo processada)
   useEffect(() => {
-    if (isLoading) {
+    if (isProcessing) {
       setTimeout(scrollToBottom, 100)
     }
-  }, [isLoading])
+  }, [isProcessing])
 
   // Initialize WebSocket on component mount
   useEffect(() => {
@@ -81,7 +81,6 @@ export function ChatInterface() {
 
     const userMessage = inputValue.trim()
     setInputValue("")
-    setIsLoading(true)
 
     try {
       await sendMessage(userMessage)
@@ -91,8 +90,6 @@ export function ChatInterface() {
         type: 'error',
         content: 'Erro ao processar sua consulta. Tente novamente.'
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -151,7 +148,7 @@ export function ChatInterface() {
             ))
           )}
 
-          {isLoading && (
+          {isProcessing && (
             <TypingIndicator />
           )}
 
@@ -170,11 +167,11 @@ export function ChatInterface() {
               onKeyDown={handleKeyPress}
               placeholder="Digite sua consulta em linguagem natural..."
               className="flex-1"
-              disabled={isLoading}
+              disabled={isProcessing}
             />
             <Button
               onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading}
+              disabled={!inputValue.trim() || isProcessing}
               size="icon"
             >
               <Send className="h-4 w-4" />

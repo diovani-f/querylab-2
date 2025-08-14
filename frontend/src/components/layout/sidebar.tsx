@@ -114,8 +114,6 @@ export function Sidebar() {
 
   return (
     <div className="flex h-full w-80 flex-col border-r bg-muted/10">
-
-
       {/* Header da Sidebar */}
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="text-lg font-semibold">Sessões</h2>

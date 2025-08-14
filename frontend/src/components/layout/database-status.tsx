@@ -172,8 +172,6 @@ function DatabaseStatusComponent() {
               {status.services.queries.type}
             </span>
           </div>
-
-
         </div>
 
         <div className="pt-2 border-t text-xs text-gray-500">
@@ -208,8 +206,6 @@ function DatabaseStatusComponent() {
           >
             {/* Ícone do banco de dados */}
             <Database className={`h-4 w-4 ${statusInfo.isQueryDbConnected ? 'text-green-600' : 'text-red-600'} ${isRefreshing ? 'animate-pulse' : ''}`} />
-
-
 
             {/* Status text */}
             <span className="text-sm font-medium">

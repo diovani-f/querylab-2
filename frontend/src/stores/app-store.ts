@@ -34,6 +34,7 @@ interface AppStore extends AppState {
   sendMessage: (content: string) => Promise<void>
   initializeWebSocket: () => void
   disconnectWebSocket: () => void
+  setIsProcessing: (value: boolean) => void
 }
 
 const defaultModels: LLMModel[] = [
@@ -58,6 +59,9 @@ export const useAppStore = create<AppStore>()(
       databaseConnection: null,
       isConnected: false,
       user: null,
+      isProcessing: false,
+
+      setIsProcessing: (value) => set({ isProcessing: value }),
 
       // Actions
       setCurrentSession: (session) => {
@@ -326,6 +330,8 @@ export const useAppStore = create<AppStore>()(
           throw new Error('Nenhuma sessão ativa ou modelo selecionado')
         }
 
+        set({ isProcessing: true });
+
         try {
           // Obter usuário do auth store
           const { useAuthStore } = await import('./auth-store')
@@ -361,6 +367,7 @@ export const useAppStore = create<AppStore>()(
 
         // Setup listeners
         websocketService.onMessageReceived((message: Message) => {
+          set({ isProcessing: false });
           console.log('📨 Mensagem recebida via WebSocket:', message)
           const normalizedMessage = normalizeMessage(message)
           get().addMessage(normalizedMessage)

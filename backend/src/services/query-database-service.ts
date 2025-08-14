@@ -76,8 +76,6 @@ export class QueryDatabaseService {
     }
   }
 
-
-
   /**
    * Executa uma consulta SQL
    */

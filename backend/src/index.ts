@@ -43,7 +43,6 @@ const allowedOrigins = [
   'http://localhost:3000' // front local
 ];
 
-
 // Middlewares
 app.use(cors({
   origin: (origin, callback) => {

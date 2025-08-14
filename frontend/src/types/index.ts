@@ -80,8 +80,6 @@ export interface AuthResponse {
   error?: string
 }
 
-
-
 export interface ChatRequest {
   sessionId: string
   message: string
@@ -97,9 +95,8 @@ export interface AppState {
   databaseConnection: DatabaseConnection | null
   isConnected: boolean
   user: User | null
+  isProcessing: boolean
 }
-
-
 
 export interface ChatResponse {
   success: boolean

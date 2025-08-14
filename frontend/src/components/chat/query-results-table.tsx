@@ -26,12 +26,12 @@ function formatCellValue(value: any): string {
   if (value === null || value === undefined) {
     return "-"
   }
-  
+
   if (typeof value === "number") {
     // Formatar números com separadores de milhares
     return new Intl.NumberFormat('pt-BR').format(value)
   }
-  
+
   if (typeof value === "string") {
     // Verificar se é uma data
     const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
@@ -49,7 +49,7 @@ function formatCellValue(value: any): string {
         return value
       }
     }
-    
+
     // Verificar se é apenas uma data (YYYY-MM-DD)
     const simpleDateRegex = /^\d{4}-\d{2}-\d{2}$/
     if (simpleDateRegex.test(value)) {
@@ -61,7 +61,7 @@ function formatCellValue(value: any): string {
       }
     }
   }
-  
+
   return String(value)
 }
 
@@ -171,13 +171,13 @@ export function QueryResultsTable({ queryResult, onExport }: QueryResultsTablePr
       if (format === 'csv') {
         const csvContent = [
           columnNames.join(','),
-          ...rows.map(row => row.map(cell => 
-            typeof cell === 'string' && cell.includes(',') 
-              ? `"${cell}"` 
+          ...rows.map(row => row.map(cell =>
+            typeof cell === 'string' && cell.includes(',')
+              ? `"${cell}"`
               : cell
           ).join(','))
         ].join('\n')
-        
+
         const blob = new Blob([csvContent], { type: 'text/csv' })
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -190,16 +190,7 @@ export function QueryResultsTable({ queryResult, onExport }: QueryResultsTablePr
   }
 
   return (
-    <div className="space-y-4">
-      {/* Informações da consulta */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div className="flex items-center space-x-4">
-          <span>{rowCount} registro(s) encontrado(s)</span>
-          <span>•</span>
-          <span>Executado em {executionTime}ms</span>
-        </div>
-      </div>
-
+    <div>
       {/* Tabela de resultados */}
       <DataTable
         columns={columns}
