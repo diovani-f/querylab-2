@@ -374,6 +374,7 @@ export const useAppStore = create<AppStore>()(
         })
 
         websocketService.onError((error: string) => {
+          set({ isProcessing: false });
           console.error('❌ WebSocket error:', error)
         })
 
