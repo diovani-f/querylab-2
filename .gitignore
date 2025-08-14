@@ -144,10 +144,6 @@ dist/
 *.sqlite
 *.sqlite3
 
-# Session data
-backend/data/
-data/
-
 # JSON Server database
 mock-data/db-backup.json
 

@@ -1,0 +1,651 @@
+{
+  "schemaName": "INEP",
+  "totalTables": 97,
+  "processedTables": 25,
+  "discoveredAt": "2025-08-13T23:53:20.400Z",
+  "tables": [
+    {
+      "name": "AREA_AVAL_CAPES_X_CINE_AREA_DET",
+      "type": "T",
+      "comment": null,
+      "columnCount": 3,
+      "primaryKeys": [],
+      "keyColumns": [
+        {
+          "name": "ID_AREA_AVALIACAO",
+          "dataType": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "ID_AREA_BASICA",
+          "dataType": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "AVAL_MEC_AVALIACOES",
+      "type": "T",
+      "comment": null,
+      "columnCount": 9,
+      "primaryKeys": [],
+      "keyColumns": [
+        {
+          "name": "ID_CONCEITO",
+          "dataType": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "ID_INDICADOR",
+          "dataType": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "AVAL_MEC_CONCEITOS",
+      "type": "T",
+      "comment": null,
+      "columnCount": 5,
+      "primaryKeys": [],
+      "keyColumns": [
+        {
+          "name": "ID_INDICADOR",
+          "dataType": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "ID_CONCEITO",
+          "dataType": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "AVAL_MEC_CURSO_AVAL_INSTRUMENTO",
+      "type": "T",
+      "comment": null,
+      "columnCount": 66,
+      "primaryKeys": [],
+      "keyColumns": [],
+      "importantColumns": [],
+      "sampleDataAvailable": false
+    },
+    {
+      "name": "AVAL_MEC_CURSO_IES",
+      "type": "T",
+      "comment": null,
+      "columnCount": 4,
+      "primaryKeys": [],
+      "keyColumns": [],
+      "importantColumns": [
+        {
+          "name": "NOME_CURSO",
+          "dataType": "VARCHAR",
+          "nullable": true,
+          "comment": null
+        },
+        {
+          "name": "NOME_IES",
+          "dataType": "VARCHAR",
+          "nullable": true,
+          "comment": null
+        }
+      ],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "AVAL_MEC_CURSO_IES_CALCULO",
+      "type": "T",
+      "comment": null,
+      "columnCount": 10,
+      "primaryKeys": [],
+      "keyColumns": [],
+      "importantColumns": [
+        {
+          "name": "NU_ANO_EDICAO",
+          "dataType": "INTEGER",
+          "nullable": true,
+          "comment": null
+        }
+      ],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "AVAL_MEC_CURSO_UNIDADE_CALCULO",
+      "type": "T",
+      "comment": null,
+      "columnCount": 10,
+      "primaryKeys": [],
+      "keyColumns": [
+        {
+          "name": "CO_UNIDADE_CALCULO",
+          "dataType": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "NU_ANO_EDICAO",
+          "dataType": "INTEGER",
+          "nullable": true,
+          "comment": null
+        }
+      ],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "AVAL_MEC_INDICADORES",
+      "type": "T",
+      "comment": null,
+      "columnCount": 3,
+      "primaryKeys": [],
+      "keyColumns": [
+        {
+          "name": "ID_INDICADOR",
+          "dataType": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "DESCRICAO",
+          "dataType": "VARCHAR",
+          "nullable": true,
+          "comment": null
+        }
+      ],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CAPES_DISCENTES_2021",
+      "type": "T",
+      "comment": null,
+      "columnCount": 7,
+      "primaryKeys": [],
+      "keyColumns": [
+        {
+          "name": "CD_ENTIDADE_CAPES",
+          "dataType": "DOUBLE",
+          "nullable": true
+        },
+        {
+          "name": "CD_ENTIDADE_EMEC",
+          "dataType": "DOUBLE",
+          "nullable": true
+        },
+        {
+          "name": "SG_ENTIDADE_ENSINO",
+          "dataType": "VARCHAR",
+          "nullable": true
+        },
+        {
+          "name": "ID_PESSOA",
+          "dataType": "DOUBLE",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CAPES_DISCENTES_2022",
+      "type": "T",
+      "comment": null,
+      "columnCount": 7,
+      "primaryKeys": [],
+      "keyColumns": [
+        {
+          "name": "CD_ENTIDADE_CAPES",
+          "dataType": "DOUBLE",
+          "nullable": true
+        },
+        {
+          "name": "CD_ENTIDADE_EMEC",
+          "dataType": "DOUBLE",
+          "nullable": true
+        },
+        {
+          "name": "SG_ENTIDADE_ENSINO",
+          "dataType": "VARCHAR",
+          "nullable": true
+        },
+        {
+          "name": "ID_PESSOA",
+          "dataType": "DOUBLE",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CENSO_CATEGORIAS_ADMINISTRATIVAS",
+      "type": "T",
+      "comment": null,
+      "columnCount": 2,
+      "primaryKeys": [
+        "ID_CATEGORIA_ADMINISTRATIVA",
+        "ID_CATEGORIA_ADMINISTRATIVA"
+      ],
+      "keyColumns": [
+        {
+          "name": "ID_CATEGORIA_ADMINISTRATIVA",
+          "dataType": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CENSO_CINE_AREA_DETALHADA",
+      "type": "T",
+      "comment": null,
+      "columnCount": 3,
+      "primaryKeys": [
+        "COD_CINE_AREA_DETALHADA"
+      ],
+      "keyColumns": [
+        {
+          "name": "COD_CINE_AREA_DETALHADA",
+          "dataType": "CHARACTER",
+          "nullable": false
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CENSO_CINE_AREA_ESPECIFICA",
+      "type": "T",
+      "comment": null,
+      "columnCount": 3,
+      "primaryKeys": [
+        "COD_CINE_AREA_ESPECIFICA"
+      ],
+      "keyColumns": [
+        {
+          "name": "COD_CINE_AREA_ESPECIFICA",
+          "dataType": "CHARACTER",
+          "nullable": false
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CENSO_CINE_AREA_GERAL",
+      "type": "T",
+      "comment": null,
+      "columnCount": 2,
+      "primaryKeys": [
+        "COD_CINE_AREA_GERAL"
+      ],
+      "keyColumns": [
+        {
+          "name": "COD_CINE_AREA_GERAL",
+          "dataType": "CHARACTER",
+          "nullable": false
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CENSO_CINE_ROTULO",
+      "type": "T",
+      "comment": null,
+      "columnCount": 5,
+      "primaryKeys": [
+        "COD_CINE_ROTULO"
+      ],
+      "keyColumns": [
+        {
+          "name": "COD_CINE_ROTULO",
+          "dataType": "CHARACTER",
+          "nullable": false
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CENSO_CURSO_VAGAS_BRUTO",
+      "type": "T",
+      "comment": null,
+      "columnCount": 203,
+      "primaryKeys": [],
+      "keyColumns": [
+        {
+          "name": "TP_MODALIDADE_ENSINO",
+          "dataType": "SMALLINT",
+          "nullable": true
+        },
+        {
+          "name": "QT_SIT_TRANSFERIDO",
+          "dataType": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "QT_SIT_FALECIDO",
+          "dataType": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "NU_ANO_CENSO",
+          "dataType": "INTEGER",
+          "nullable": false,
+          "comment": null
+        }
+      ],
+      "sampleDataAvailable": false
+    },
+    {
+      "name": "CENSO_CURSOS",
+      "type": "T",
+      "comment": null,
+      "columnCount": 21,
+      "primaryKeys": [
+        "ID_CURSO",
+        "ID_CURSO",
+        "ID_CURSO",
+        "ID_DISCIPLINA",
+        "ID_CURSO",
+        "ID_CURSO",
+        "COD_CURSO",
+        "ID_CURSO",
+        "ID_CURSO",
+        "ID_CURSO",
+        "COD_CURSO",
+        "COD_CURSO",
+        "COD_CURSO"
+      ],
+      "keyColumns": [
+        {
+          "name": "COD_CURSO",
+          "dataType": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "ID_GRAU_ACADEMICO",
+          "dataType": "SMALLINT",
+          "nullable": true
+        },
+        {
+          "name": "ID_MODALIDADE_ENSINO",
+          "dataType": "SMALLINT",
+          "nullable": true
+        },
+        {
+          "name": "ID_NIVEL_ACADEMICO",
+          "dataType": "SMALLINT",
+          "nullable": true
+        },
+        {
+          "name": "ID_ATRIBUTO_INGRESSO",
+          "dataType": "SMALLINT",
+          "nullable": true
+        },
+        {
+          "name": "ID_CENTRO_UFSM",
+          "dataType": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "ID_CURSO",
+          "dataType": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "NOME_CURSO",
+          "dataType": "VARCHAR",
+          "nullable": true,
+          "comment": null
+        },
+        {
+          "name": "CC_ANO",
+          "dataType": "SMALLINT",
+          "nullable": true,
+          "comment": null
+        },
+        {
+          "name": "NOME_CURSO_AJUSTADO",
+          "dataType": "VARCHAR",
+          "nullable": true,
+          "comment": null
+        },
+        {
+          "name": "TEMPO_INTEGRALIZACAO_ANOS",
+          "dataType": "DOUBLE",
+          "nullable": true,
+          "comment": null
+        }
+      ],
+      "sampleDataAvailable": false
+    },
+    {
+      "name": "CENSO_GRAUS_ACADEMICOS",
+      "type": "T",
+      "comment": null,
+      "columnCount": 2,
+      "primaryKeys": [
+        "ID_GRAU_ACADEMICO"
+      ],
+      "keyColumns": [
+        {
+          "name": "ID_GRAU_ACADEMICO",
+          "dataType": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CENSO_IES",
+      "type": "T",
+      "comment": null,
+      "columnCount": 8,
+      "primaryKeys": [
+        "COD_IES",
+        "COD_IES",
+        "COD_IES"
+      ],
+      "keyColumns": [
+        {
+          "name": "COD_IES",
+          "dataType": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "ID_CATEGORIA_ADMINISTRATIVA",
+          "dataType": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "ID_ORGANIZACAO_ACADEMICA",
+          "dataType": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "NOME_IES",
+          "dataType": "VARCHAR",
+          "nullable": true,
+          "comment": null
+        }
+      ],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CENSO_MODALIDADES_ENSINO",
+      "type": "T",
+      "comment": null,
+      "columnCount": 2,
+      "primaryKeys": [
+        "ID_MODALIDADE_ENSINO"
+      ],
+      "keyColumns": [
+        {
+          "name": "ID_MODALIDADE_ENSINO",
+          "dataType": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "DESCR_MODALIDADE_ENSINO",
+          "dataType": "VARCHAR",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CENSO_NIVEIS_ACADEMICOS",
+      "type": "T",
+      "comment": null,
+      "columnCount": 2,
+      "primaryKeys": [
+        "ID_NIVEL_ACADEMICO"
+      ],
+      "keyColumns": [
+        {
+          "name": "ID_NIVEL_ACADEMICO",
+          "dataType": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "CENSO_ORGANIZACOES_ACADEMICAS",
+      "type": "T",
+      "comment": null,
+      "columnCount": 2,
+      "primaryKeys": [
+        "ID_ORGANIZACAO_ACADEMICA",
+        "ID_ORGANIZACAO_ACADEMICA",
+        "ID_ORGANIZACAO_ACADEMICA"
+      ],
+      "keyColumns": [
+        {
+          "name": "ID_ORGANIZACAO_ACADEMICA",
+          "dataType": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "importantColumns": [],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "DADOS_CPC",
+      "type": "T",
+      "comment": null,
+      "columnCount": 29,
+      "primaryKeys": [],
+      "keyColumns": [
+        {
+          "name": "ID",
+          "dataType": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "NB_IDD",
+          "dataType": "DECIMAL",
+          "nullable": true
+        },
+        {
+          "name": "NP_IDD",
+          "dataType": "DECIMAL",
+          "nullable": true
+        },
+        {
+          "name": "NB_ORG_DID_PEDAG",
+          "dataType": "DECIMAL",
+          "nullable": true
+        },
+        {
+          "name": "NP_ORG_DID_PEDAG",
+          "dataType": "DECIMAL",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ANO",
+          "dataType": "INTEGER",
+          "nullable": true,
+          "comment": null
+        }
+      ],
+      "sampleDataAvailable": false
+    },
+    {
+      "name": "DADOS_ENADE",
+      "type": "T",
+      "comment": null,
+      "columnCount": 10,
+      "primaryKeys": [],
+      "keyColumns": [
+        {
+          "name": "ID",
+          "dataType": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ANO",
+          "dataType": "INTEGER",
+          "nullable": true,
+          "comment": null
+        }
+      ],
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "DADOS_ENADE_PERCEPCAO_QE_I01",
+      "type": "T",
+      "comment": "Qual o seu estado civil?",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "keyColumns": [],
+      "importantColumns": [
+        {
+          "name": "NU_ANO",
+          "dataType": "INTEGER",
+          "nullable": true,
+          "comment": null
+        }
+      ],
+      "sampleDataAvailable": false
+    }
+  ],
+  "relationships": [
+    {
+      "fromTable": "DADOS_CPC",
+      "fromColumn": "ID",
+      "toTable": "AREA_AVAL_CAPES_X_CINE_AREA_DET",
+      "type": "potential_foreign_key"
+    },
+    {
+      "fromTable": "DADOS_ENADE",
+      "fromColumn": "ID",
+      "toTable": "AREA_AVAL_CAPES_X_CINE_AREA_DET",
+      "type": "potential_foreign_key"
+    }
+  ]
+}
