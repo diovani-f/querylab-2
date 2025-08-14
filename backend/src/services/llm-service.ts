@@ -176,7 +176,10 @@ Entrada: "oi"
 Saída: EXPLICAÇÃO: Olá! Sou um assistente especializado em consultas SQL para dados do INEP. Posso ajudar você a encontrar informações sobre instituições de ensino, cursos, avaliações e indicadores educacionais. Exemplos: "Quantas instituições existem?", "Liste os cursos de uma área específica", "Mostre dados de avaliação".
 
 Entrada: "Quantas instituições existem?"
-Saída: SELECT COUNT(*) as total FROM ${schemaInfo.tables[0]?.name || 'TABELA'};
+Saída: SELECT COUNT(*) as total FROM ${context?.schemaName || 'INEP'}.${schemaInfo.tables[0]?.name || 'TABELA'};
+
+Entrada: "Liste 10 cursos"
+Saída: SELECT SOME_COLUMN_NAME FROM ${context?.schemaName || 'INEP'}.${schemaInfo.tables[0]?.name || 'TABELA'} FETCH FIRST 10 ROWS ONLY;
 
 Entrada: "o que você faz?"
 Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do INEP. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores.`
