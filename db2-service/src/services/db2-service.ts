@@ -19,19 +19,21 @@ export class DB2Service {
   private proxyConfig: ProxyConfig
 
   private constructor() {
-    this.proxyConfig = {
-      url: process.env.DB2_PROXY_URL || '',
-      secret: process.env.DB2_PROXY_SECRET || '',
-      timeout: parseInt(process.env.DB2_PROXY_TIMEOUT || '30000')
-    }
+      const mainProxyUrl = process.env.DB2_PROXY_URL || '';
+      const fallbackProxyUrl = process.env.DB2_PROXY_URL_FALLBACK || '';
+      this.proxyConfig = {
+        url: mainProxyUrl,
+        secret: process.env.DB2_PROXY_SECRET || '',
+        timeout: parseInt(process.env.DB2_PROXY_TIMEOUT || '30000')
+      }
 
-    // Validar configuração obrigatória
-    if (!this.proxyConfig.url) {
-      throw new Error('DB2_PROXY_URL é obrigatório')
-    }
-    if (!this.proxyConfig.secret) {
-      throw new Error('DB2_PROXY_SECRET é obrigatório')
-    }
+      // Validar configuração obrigatória
+      if (!this.proxyConfig.secret) {
+        throw new Error('DB2_PROXY_SECRET é obrigatório')
+      }
+      if (!mainProxyUrl && !fallbackProxyUrl) {
+        throw new Error('DB2_PROXY_URL ou DB2_PROXY_URL_FALLBACK é obrigatório')
+      }
   }
 
   static getInstance(): DB2Service {
@@ -42,18 +44,28 @@ export class DB2Service {
   }
 
   async initialize(): Promise<void> {
-    try {
-      console.log('🔄 Inicializando DB2 Service via Proxy...')
-      console.log(`📡 Proxy URL: ${this.proxyConfig.url}`)
-
-      // Testar conexão com proxy
-      await this.testProxyConnection()
-      this.isConnected = true
-      console.log('✅ Conectado ao DB2 via proxy com sucesso!')
-    } catch (error) {
-      console.error('❌ Erro ao conectar ao DB2 via proxy:', error)
-      throw error
+    let triedFallback = false;
+    let lastError: any = null;
+    const urlsToTry = [this.proxyConfig.url];
+    if (process.env.DB2_PROXY_URL_FALLBACK) {
+      urlsToTry.push(process.env.DB2_PROXY_URL_FALLBACK);
     }
+    for (const url of urlsToTry) {
+      this.proxyConfig.url = url;
+      try {
+        console.log('🔄 Inicializando DB2 Service via Proxy...');
+        console.log(`📡 Proxy URL: ${this.proxyConfig.url}`);
+        await this.testProxyConnection();
+        this.isConnected = true;
+        console.log('✅ Conectado ao DB2 via proxy com sucesso!');
+        return;
+      } catch (error) {
+        lastError = error;
+        console.error('❌ Erro ao conectar ao DB2 via proxy:', error);
+        triedFallback = true;
+      }
+    }
+    throw lastError || new Error('Não foi possível conectar ao DB2 via proxy principal nem fallback.');
   }
 
   private async testProxyConnection(): Promise<void> {
