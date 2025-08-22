@@ -77,7 +77,6 @@ export class ChatService {
         }
       }
 
-
       const llmResponse: any  = await this.llmService.generateSQL({
         prompt: message,
         model: model || 'llama3-70b-8192',
