@@ -108,6 +108,35 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
           style={{ position: 'absolute', left: '5px', bottom: '0', transform: 'translateY(25px)', marginTop: 12, zIndex: 20 }}
         >
           <TooltipProvider>
+            {/* Botão para explain detalhado */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Dialog open={showExplainModal} onOpenChange={setShowExplainModal}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full shadow-lg"
+                      onClick={() => setShowExplainModal(true)}
+                    >
+                      <Info className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl w-full">
+                    <DialogHeader>
+                      <DialogTitle>Explain Detalhado</DialogTitle>
+                    </DialogHeader>
+                    {/* Explain detalhado */}
+                    {message.hasExplanation && (
+                      <div className="mt-4">
+                        <ReactMarkdown>{message.explanation}</ReactMarkdown>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+              </TooltipTrigger>
+              <TooltipContent>Explain Detalhado</TooltipContent>
+            </Tooltip>
             {/* Botão de detalhes técnicos */}
             {(message.sqlQuery || message.queryResult) && (
               <Tooltip>
@@ -160,48 +189,24 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                 <TooltipContent>Detalhes Técnicos</TooltipContent>
               </Tooltip>
             )}
-            {/* Botão para explain detalhado */}
-            {message.hasExplanation && message.explanation && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Dialog open={showExplainModal} onOpenChange={setShowExplainModal}>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="rounded-full shadow-lg"
-                        onClick={() => setShowExplainModal(true)}
-                      >
-                        <Info className="h-5 w-5" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl w-full">
-                      <DialogHeader>
-                        <DialogTitle>Explain Detalhado</DialogTitle>
-                      </DialogHeader>
-                      {/* Explain detalhado */}
-                      {message.hasExplanation && (
-                        <div className="mt-4">
-                          <ReactMarkdown>{message.explanation}</ReactMarkdown>
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-                </TooltipTrigger>
-                <TooltipContent>Explain Detalhado</TooltipContent>
-              </Tooltip>
+            {/* Modal de Avaliação - apenas para mensagens de assistente com SQL */}
+            {message.type === 'assistant' && sessionId && message.sqlQuery && (
+              <div>
+                <EvaluationModal
+                  message={message}
+                  sessionId={sessionId}
+                  onEvaluationSaved={(evaluation) => {
+                    console.log('Avaliação salva:', evaluation)
+                  }}
+                >
+                  <EvaluationTrigger
+                    messageId={message.id}
+                    evaluation={message.evaluation}
+                  />
+                </EvaluationModal>
+              </div>
             )}
           </TooltipProvider>
-        </div>
-      )}
-
-      {/* Explain inicial sucinto abaixo do bubble-message */}
-      {message.type === 'assistant' && message.reverseTranslation && (
-        <div className="mt-2 p-2 bg-muted/30 rounded shadow text-xs">
-          <div className="mt-2">
-            <span className="font-semibold">Tradução reversa:</span>
-            <span className="ml-1">{message.reverseTranslation}</span>
-          </div>
         </div>
       )}
     </div>

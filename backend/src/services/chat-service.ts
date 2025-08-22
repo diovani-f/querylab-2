@@ -117,27 +117,14 @@ export class ChatService {
       // Executar SQL gerado no banco de dados
       const queryResult = await this.queryService.executeQuery(llmResponse.sqlQuery!)
 
-      // Gerar explicação textual dos resultados usando LLM
-      const explanationResponse = await this.llmService.generateExplanation({
-        query: llmResponse.sqlQuery!,
-        result: queryResult,
-        originalPrompt: message
-      })
-
-      // Usar a explicação gerada pela LLM como conteúdo principal
-      const responseContent = explanationResponse.success && explanationResponse.explanation
-        ? explanationResponse.explanation
-        : `Consulta executada com sucesso. Encontrados ${queryResult.rowCount} resultado(s).`
-
       // Adicionar mensagem de resposta no banco com dados técnicos
       const assistantMessage = await this.sessionService.addMessage(actualSessionId, {
         type: 'assistant',
-        content: responseContent,
+        content: llmResponse.reverseTranslation,
         sqlQuery: llmResponse.sqlQuery,
         queryResult,
         hasExplanation: true,
         explanation: llmResponse.explanation || '',
-        reverseTranslation: llmResponse.reverseTranslation || ''
       })
 
       console.log('📤 Mensagem do assistente criada:', {

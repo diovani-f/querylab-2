@@ -376,6 +376,12 @@ export const useAppStore = create<AppStore>()(
         websocketService.onError((error: string) => {
           set({ isProcessing: false });
           console.error('❌ WebSocket error:', error)
+          // Adiciona mensagem de erro na lista de mensagens do chat
+          const addMessage = get().addMessage;
+          addMessage({
+            type: 'error',
+            content: typeof error === 'string' ? error : 'Erro de conexão com o WebSocket'
+          });
         })
 
         websocketService.onEvaluationUpdated((data: { messageId: string, evaluation: any }) => {

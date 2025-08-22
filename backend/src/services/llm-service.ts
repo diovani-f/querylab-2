@@ -97,15 +97,19 @@ export class LLMService {
           user_prompt: userPrompt
         });
         const data = response.data;
-        return {
-          success: true,
-          sqlQuery: data.sql,
-          reverseTranslation: data.reverse_translation || this.generateReverseTranslation(prompt, data.sql),
-          explanation: undefined, // só retorna quando solicitado
-          model,
-          tokensUsed: 0,
-          processingTime: Date.now()
-        };
+          const reverseTranslation = data.reverse_translation || await this.generateReverseTranslation({
+            prompt,
+            sql: data.sql
+          });
+          return {
+            success: true,
+            sqlQuery: data.sql,
+            reverseTranslation,
+            explanation: undefined, // só retorna quando solicitado
+            model,
+            tokensUsed: 0,
+            processingTime: Date.now()
+          };
       }
 
       // Modelos padrão (Groq)
@@ -130,7 +134,7 @@ export class LLMService {
           success: true,
           sqlQuery: undefined,
           reverseTranslation: undefined,
-          explanation: response.trim(),
+          explanation: response.trim().replace('EXPLICAÇÃO:', ''),
           model,
           tokensUsed: completion.usage?.total_tokens || 0,
           processingTime: Date.now()
@@ -138,8 +142,11 @@ export class LLMService {
       }
       // Extrair SQL da resposta normalmente
       const sqlQuery = this.extractSQL(response);
-      // Gerar tradução reversa simples
-      const reverseTranslation = this.generateReverseTranslation(prompt, sqlQuery);
+        // Gerar tradução reversa simples
+        const reverseTranslation = await this.generateReverseTranslation({
+          prompt,
+          sql: sqlQuery
+        });
       return {
         success: true,
         sqlQuery,
@@ -224,12 +231,37 @@ Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas
 `;
   }
 
-  // Gera tradução reversa simples para o SQL
-  private generateReverseTranslation(prompt: string, sql: string): string {
+  /**
+   * Gera explicação sucinta do resultado da consulta SQL via LLM
+   * Retorna uma frase curta e direta sobre o que foi buscado, para usuário leigo
+   */
+  public async generateReverseTranslation(params: {
+    prompt: string;
+    sql: string;
+    result?: any;
+  }): Promise<string> {
+    const { prompt, sql, result } = params;
     if (!sql) return '';
-    // Exemplo simples: "Busquei X em Y filtrando por Z..."
-    // Pode ser melhorado com NLP, mas aqui é só para garantir o formato
-    return `Tradução reversa: Busquei dados conforme solicitado: "${prompt}".`;
+
+    // Monta o prompt para Groq
+    let resultSummary = '';
+    if (result && result.rowCount !== undefined && result.columns) {
+      const colList = result.columns.slice(0, 3).join(', ');
+      resultSummary = `\n- Registros encontrados: ${result.rowCount}\n- Colunas principais: ${colList}${result.columns.length > 3 ? ', ...' : ''}`;
+    }
+
+    const reversePrompt = `Explique de forma simples e curta para um usuário leigo o que foi feito na consulta SQL abaixo. Não use termos técnicos, apenas diga o que foi buscado e o que foi encontrado, de forma amigável e direta.\n\nPergunta original:\n"${prompt}"\n\nConsulta SQL executada:\n\n${sql}\n${resultSummary}\n\nResponda em uma frase curta e clara, sem repetir o SQL.`;
+
+    const completion = await this.groqClient.chat.completions.create({
+      messages: [
+        { role: 'user', content: reversePrompt }
+      ],
+      model: 'llama3-70b-8192',
+      temperature: 0.2,
+      max_tokens: 200
+    });
+    const explanation = completion.choices[0]?.message?.content?.trim();
+    return explanation || '';
   }
 
   public buildUserPrompt(prompt: string): string {
