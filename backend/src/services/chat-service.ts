@@ -84,7 +84,7 @@ export class ChatService {
         const systemPrompt = await this.llmService.buildSystemPrompt({ schemaName: 'INEP' })
         const userPrompt = this.llmService.buildUserPrompt(message)
         try {
-          const response = await fetch('https://87ebd8af371d.ngrok-free.app/generate_sql', {
+          const response = await fetch(`${process.env.NGROK_MODEL_URL}/generate_sql`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ system_prompt: systemPrompt, user_prompt: userPrompt })
