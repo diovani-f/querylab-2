@@ -124,7 +124,19 @@ export class LLMService {
       if (!response) {
         throw new Error('Resposta vazia do modelo LLM');
       }
-      // Extrair SQL da resposta
+      // Se a resposta for conversacional (começa com EXPLICAÇÃO:), não tentar extrair SQL
+      if (response.trim().startsWith('EXPLICAÇÃO:')) {
+        return {
+          success: true,
+          sqlQuery: undefined,
+          reverseTranslation: undefined,
+          explanation: response.trim(),
+          model,
+          tokensUsed: completion.usage?.total_tokens || 0,
+          processingTime: Date.now()
+        };
+      }
+      // Extrair SQL da resposta normalmente
       const sqlQuery = this.extractSQL(response);
       // Gerar tradução reversa simples
       const reverseTranslation = this.generateReverseTranslation(prompt, sqlQuery);
