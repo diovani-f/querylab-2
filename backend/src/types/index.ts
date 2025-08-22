@@ -193,6 +193,7 @@ export interface LLMResponse {
   success: boolean
   sqlQuery?: string
   explanation?: string
+  reverseTranslation?: string
   error?: string
   model: string
   tokensUsed: number

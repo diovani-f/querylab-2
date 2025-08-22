@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk'
+import axios from 'axios'
 import { LLMModel, LLMProvider, LLMRequest, LLMResponse } from '../types'
 import { SchemaDiscoveryService } from './schema-discovery-service'
 
@@ -56,6 +57,14 @@ export class LLMService {
         description: 'Modelo eficiente do Google',
         maxTokens: 8192,
         isDefault: false
+      },
+      {
+        id: 'sqlcoder-7b-2',
+        name: 'SQLCoder 7B-2',
+        provider: 'local' as LLMProvider,
+        description: 'Modelo especializado em SQL rodando via Python',
+        maxTokens: 4096,
+        isDefault: false
       }
     ]
   }
@@ -76,94 +85,93 @@ export class LLMService {
   }
 
   async generateSQL(request: LLMRequest): Promise<LLMResponse> {
-    const { prompt, model, context } = request
-
+    const { prompt, model, context } = request;
     try {
-      // Construir prompt otimizado para text-to-SQL
-      const systemPrompt = await this.buildSystemPrompt(context)
-      const userPrompt = this.buildUserPrompt(prompt)
+      const systemPrompt = await this.buildSystemPrompt(context);
+      const userPrompt = this.buildUserPrompt(prompt);
 
+      // Se for o modelo sqlcoder-7b-2, chama o endpoint Python via axios
+      if (model === 'sqlcoder-7b-2') {
+        const response = await axios.post(`${process.env.NGROK_MODEL_URL}/generate_sql`, {
+          system_prompt: systemPrompt,
+          user_prompt: userPrompt
+        });
+        const data = response.data;
+        return {
+          success: true,
+          sqlQuery: data.sql,
+          reverseTranslation: data.reverse_translation || this.generateReverseTranslation(prompt, data.sql),
+          explanation: undefined, // só retorna quando solicitado
+          model,
+          tokensUsed: 0,
+          processingTime: Date.now()
+        };
+      }
+
+      // Modelos padrão (Groq)
       const completion = await this.groqClient.chat.completions.create({
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
         model: model,
-        temperature: 0.1, // Baixa temperatura para SQL mais preciso
+        temperature: 0.1,
         max_tokens: 1000,
         top_p: 1,
         stream: false
-      })
-
-      const response = completion.choices[0]?.message?.content
-
+      });
+      const response = completion.choices[0]?.message?.content;
       if (!response) {
-        throw new Error('Resposta vazia do modelo LLM')
+        throw new Error('Resposta vazia do modelo LLM');
       }
-
-      // Verificar se é uma explicação ou SQL
-      if (response.startsWith('EXPLICAÇÃO:')) {
-        return {
-          success: true,
-          explanation: response.replace('EXPLICAÇÃO:', '').trim(),
-          model: model,
-          tokensUsed: completion.usage?.total_tokens || 0,
-          processingTime: Date.now()
-        }
-      } else {
-        // Extrair SQL da resposta
-        const sqlQuery = this.extractSQL(response)
-
-        return {
-          success: true,
-          sqlQuery,
-          explanation: response,
-          model: model,
-          tokensUsed: completion.usage?.total_tokens || 0,
-          processingTime: Date.now()
-        }
-      }
-
+      // Extrair SQL da resposta
+      const sqlQuery = this.extractSQL(response);
+      // Gerar tradução reversa simples
+      const reverseTranslation = this.generateReverseTranslation(prompt, sqlQuery);
+      return {
+        success: true,
+        sqlQuery,
+        reverseTranslation,
+        explanation: undefined,
+        model,
+        tokensUsed: completion.usage?.total_tokens || 0,
+        processingTime: Date.now()
+      };
     } catch (error) {
-      console.error('❌ Erro ao gerar SQL:', error)
-
+      console.error('❌ Erro ao gerar SQL:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erro desconhecido',
         model: model,
         tokensUsed: 0,
         processingTime: Date.now()
-      }
+      };
     }
   }
 
   public async buildSystemPrompt(context?: any): Promise<string> {
     // Obter schema real do banco de dados
-    const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'INEP')
-
+    const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'INEP');
     const basePrompt = `Você é um assistente especializado em consultas SQL para banco de dados DB2.
 
 REGRAS IMPORTANTES:
-1. Se a mensagem for uma saudação (oi, olá, hello, etc.) ou pergunta geral sobre o que você faz, responda SEMPRE com "EXPLICAÇÃO:" seguido da explicação
-2. Se for uma consulta específica sobre dados (quantas, liste, mostre, etc.), gere APENAS o SQL válido
-3. NUNCA misture explicação com SQL
-4. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema
-5. Para DB2, use sintaxe específica: FETCH FIRST n ROWS ONLY ao invés de LIMIT
-6. Sempre prefixe o nome da tabela com o schema INEP (ex: INEP.CENSO_IES)
+1. Sempre gere APENAS o SQL válido para a consulta do usuário.
+2. NÃO misture explicação com SQL.
+3. Após o SQL, retorne uma explicação curta em português, no formato: “Busquei X em Y filtrando por Z…” (tradução reversa).
+4. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema.
+5. Para DB2, use sintaxe específica: FETCH FIRST n ROWS ONLY ao invés de LIMIT.
+6. Sempre prefixe o nome da tabela com o schema INEP (ex: INEP.CENSO_IES).
 
-SCHEMA DO BANCO DE DADOS:`
-
+SCHEMA DO BANCO DE DADOS:`;
     if (schemaInfo && schemaInfo.tables && schemaInfo.tables.length > 0) {
       const schemaDescription = schemaInfo.tables.map((table: any) => {
-        const keyColumns = table.keyColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || ''
-        const importantColumns = table.importantColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || ''
-
+        const keyColumns = table.keyColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || '';
+        const importantColumns = table.importantColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || '';
         return `- ${table.name}: ${table.columnCount} colunas
   Chaves: ${keyColumns}
   Colunas importantes: ${importantColumns}
-  Tipo: ${table.type}${table.comment ? ` - ${table.comment}` : ''}`
-      }).join('\n')
-
+  Tipo: ${table.type}${table.comment ? ` - ${table.comment}` : ''}`;
+      }).join('\n');
       return `${basePrompt}
 ${schemaDescription}
 
@@ -172,30 +180,35 @@ ${schemaInfo.relationships?.map((rel: any) => `- ${rel.fromTable}.${rel.fromColu
 
 EXEMPLOS CORRETOS:
 
-Entrada: "oi"
-Saída: EXPLICAÇÃO: Olá! Sou um assistente especializado em consultas SQL para dados do INEP. Posso ajudar você a encontrar informações sobre instituições de ensino, cursos, avaliações e indicadores educacionais. Exemplos: "Quantas instituições existem?", "Liste os cursos de uma área específica", "Mostre dados de avaliação".
-
 Entrada: "Quantas instituições existem?"
-Saída: SELECT COUNT(*) as total FROM ${context?.schemaName || 'INEP'}.${schemaInfo.tables[0]?.name || 'TABELA'};
+Saída:
+SELECT COUNT(*) as total FROM ${context?.schemaName || 'INEP'}.${schemaInfo.tables[0]?.name || 'TABELA'};
+Tradução reversa: Busquei o total de instituições na tabela ${context?.schemaName || 'INEP'}.${schemaInfo.tables[0]?.name || 'TABELA'}.
 
 Entrada: "Liste 10 cursos"
-Saída: SELECT SOME_COLUMN_NAME FROM ${context?.schemaName || 'INEP'}.${schemaInfo.tables[0]?.name || 'TABELA'} FETCH FIRST 10 ROWS ONLY;
-
-Entrada: "o que você faz?"
-Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do INEP. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores.`
+Saída:
+SELECT SOME_COLUMN_NAME FROM ${context?.schemaName || 'INEP'}.${schemaInfo.tables[0]?.name || 'TABELA'} FETCH FIRST 10 ROWS ONLY;
+Tradução reversa: Listei 10 cursos na tabela ${context?.schemaName || 'INEP'}.${schemaInfo.tables[0]?.name || 'TABELA'}.
+`;
     }
-
     // Fallback para schema básico se não conseguir carregar
     return `${basePrompt}
 - Schema não disponível no momento. Use consultas genéricas.
 
 EXEMPLOS CORRETOS:
 
-Entrada: "oi"
-Saída: EXPLICAÇÃO: Olá! Sou um assistente especializado em consultas SQL. No momento, o schema detalhado não está disponível, mas posso ajudar com consultas básicas.
+Entrada: "Quantas instituições existem?"
+Saída:
+SELECT COUNT(*) as total FROM INEP.TABELA;
+Tradução reversa: Busquei o total de instituições na tabela INEP.TABELA.`;
+  }
 
-Entrada: "o que você faz?"
-Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL. No momento, estou com acesso limitado ao schema do banco.`
+  // Gera tradução reversa simples para o SQL
+  private generateReverseTranslation(prompt: string, sql: string): string {
+    if (!sql) return '';
+    // Exemplo simples: "Busquei X em Y filtrando por Z..."
+    // Pode ser melhorado com NLP, mas aqui é só para garantir o formato
+    return `Tradução reversa: Busquei dados conforme solicitado: "${prompt}".`;
   }
 
   public buildUserPrompt(prompt: string): string {

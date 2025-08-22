@@ -78,35 +78,11 @@ export class ChatService {
       }
 
 
-      let llmResponse: any
-      if ((model || '').toLowerCase() === 'sqlcoder-7b-2') {
-        // Gerar prompts para enviar ao Python
-        const systemPrompt = await this.llmService.buildSystemPrompt({ schemaName: 'INEP' })
-        const userPrompt = this.llmService.buildUserPrompt(message)
-        try {
-          const response = await fetch(`${process.env.NGROK_MODEL_URL}/generate_sql`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ system_prompt: systemPrompt, user_prompt: userPrompt })
-          })
-          const data = await response.json()
-          llmResponse = {
-            success: true,
-            sqlQuery: data.sql,
-            explanation: data.explanation || '',
-            reverseTranslation: data.reverse_translation || ''
-          }
-        } catch (err) {
-          llmResponse = { success: false, error: 'Erro ao chamar sqlcoder-7b-2: ' + err }
-        }
-      } else {
-        // Gerar SQL usando LLM padrão
-        llmResponse = await this.llmService.generateSQL({
-          prompt: message,
-          model: model || 'llama3-70b-8192',
-          context: { schemaName: 'INEP' }
-        })
-      }
+      const llmResponse: any  = await this.llmService.generateSQL({
+        prompt: message,
+        model: model || 'llama3-70b-8192',
+        context: { schemaName: 'INEP' }
+      })
 
       if (!llmResponse.success) {
         // Criar mensagem de erro
