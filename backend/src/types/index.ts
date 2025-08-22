@@ -6,6 +6,8 @@ export interface Message {
   sqlQuery?: string
   queryResult?: QueryResult
   hasExplanation?: boolean // Flag para indicar se a mensagem tem explicação textual
+  explanation?: string // Explicação detalhada da consulta
+  reverseTranslation?: string // Tradução reversa do SQL para linguagem natural
 }
 
 export interface QueryResult {

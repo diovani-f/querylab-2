@@ -137,7 +137,7 @@ export class LLMService {
     }
   }
 
-  private async buildSystemPrompt(context?: any): Promise<string> {
+  public async buildSystemPrompt(context?: any): Promise<string> {
     // Obter schema real do banco de dados
     const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'INEP')
 
@@ -198,7 +198,7 @@ Entrada: "o que você faz?"
 Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL. No momento, estou com acesso limitado ao schema do banco.`
   }
 
-  private buildUserPrompt(prompt: string): string {
+  public buildUserPrompt(prompt: string): string {
     return `Converta esta consulta em linguagem natural para SQL:
 
 "${prompt}"

@@ -1,4 +1,5 @@
 import { Message, ChatSession } from '../types'
+import fetch from 'node-fetch'
 import { SessionService } from './session-service'
 import { LLMService } from './llm-service'
 import { QueryService } from './query-service'
@@ -76,12 +77,36 @@ export class ChatService {
         }
       }
 
-      // Gerar SQL usando LLM real com schema discovery
-      const llmResponse = await this.llmService.generateSQL({
-        prompt: message,
-        model: model || 'llama3-70b-8192',
-        context: { schemaName: 'INEP' }
-      })
+
+      let llmResponse: any
+      if ((model || '').toLowerCase() === 'sqlcoder-7b-2') {
+        // Gerar prompts para enviar ao Python
+        const systemPrompt = await this.llmService.buildSystemPrompt({ schemaName: 'INEP' })
+        const userPrompt = this.llmService.buildUserPrompt(message)
+        try {
+          const response = await fetch('https://87ebd8af371d.ngrok-free.app/generate_sql', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ system_prompt: systemPrompt, user_prompt: userPrompt })
+          })
+          const data = await response.json()
+          llmResponse = {
+            success: true,
+            sqlQuery: data.sql,
+            explanation: data.explanation || '',
+            reverseTranslation: data.reverse_translation || ''
+          }
+        } catch (err) {
+          llmResponse = { success: false, error: 'Erro ao chamar sqlcoder-7b-2: ' + err }
+        }
+      } else {
+        // Gerar SQL usando LLM padrão
+        llmResponse = await this.llmService.generateSQL({
+          prompt: message,
+          model: model || 'llama3-70b-8192',
+          context: { schemaName: 'INEP' }
+        })
+      }
 
       if (!llmResponse.success) {
         // Criar mensagem de erro
@@ -135,7 +160,9 @@ export class ChatService {
         content: responseContent,
         sqlQuery: llmResponse.sqlQuery,
         queryResult,
-        hasExplanation: true // Flag para indicar que tem explicação textual
+        hasExplanation: true,
+        explanation: llmResponse.explanation || '',
+        reverseTranslation: llmResponse.reverseTranslation || ''
       })
 
       console.log('📤 Mensagem do assistente criada:', {

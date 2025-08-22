@@ -7,6 +7,8 @@ export interface Message {
   queryResult?: QueryResult
   evaluation?: QueryEvaluation
   hasExplanation?: boolean // Flag para indicar se tem explicação textual
+  explanation?: string // Explicação detalhada da consulta
+  reverseTranslation?: string // Tradução reversa do SQL para linguagem natural
 }
 
 export interface QueryResult {
