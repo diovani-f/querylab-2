@@ -4,6 +4,8 @@ dotenv.config()
 
 import express from 'express'
 import cors from 'cors'
+import morgan from 'morgan'
+import helmet from 'helmet'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 
@@ -54,6 +56,8 @@ app.use(cors({
   },
   credentials: true
 }))
+app.use(helmet())
+app.use(morgan('combined'))
 app.use(express.json())
 
 // Rotas
