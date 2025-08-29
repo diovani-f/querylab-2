@@ -143,8 +143,15 @@ export interface JWTPayload {
 
 import { Request } from 'express'
 
-export interface AuthRequest<P = any, ResBody = any, ReqBody = any> extends Request<P, ResBody, ReqBody> {
-  userId?: string;
+declare global {
+  namespace Express {
+    interface Request {
+      user?: Omit<User, 'senha'>;
+    }
+  }
+}
+
+export interface AuthRequest extends Request {
   user?: Omit<User, 'senha'>;
 }
 
