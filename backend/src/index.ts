@@ -13,7 +13,6 @@ import chatRoutes from './routes/chat'
 import healthRoutes from './routes/health'
 import sessionsRoutes from './routes/sessions'
 import historyRoutes from './routes/history'
-import favoritesRoutes from './routes/favorites'
 import evaluationRoutes from './routes/evaluation'
 import schemaDiscoveryRoutes from './routes/schema-discovery'
 
@@ -61,7 +60,6 @@ app.use('/api/health', healthRoutes)
 app.use('/api/chat', chatRoutes)
 app.use('/api/sessions', sessionsRoutes)
 app.use('/api/history', historyRoutes)
-app.use('/api/favorites', favoritesRoutes)
 app.use('/api/evaluation', evaluationRoutes)
 app.use('/api/schema', schemaDiscoveryRoutes)
 

@@ -1,9 +1,47 @@
-import { Message, ChatSession, LLMModel } from '../types'
+import { Message, ChatSession, LLMModel, QueryResult } from '../types'
 import { LLMService } from './llm-service'
 import { QueryService } from './query-service'
 import { PrismaClient } from '@prisma/client'
+import { Mensagem, Sessao as PrismaSessao, LLMModel as PrismaLLMModel } from '@prisma/client'
 
 const prisma = new PrismaClient()
+
+// Função de mapeamento para converter o tipo do Prisma para a interface local
+function mapMessage(msg: Mensagem): Message {
+  return {
+    id: msg.id,
+    tipo: msg.tipo,
+    conteudo: msg.conteudo,
+    timestamp: msg.timestamp,
+    sqlQuery: msg.sqlQuery,
+    queryResult: msg.queryResult as QueryResult,
+    hasExplanation: msg.hasExplanation,
+    explanation: msg.explanation,
+    reverseTranslation: msg.reverseTranslation
+  }
+}
+
+// Função de mapeamento para converter o tipo do Prisma para a interface local
+function mapSession(session: PrismaSessao & {
+  mensagens: Mensagem[],
+  modelo: PrismaLLMModel
+}): ChatSession {
+  return {
+    id: session.id,
+    titulo: session.titulo,
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
+    mensagens: session.mensagens.map(mapMessage),
+    modelo: {
+      id: session.modelo.id,
+      name: session.modelo.name,
+      description: session.modelo.description,
+      provider: session.modelo.provider,
+      maxTokens: session.modelo.maxTokens,
+      isDefault: session.modelo.isDefault
+    }
+  }
+}
 
 /**
  * Serviço responsável por processar mensagens de chat
@@ -45,38 +83,36 @@ export class ChatService {
       const { sessionId, message, model, userId } = params
 
       // Verificar se a sessão existe no banco de dados
-      let session = await this.getSessionFromDatabase(sessionId)
-      if (!session && userId) {
+      let sessionData = await this.getSessionFromDatabase(sessionId)
+      if (!sessionData && userId) {
         // Criar nova sessão no banco se não existir
-        session = await this.createSessionInDatabase(
+        sessionData = await this.createSessionInDatabase(
           String(userId),
           `Sessão ${new Date().toLocaleString('pt-BR')}`,
           model
         )
       }
 
-      if (!session) {
+      if (!sessionData) {
         return {
           success: false,
           error: 'Sessão não encontrada e usuário não identificado'
         }
       }
 
+      // Mapear a sessão do Prisma para o tipo ChatSession
+      const session = mapSession(sessionData);
+
       // Usar o ID da sessão
       const actualSessionId = session.id
 
       // Adicionar mensagem do usuário no banco
-      const userMessage = await this.addMessage(actualSessionId, {
+      const userMessageData = await this.addMessage(actualSessionId, {
         type: 'user',
         content: message
-      })
+      }, null, null)
 
-      if (!userMessage) {
-        return {
-          success: false,
-          error: 'Erro ao salvar mensagem do usuário'
-        }
-      }
+      const userMessage = mapMessage(userMessageData);
 
       const llmResponse: any = await this.llmService.generateSQL({
         prompt: message,
@@ -86,24 +122,39 @@ export class ChatService {
 
       if (!llmResponse.success) {
         // Criar mensagem de erro
-        const errorMessage = await this.addMessage(actualSessionId, {
+        const errorMessageData = await this.addMessage(actualSessionId, {
           type: 'error',
           content: `Erro ao processar consulta: ${llmResponse.error}`
-        })
+        }, null, null)
 
         return {
           success: false,
           error: `Erro ao processar consulta: ${llmResponse.error}`,
           userMessage,
-          assistantMessage: errorMessage || undefined
+          assistantMessage: mapMessage(errorMessageData) || undefined
         }
       }
 
       let finalContent = ''
+      let sqlQuery: string | null = null
+      let queryResult: QueryResult | null = null
+      let hasExplanation: boolean | null = false
+      let explanation: string | null = null
+      let reverseTranslation: string | null = null
+
       if (llmResponse.explanation && !llmResponse.sql) {
         finalContent = llmResponse.explanation
+        hasExplanation = true
+        explanation = llmResponse.explanation
+        reverseTranslation = llmResponse.reverseTranslation || null
       } else if (llmResponse.sql) {
-        const queryResult = await this.queryService.executeQuery(llmResponse.sql)
+        sqlQuery = llmResponse.sql
+        hasExplanation = false // Se tem SQL, não é só uma explicação textual
+        explanation = null // A explicação é tratada de forma diferente ou não existe
+        reverseTranslation = llmResponse.reverseTranslation || null
+
+        const queryResultObj = await this.queryService.executeQuery(llmResponse.sql)
+        queryResult = queryResultObj
 
         if (!queryResult.success) {
           finalContent = `Erro ao executar consulta: ${queryResult.error}`
@@ -113,10 +164,12 @@ export class ChatService {
       }
 
       // Criar mensagem de resposta do assistente
-      const assistantMessage = await this.addMessage(actualSessionId, {
+      const assistantMessageData = await this.addMessage(actualSessionId, {
         type: 'assistant',
         content: finalContent
-      })
+      }, sqlQuery, queryResult, hasExplanation, explanation, reverseTranslation)
+
+      const assistantMessage = mapMessage(assistantMessageData);
 
       return {
         success: true,
@@ -150,7 +203,9 @@ export class ChatService {
       data: {
         usuarioId,
         titulo,
-        modeloId: modelo.id
+        modeloId: modelo.id,
+        isFavorita: false,
+        tags: []
       },
       include: {
         mensagens: true,
@@ -162,13 +217,26 @@ export class ChatService {
   /**
    * Adiciona mensagem no banco via Prisma
    */
-  public async addMessage(sessaoId: string, message: { type: string; content: string }) {
+  public async addMessage(
+    sessaoId: string,
+    message: { type: string; content: string },
+    sqlQuery: string | null,
+    queryResult: QueryResult | null,
+    hasExplanation: boolean | null = null,
+    explanation: string | null = null,
+    reverseTranslation: string | null = null
+  ) {
     return prisma.mensagem.create({
       data: {
         sessaoId,
         tipo: message.type,
         conteudo: message.content,
-        timestamp: new Date()
+        timestamp: new Date(),
+        sqlQuery,
+        queryResult: queryResult as any, // Adicionado 'as any' para forçar a compatibilidade do tipo JSONValue
+        hasExplanation,
+        explanation,
+        reverseTranslation
       }
     })
   }
