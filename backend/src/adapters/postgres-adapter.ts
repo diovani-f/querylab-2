@@ -7,6 +7,9 @@ export class PostgresAdapter implements DatabaseAdapter {
   constructor(private connectionString: string) {
     this.client = new Client({
       connectionString: this.connectionString,
+      ssl: {
+        rejectUnauthorized: false
+      }
     })
   }
 
