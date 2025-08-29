@@ -143,9 +143,9 @@ export interface JWTPayload {
 
 import { Request } from 'express'
 
-export interface AuthRequest extends Request {
+export type AuthRequest = Request & {
   user?: Omit<User, 'senha'>;
-}
+};
 
 export interface ChatRequest {
   sessionId: string
