@@ -147,6 +147,7 @@ export interface AuthRequest<P = any, ResBody = any, ReqBody = any> extends Requ
   userId?: string;
   user?: Omit<User, 'senha'>;
 }
+
 export interface ChatRequest {
   sessionId: string
   message: string
