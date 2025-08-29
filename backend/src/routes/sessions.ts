@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { SessionService } from '../services/session-service'
-import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth-middleware'
+import { authMiddleware } from '../middleware/auth-middleware'
 import { AuthRequest, ChatSession, QueryResult } from '../types'
 import { PrismaClient } from '@prisma/client'
 

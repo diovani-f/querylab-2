@@ -77,31 +77,3 @@ export const adminMiddleware = (
 
   next()
 }
-
-export const optionalAuthMiddleware = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const authHeader = req.headers.authorization
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7)
-      const authService = AuthService.getInstance()
-      const decoded = await authService.verifyToken(token)
-
-      if (decoded) {
-        const user = await authService.getUserById(decoded.userId)
-        if (user) {
-          req.user = user
-        }
-      }
-    }
-
-    next()
-  } catch (error) {
-    console.error('Erro no middleware de autenticação opcional:', error)
-    next() // Continua mesmo com erro, pois é opcional
-  }
-}
