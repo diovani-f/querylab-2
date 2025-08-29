@@ -4,14 +4,14 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { User, LogOut, Settings, ChevronDown } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "src/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "src/components/ui/dropdown-menu"
 import { useAuthStore } from "@/stores/auth-store"
 
 export function UserMenu() {
@@ -62,15 +62,15 @@ export function UserMenu() {
           <ChevronDown className="w-4 h-4" />
         </Button>
       </DropdownMenuTrigger>
-      
+
       <DropdownMenuContent align="end" className="w-56">
         <div className="px-2 py-1.5">
           <p className="text-sm font-medium">{user.nome}</p>
           <p className="text-xs text-muted-foreground">{user.email}</p>
         </div>
-        
+
         <DropdownMenuSeparator />
-        
+
         <DropdownMenuItem
           onClick={() => router.push("/profile")}
           className="cursor-pointer"
@@ -78,9 +78,9 @@ export function UserMenu() {
           <Settings className="mr-2 h-4 w-4" />
           Configurações
         </DropdownMenuItem>
-        
+
         <DropdownMenuSeparator />
-        
+
         <DropdownMenuItem
           onClick={handleLogout}
           disabled={isLoggingOut}

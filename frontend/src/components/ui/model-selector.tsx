@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { 
+import { Button } from "src/components/ui/button"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "src/components/ui/dropdown-menu"
 import { useAppStore } from "@/stores/app-store"
 import { ChevronDown, Bot, Zap, Brain } from "lucide-react"
 import { LLMModel, LLMProvider } from "@/types"
@@ -21,7 +21,7 @@ const providerIcons: Record<LLMProvider, React.ReactNode> = {
 
 const providerColors: Record<LLMProvider, string> = {
   groq: "text-orange-500",
-  openai: "text-green-500", 
+  openai: "text-green-500",
   anthropic: "text-purple-500",
   local: "text-blue-500"
 }
@@ -47,8 +47,8 @@ export function ModelSelector() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="flex items-center space-x-2 min-w-[200px] justify-between"
         >
           <div className="flex items-center space-x-2">
@@ -60,7 +60,7 @@ export function ModelSelector() {
           <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      
+
       <DropdownMenuContent align="start" className="w-[300px]">
         {availableModels.map((model) => (
           <DropdownMenuItem

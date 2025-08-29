@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Database } from 'lucide-react'
 import { apiService } from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import { Button } from 'src/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip'
+} from 'src/components/ui/tooltip'
 
 interface DatabaseStatus {
   status: 'ok' | 'partial' | 'error'

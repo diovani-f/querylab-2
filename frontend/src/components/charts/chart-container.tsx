@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { BarChart3, PieChart, TrendingUp, Table as TableIcon } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "src/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "src/components/ui/dropdown-menu"
 import { QueryResult } from "@/types"
 import { BarChartComponent } from "./bar-chart"
 import { PieChartComponent } from "./pie-chart"

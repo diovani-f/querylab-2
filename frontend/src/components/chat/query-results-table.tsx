@@ -4,7 +4,7 @@ import { useMemo } from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, MoreHorizontal } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "src/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +12,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { DataTable } from "@/components/ui/data-table"
+} from "src/components/ui/dropdown-menu"
+import { DataTable } from "src/components/ui/data-table"
 import { QueryResult } from "@/types"
 
 interface QueryResultsTableProps {

@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, UserPlus, Loader2 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button } from "src/components/ui/button"
+import { Input } from "src/components/ui/input"
 import { useAuthStore } from "@/stores/auth-store"
 
 export default function RegisterPage() {

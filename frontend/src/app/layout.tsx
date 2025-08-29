@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme/theme-provider";
-import { AuthInitializer } from "@/components/auth/auth-initializer";
-import { ToastProvider } from "@/components/ui/toast";
-// import { AuthDebug } from "@/components/debug/auth-debug";
+import { ThemeProvider } from "src/components/theme/theme-provider";
+import { AuthInitializer } from "src/components/auth/auth-initializer";
+import { ToastProvider } from "src/components/ui/toast";
+// import { AuthDebug } from "src/components/debug/auth-debug";
 
 const inter = Inter({
   subsets: ["latin"],

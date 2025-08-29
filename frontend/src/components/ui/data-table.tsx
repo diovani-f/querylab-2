@@ -23,7 +23,7 @@ import {
   EyeOff,
 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "src/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -32,8 +32,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
+} from "src/components/ui/dropdown-menu"
+import { Input } from "src/components/ui/input"
 import {
   Table,
   TableBody,
@@ -41,7 +41,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "src/components/ui/table"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -98,7 +98,7 @@ export function DataTable<TData, TValue>({
             />
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           {/* Controle de Visibilidade das Colunas */}
           <DropdownMenu>

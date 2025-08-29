@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import { Card, CardContent, CardHeader, CardTitle } from 'src/components/ui/card'
+import { Badge } from 'src/components/ui/badge'
+import { Progress } from 'src/components/ui/progress'
 import { Star, CheckCircle, AlertTriangle, TrendingUp, BarChart3 } from 'lucide-react'
 import { EvaluationSummary, EvaluationCriteria } from '@/types'
 import { apiService } from '@/lib/api'
@@ -166,7 +166,7 @@ export function EvaluationSummaryComponent({ sessionId }: EvaluationSummaryProps
               // Normalizar para 0-1 baseado no tipo
               let normalizedValue = 0
               let displayValue = ''
-              
+
               if (criterion.type === 'boolean') {
                 normalizedValue = average
                 displayValue = `${(average * 100).toFixed(0)}%`
@@ -193,8 +193,8 @@ export function EvaluationSummaryComponent({ sessionId }: EvaluationSummaryProps
                       </div>
                     </div>
                   </div>
-                  <Progress 
-                    value={normalizedValue * 100} 
+                  <Progress
+                    value={normalizedValue * 100}
                     className="h-2"
                   />
                 </div>

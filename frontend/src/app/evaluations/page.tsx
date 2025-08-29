@@ -1,8 +1,8 @@
 'use client'
 
-import { EvaluationSummaryComponent } from '@/components/evaluation/evaluation-summary'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { EvaluationSummaryComponent } from 'src/components/evaluation/evaluation-summary'
+import { Card, CardContent, CardHeader, CardTitle } from 'src/components/ui/card'
+import { Button } from 'src/components/ui/button'
 import { ArrowLeft, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -64,12 +64,12 @@ export default function EvaluationsPage() {
                 </ul>
               </div>
             </div>
-            
+
             <div className="pt-4 border-t">
               <h3 className="font-semibold mb-2">Como Avaliar</h3>
               <p className="text-sm text-muted-foreground">
                 Para cada resposta da IA que gera SQL, você pode clicar em &quot;Avaliar&quot; para
-                analisar a qualidade da resposta baseada nos critérios estabelecidos. 
+                analisar a qualidade da resposta baseada nos critérios estabelecidos.
                 Suas avaliações ajudam a melhorar continuamente o sistema.
               </p>
             </div>

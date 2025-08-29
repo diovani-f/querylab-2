@@ -16,9 +16,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-alert-dialog'],
   },
-
-  // Configuração do Turbopack (agora estável)
-  turbopack: {}
 };
 
 module.exports = nextConfig;
