@@ -11,7 +11,6 @@ export class DatabaseFactory {
 
   static async createAdapter(type: DatabaseType, config?: any): Promise<DatabaseAdapter> {
     let adapter: DatabaseAdapter
-    console.log("🚀 ~ DatabaseFactory ~ createAdapter ~ type:", type)
 
     switch (type) {
       case 'json-server':
@@ -23,6 +22,7 @@ export class DatabaseFactory {
         break
       case 'postgres':
         const connectionString = config?.connectionString || process.env.POSTGRES_URL
+        console.log("🚀 ~ DatabaseFactory ~ createAdapter ~ connectionString:", connectionString)
         if (!connectionString) {
             throw new Error('POSTGRES_URL não configurado nas variáveis de ambiente.');
         }
@@ -102,9 +102,13 @@ export class DatabaseFactory {
   }
 
   static getPostgresConfig(): any {
-    return {
-      connectionString: process.env.POSTGRES_URL
+   const connectionString = process.env.POSTGRES_URL;
+    if (!connectionString) {
+        throw new Error('POSTGRES_URL environment variable is not set.');
     }
+    return {
+      connectionString: connectionString
+    };
   }
 
   static async testConnection(type: DatabaseType, config?: any): Promise<boolean> {

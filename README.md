@@ -89,7 +89,7 @@ NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 
 # Banco de Dados
-DB_TYPE=postgresql
+DB_TYPE=postgres
 POSTGRES_URL=http://localhost:3001
 
 # DB2 (Produção)

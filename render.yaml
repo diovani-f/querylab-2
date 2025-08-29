@@ -18,7 +18,7 @@ services:
         value: postgres
       - key: DB2_SERVICE_URL
         value: # URL do seu serviço DB2 no Render (se deployado separadamente)
-      - key: DATABASE_URL
+      - key: POSTGRES_URL
         fromDatabase:
           name: querylab-db
           property: connectionString
