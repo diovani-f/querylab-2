@@ -23,7 +23,9 @@ export class DatabaseService {
         case 'json-server':
           config = DatabaseFactory.getJsonServerConfig()
           break
-
+        case 'postgres':
+            config = DatabaseFactory.getPostgresConfig()
+            break
       }
 
       try {
@@ -74,6 +76,9 @@ export class DatabaseService {
         case 'db2-http':
           config = DatabaseFactory.getDB2HttpConfig()
           break
+        case 'postgres':
+          config = DatabaseFactory.getPostgresConfig()
+          break
       }
 
       this.adapter = await DatabaseFactory.switchDatabase(type, config)
@@ -85,7 +90,6 @@ export class DatabaseService {
   }
 
   getCurrentDatabaseType(): DatabaseType | null {
-    // Retornar o tipo atual do DatabaseFactory se disponível, senão usar a configuração
     const factoryType = DatabaseFactory.getCurrentType()
     return factoryType || (process.env.DB_TYPE as DatabaseType) || 'json-server'
   }
@@ -105,93 +109,5 @@ export class DatabaseService {
       this.adapter = null
       console.log('🔌 DatabaseService desconectado')
     }
-  }
-
-  // Métodos específicos para queries universitárias
-  async getUniversidades(filters?: any): Promise<QueryResult> {
-    let sql = 'SELECT * FROM universidades'
-
-    if (filters) {
-      const conditions = []
-      if (filters.tipo) conditions.push(`tipo = '${filters.tipo}'`)
-      if (filters.regiao) conditions.push(`regiao = '${filters.regiao}'`)
-      if (filters.nome) conditions.push(`nome LIKE '%${filters.nome}%'`)
-
-      if (conditions.length > 0) {
-        sql += ` WHERE ${conditions.join(' AND ')}`
-      }
-    }
-
-    if (filters?.limit) {
-      sql += ` LIMIT ${filters.limit}`
-    }
-
-    return this.executeQuery(sql)
-  }
-
-  async getPessoas(filters?: any): Promise<QueryResult> {
-    let sql = 'SELECT * FROM pessoas'
-
-    if (filters) {
-      const conditions = []
-      if (filters.tipo) conditions.push(`tipo = '${filters.tipo}'`)
-      if (filters.universidade_id) conditions.push(`universidade_id = ${filters.universidade_id}`)
-      if (filters.nome) conditions.push(`nome LIKE '%${filters.nome}%'`)
-
-      if (conditions.length > 0) {
-        sql += ` WHERE ${conditions.join(' AND ')}`
-      }
-    }
-
-    if (filters?.limit) {
-      sql += ` LIMIT ${filters.limit}`
-    }
-
-    return this.executeQuery(sql)
-  }
-
-  async getCursos(filters?: any): Promise<QueryResult> {
-    let sql = 'SELECT * FROM cursos'
-
-    if (filters) {
-      const conditions = []
-      if (filters.tipo) conditions.push(`tipo = '${filters.tipo}'`)
-      if (filters.universidade_id) conditions.push(`universidade_id = ${filters.universidade_id}`)
-      if (filters.nome) conditions.push(`nome LIKE '%${filters.nome}%'`)
-
-      if (conditions.length > 0) {
-        sql += ` WHERE ${conditions.join(' AND ')}`
-      }
-    }
-
-    if (filters?.limit) {
-      sql += ` LIMIT ${filters.limit}`
-    }
-
-    return this.executeQuery(sql)
-  }
-
-  // Método para executar queries complexas geradas por LLM
-  async executeLLMQuery(sql: string, context?: any): Promise<QueryResult> {
-    try {
-      // Validar e sanitizar SQL se necessário
-      const sanitizedSQL = this.sanitizeSQL(sql)
-
-      // Adicionar contexto se fornecido
-      if (context?.limit && !sanitizedSQL.toLowerCase().includes('limit')) {
-        sql += ` LIMIT ${context.limit}`
-      }
-
-      return this.executeQuery(sanitizedSQL)
-    } catch (error) {
-      console.error('❌ Erro ao executar query LLM:', error)
-      throw error
-    }
-  }
-
-  private sanitizeSQL(sql: string): string {
-    // Implementar sanitização básica
-    // TODO: Adicionar validações mais robustas
-    return sql.trim()
   }
 }

@@ -1,25 +1,22 @@
 import { Router } from 'express'
 import { SessionService } from '../services/session-service'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth-middleware'
-import { AuthRequest } from '../types'
+import { AuthRequest, ChatSession, QueryResult } from '../types'
+import { PrismaClient } from '@prisma/client'
 
 const router = Router()
 const sessionService = SessionService.getInstance()
-const JSON_SERVER_URL = process.env.JSON_SERVER_URL || 'http://localhost:3001'
+const prisma = new PrismaClient()
 
 // Listar sessões do usuário autenticado
 router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { userId } = req.params
-
-    // Verificar se o usuário pode acessar essas sessões
-    // Comparar tanto como string quanto como número para compatibilidade
-    const userIdStr = userId.toString()
     const authenticatedUserIdStr = req.user?.id?.toString()
 
-    if (authenticatedUserIdStr !== userIdStr && req.user?.role !== 'admin') {
+    if (authenticatedUserIdStr !== userId && req.user?.role !== 'admin') {
       console.log('🔒 Acesso negado:', {
-        requestedUserId: userIdStr,
+        requestedUserId: userId,
         authenticatedUserId: authenticatedUserIdStr,
         userRole: req.user?.role
       })
@@ -29,36 +26,29 @@ router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    const response = await fetch(`${JSON_SERVER_URL}/sessoes?usuario_id=${userId}&_sort=updated_at&_order=desc`)
-    if (!response.ok) {
-      throw new Error('Erro ao buscar sessões')
-    }
+    const sessionsData = await prisma.sessao.findMany({
+      where: { usuarioId: userId },
+      include: {
+        mensagens: true,
+        modelo: true
+      },
+      orderBy: { updatedAt: 'desc' }
+    })
 
-    const sessionsData = await response.json()
-
-    // Converter formato do banco para formato esperado pelo frontend
-    const sessions = sessionsData.map((session: any) => ({
-      id: session.id,
+    const sessions = sessionsData.map(session => ({
+      ...session,
       title: session.titulo,
-      createdAt: session.created_at,
-      updatedAt: session.updated_at,
-      messages: session.mensagens?.map((msg: any) => ({
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+      messages: session.mensagens.map(msg => ({
         id: msg.id,
         type: msg.tipo,
         content: msg.conteudo,
         timestamp: msg.timestamp,
-        sqlQuery: msg.sql_query,
-        queryResult: msg.query_result
-      })) || [],
-      model: {
-        id: session.modelo?.id || 'llama3-70b-8192',
-        name: session.modelo?.name || 'Llama 3 70B',
-        description: session.modelo?.description || 'Modelo padrão para consultas SQL',
-        provider: session.modelo?.provider || 'groq',
-        maxTokens: session.modelo?.maxTokens || 8192,
-        isDefault: session.modelo?.isDefault || true
-      }
-    }))
+        sqlQuery: msg.sqlQuery as QueryResult,
+        queryResult: msg.queryResult
+      }))
+    })) as ChatSession[]
 
     res.json({
       success: true,
@@ -77,7 +67,6 @@ router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
 // Listar todas as sessões (admin)
 router.get('/', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    // Apenas admins podem ver todas as sessões
     if (req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -85,11 +74,35 @@ router.get('/', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    const sessions = sessionService.getAllSessions()
+    const sessions = await prisma.sessao.findMany({
+      include: {
+        mensagens: true,
+        modelo: true
+      },
+      orderBy: { updatedAt: 'desc' }
+    })
+
+    // Mapeamento para ChatSession
+    const mappedSessions = sessions.map(session => ({
+        ...session,
+        title: session.titulo,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+        messages: session.mensagens.map(msg => ({
+            id: msg.id,
+            type: msg.tipo,
+            content: msg.conteudo,
+            timestamp: msg.timestamp,
+            sqlQuery: msg.sqlQuery as QueryResult,
+            queryResult: msg.queryResult
+        }))
+    })) as ChatSession[];
+
+
     res.json({
       success: true,
-      sessions,
-      total: sessions.length
+      sessions: mappedSessions,
+      total: mappedSessions.length
     })
   } catch (error) {
     console.error('Erro ao listar sessões:', error)
@@ -104,7 +117,6 @@ router.get('/', authMiddleware, async (req: AuthRequest, res) => {
 router.post('/', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { title, model } = req.body
-
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -112,17 +124,7 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    // Usar o SessionService para criar a sessão
-    const modelObj = {
-      id: model || 'llama3-70b-8192',
-      name: 'Llama 3 70B',
-      description: 'Modelo padrão para consultas SQL',
-      provider: 'groq' as const,
-      maxTokens: 8192,
-      isDefault: true
-    }
-
-    const session = await sessionService.createSession(title, modelObj, req.user.id)
+    const session = await sessionService.createSession(title, model, req.user.id)
 
     res.status(201).json({
       success: true,
@@ -141,14 +143,34 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
 router.get('/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params
-    const session = sessionService.getSession(sessionId)
+    const sessionData = await prisma.sessao.findUnique({
+      where: { id: sessionId },
+      include: {
+        mensagens: true,
+        modelo: true
+      }
+    })
 
-    if (!session) {
+    if (!sessionData) {
       return res.status(404).json({
         success: false,
         error: 'Sessão não encontrada'
       })
     }
+
+    // Mapeamento para ChatSession
+    const session = {
+        ...sessionData,
+        title: sessionData.titulo,
+        messages: sessionData.mensagens.map(msg => ({
+            id: msg.id,
+            type: msg.tipo,
+            content: msg.conteudo,
+            timestamp: msg.timestamp,
+            sqlQuery: msg.sqlQuery,
+            queryResult: msg.queryResult
+        }))
+    } as ChatSession;
 
     res.json({
       success: true,
@@ -169,14 +191,41 @@ router.put('/:sessionId', async (req, res) => {
     const { sessionId } = req.params
     const updates = req.body
 
-    const session = sessionService.updateSession(sessionId, updates)
+    // Mapeamento para os campos do Prisma
+    const dataUpdates = {
+      titulo: updates.title,
+      // ... outros campos que podem ser atualizados
+    };
 
-    if (!session) {
+    const sessionData = await prisma.sessao.update({
+      where: { id: sessionId },
+      data: dataUpdates,
+      include: {
+        mensagens: true,
+        modelo: true
+      }
+    })
+
+    if (!sessionData) {
       return res.status(404).json({
         success: false,
         error: 'Sessão não encontrada'
       })
     }
+
+    // Mapeamento de volta para ChatSession
+    const session = {
+      ...sessionData,
+      title: sessionData.titulo,
+      messages: sessionData.mensagens.map(msg => ({
+        id: msg.id,
+        type: msg.tipo,
+        content: msg.conteudo,
+        timestamp: msg.timestamp,
+        sqlQuery: msg.sqlQuery,
+        queryResult: msg.queryResult
+      }))
+    } as ChatSession;
 
     res.json({
       success: true,
@@ -203,33 +252,28 @@ router.delete('/:sessionId', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    // Verificar se a sessão existe e se o usuário tem permissão para deletá-la
-    try {
-      const response = await fetch(`${JSON_SERVER_URL}/sessoes/${sessionId}`)
-      if (response.ok) {
-        const sessionData = await response.json()
+    const sessionData = await prisma.sessao.findUnique({
+      where: { id: sessionId },
+      select: { usuarioId: true }
+    })
 
-        // Verificar se o usuário é o dono da sessão ou é admin
-        if (sessionData.usuario_id !== req.user.id && req.user.role !== 'admin') {
-          return res.status(403).json({
-            success: false,
-            error: 'Acesso negado: você só pode deletar suas próprias sessões'
-          })
-        }
-      }
-    } catch (error) {
-      console.warn('Não foi possível verificar a propriedade da sessão:', error)
-      // Continuar com a deleção mesmo se não conseguir verificar
-    }
-
-    const deleted = await sessionService.deleteSession(sessionId)
-
-    if (!deleted) {
+    if (!sessionData) {
       return res.status(404).json({
         success: false,
         error: 'Sessão não encontrada'
       })
     }
+
+    if (sessionData.usuarioId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Acesso negado: você só pode deletar suas próprias sessões'
+      })
+    }
+
+    await prisma.sessao.delete({
+      where: { id: sessionId }
+    })
 
     res.json({
       success: true,
@@ -248,12 +292,25 @@ router.delete('/:sessionId', authMiddleware, async (req: AuthRequest, res) => {
 router.get('/:sessionId/messages', async (req, res) => {
   try {
     const { sessionId } = req.params
-    const messages = sessionService.getSessionMessages(sessionId)
+    const messages = await prisma.mensagem.findMany({
+      where: { sessaoId: sessionId },
+      orderBy: { timestamp: 'asc' }
+    })
+
+    // Mapeamento para o tipo 'Message'
+    const mappedMessages = messages.map(msg => ({
+        id: msg.id,
+        type: msg.tipo,
+        content: msg.conteudo,
+        timestamp: msg.timestamp,
+        sqlQuery: msg.sqlQuery,
+        queryResult: msg.queryResult
+    }));
 
     res.json({
       success: true,
-      messages,
-      total: messages.length
+      messages: mappedMessages,
+      total: mappedMessages.length
     })
   } catch (error) {
     console.error('Erro ao obter mensagens:', error)
@@ -268,104 +325,42 @@ router.get('/:sessionId/messages', async (req, res) => {
 router.get('/search/:query', async (req, res) => {
   try {
     const { query } = req.params
-    const sessions = sessionService.searchSessions(query)
+    const sessions = await prisma.sessao.findMany({
+      where: {
+        OR: [
+          { titulo: { contains: query, mode: 'insensitive' } },
+          { mensagens: { some: { conteudo: { contains: query, mode: 'insensitive' } } } }
+        ]
+      },
+      include: {
+        mensagens: true,
+        modelo: true
+      },
+      orderBy: { updatedAt: 'desc' }
+    })
+
+    // Mapeamento para ChatSession
+    const mappedSessions = sessions.map(session => ({
+        ...session,
+        title: session.titulo,
+        messages: session.mensagens.map(msg => ({
+            id: msg.id,
+            type: msg.tipo,
+            content: msg.conteudo,
+            timestamp: msg.timestamp,
+            sqlQuery: msg.sqlQuery as QueryResult,
+            queryResult: msg.queryResult
+        }))
+    })) as ChatSession[];
 
     res.json({
       success: true,
-      sessions,
-      total: sessions.length,
+      sessions: mappedSessions,
+      total: mappedSessions.length,
       query
     })
   } catch (error) {
     console.error('Erro ao buscar sessões:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor'
-    })
-  }
-})
-
-// Estatísticas das sessões
-router.get('/stats/overview', async (req, res) => {
-  try {
-    const stats = sessionService.getSessionStats()
-
-    res.json({
-      success: true,
-      stats
-    })
-  } catch (error) {
-    console.error('Erro ao obter estatísticas:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor'
-    })
-  }
-})
-
-// Exportar sessões
-router.post('/export', async (req, res) => {
-  try {
-    const { sessionIds } = req.body
-    const sessions = await sessionService.exportSessions(sessionIds)
-
-    res.json({
-      success: true,
-      sessions,
-      total: sessions.length,
-      exportedAt: new Date().toISOString()
-    })
-  } catch (error) {
-    console.error('Erro ao exportar sessões:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor'
-    })
-  }
-})
-
-// Importar sessões
-router.post('/import', async (req, res) => {
-  try {
-    const { sessions } = req.body
-
-    if (!Array.isArray(sessions)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Formato inválido: esperado array de sessões'
-      })
-    }
-
-    const imported = await sessionService.importSessions(sessions)
-
-    res.json({
-      success: true,
-      imported,
-      total: sessions.length,
-      message: `${imported} sessões importadas com sucesso`
-    })
-  } catch (error) {
-    console.error('Erro ao importar sessões:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor'
-    })
-  }
-})
-
-// Limpeza de sessões antigas
-router.post('/cleanup', async (req, res) => {
-  try {
-    const { daysOld = 30 } = req.body
-    const deleted = await sessionService.cleanupOldSessions(daysOld)
-
-    res.json({
-      success: true,
-      deleted,
-      message: `${deleted} sessões antigas removidas`
-    })
-  } catch (error) {
-    console.error('Erro ao limpar sessões:', error)
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -378,24 +373,27 @@ router.get('/history/user/:userId', authMiddleware, async (req: AuthRequest, res
   try {
     const { userId } = req.params
 
-    // Verificar se o usuário pode acessar esse histórico
-    if (req.user?.id !== parseInt(userId) && req.user?.role !== 'admin') {
+    if (req.user?.id !== userId && req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
         error: 'Acesso negado'
       })
     }
 
-    const response = await fetch(`${JSON_SERVER_URL}/historico?usuario_id=${userId}`)
-    if (!response.ok) {
-      throw new Error('Erro ao buscar histórico')
-    }
+    const history = await prisma.historico.findMany({
+      where: { usuarioId: userId }
+    })
 
-    const history = await response.json()
+    const mappedHistory = history.map(h => ({
+        ...h,
+        id: h.id.toString(), // Converter o ID para string
+        isFavorite: h.isFavorito
+    }));
+
     res.json({
       success: true,
-      history,
-      total: history.length
+      history: mappedHistory,
+      total: mappedHistory.length
     })
   } catch (error) {
     console.error('Erro ao buscar histórico:', error)
@@ -409,34 +407,56 @@ router.get('/history/user/:userId', authMiddleware, async (req: AuthRequest, res
 // Rotas para favoritos
 router.get('/favorites/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { userId } = req.params
+    const { userId } = req.params;
 
-    // Verificar se o usuário pode acessar esses favoritos
-    if (req.user?.id !== parseInt(userId) && req.user?.role !== 'admin') {
+    if (req.user?.id !== userId && req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
         error: 'Acesso negado'
-      })
+      });
     }
 
-    const response = await fetch(`${JSON_SERVER_URL}/favoritos?usuario_id=${userId}`)
-    if (!response.ok) {
-      throw new Error('Erro ao buscar favoritos')
-    }
+    const favoriteSessions = await prisma.sessao.findMany({
+      where: {
+        usuarioId: userId,
+        isFavorita: true
+      },
+      include: {
+        mensagens: true,
+        modelo: true
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
 
-    const favorites = await response.json()
+    const mappedSessions = favoriteSessions.map(session => ({
+      id: session.id,
+      title: session.titulo,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+      messages: session.mensagens.map(msg => ({
+        id: msg.id,
+        type: msg.tipo,
+        content: msg.conteudo,
+        timestamp: msg.timestamp,
+        sqlQuery: msg.sqlQuery,
+        queryResult: msg.queryResult
+      })),
+      modelo: session.modelo,
+      isFavorite: session.isFavorita
+    }));
+
     res.json({
       success: true,
-      favorites,
-      total: favorites.length
-    })
+      favorites: mappedSessions,
+      total: mappedSessions.length
+    });
   } catch (error) {
-    console.error('Erro ao buscar favoritos:', error)
+    console.error('Erro ao buscar favoritos:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
-    })
+    });
   }
-})
+});
 
 export default router

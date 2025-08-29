@@ -91,7 +91,7 @@ export class LLMService {
       const userPrompt = this.buildUserPrompt(prompt);
 
       // Se for o modelo sqlcoder-7b-2, chama o endpoint Python via axios
-      if (model === 'sqlcoder-7b-2') {
+      if (model.id === 'sqlcoder-7b-2') {
         const response = await axios.post(`${process.env.NGROK_MODEL_URL}/generate_sql`, {
           system_prompt: systemPrompt,
           user_prompt: userPrompt
@@ -118,7 +118,7 @@ export class LLMService {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: model,
+        model: model.id,
         temperature: 0.1,
         max_tokens: 1000,
         top_p: 1,

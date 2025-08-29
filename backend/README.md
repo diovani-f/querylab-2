@@ -55,7 +55,7 @@ FRONTEND_URL=http://localhost:3000
 
 # Banco da Aplicação
 DB_TYPE=json-server
-JSON_SERVER_URL=http://localhost:3001
+POSTGRES_URL=
 
 # Consultas SQL
 QUERY_DB_TYPE=db2-http
@@ -139,7 +139,7 @@ Este backend pode ser deployado em **qualquer ambiente** que suporte Node.js:
 ```env
 NODE_ENV=production
 DB2_SERVICE_URL=https://your-db2-service.com
-JSON_SERVER_URL=https://your-json-server.com
+POSTGRES_URL=https://your-json-server.com
 GROQ_API_KEY=your_production_key
 ```
 

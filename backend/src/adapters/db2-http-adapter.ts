@@ -20,14 +20,14 @@ export class DB2HttpAdapter implements DatabaseAdapter {
   async connect(): Promise<void> {
     try {
       console.log(`🔄 Conectando ao DB2 Service em ${this.serviceUrl}...`)
-      
+
       // Testar se o serviço está disponível
       const response = await this.httpClient.get('/health')
-      
+
       if (response.status === 200) {
         // Testar conexão com o banco
         const testResponse = await this.httpClient.get('/query/test')
-        
+
         if (testResponse.data.success && testResponse.data.connected) {
           this.isConnected = true
           console.log('✅ Conectado ao DB2 Service com sucesso!')
@@ -56,7 +56,7 @@ export class DB2HttpAdapter implements DatabaseAdapter {
 
     try {
       console.log(`🔄 Enviando query para DB2 Service: ${sql}`)
-      
+
       const response = await this.httpClient.post('/query/execute', {
         sql: sql
       })
@@ -81,7 +81,7 @@ export class DB2HttpAdapter implements DatabaseAdapter {
           throw new Error('Não foi possível conectar ao DB2 Service')
         }
       }
-      
+
       console.error('❌ Erro ao executar query via DB2 Service:', error)
       throw error
     }

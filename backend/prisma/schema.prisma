@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+// Tabela de Usuários
+model Usuario {
+  id          String      @id @default(uuid()) @map("id")
+  nome        String
+  email       String      @unique
+  senha       String
+  role        String
+  avatar      String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  lastLogin   DateTime?   @map("last_login")
+  isActive    Boolean     @default(true) @map("is_active")
+  preferences Json
+  sessoes     Sessao[]
+  historicos  Historico[]
+  tokens      Token[]
+
+  @@map("usuarios")
+}
+
+// Tabela de Sessões
+model Sessao {
+  id          String       @id @default(uuid())
+  titulo      String
+  usuarioId   String       @map("usuario_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  modeloId    String       @map("modelo_id")
+  modelo      LLMModel     @relation(fields: [modeloId], references: [id])
+  mensagens   Mensagem[]
+  isFavorita  Boolean      @default(false) @map("is_favorita")
+  tags        String[]
+  historico   Historico?
+  evaluations Evaluation[]
+  usuario     Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@map("sessoes")
+}
+
+// Tabela de Mensagens dentro de uma Sessão
+model Mensagem {
+  id         String       @id @default(uuid())
+  tipo       String
+  conteudo   String
+  timestamp  DateTime     @default(now())
+  sessaoId   String       @map("sessao_id")
+  sessao     Sessao       @relation(fields: [sessaoId], references: [id])
+  evaluation Evaluation[]
+
+  sqlQuery           String?      @map("sql_query")
+  queryResult        Json?        @map("query_result")
+  hasExplanation     Boolean?     @map("has_explanation") @default(false)
+  explanation        String?
+  reverseTranslation String?      @map("reverse_translation")
+
+  @@map("mensagens")
+}
+
+// Tabela de Avaliações
+model Evaluation {
+  id             String   @id @default(cuid())
+  sessionId      String   @map("sessionId")
+  messageId      String   @map("messageId")
+  evaluatorId    String   @map("evaluatorId")
+  evaluatorName  String   @map("evaluatorName")
+  originalQuery  String
+  generatedSQL   String
+  queryResult    Json
+  overallScore   Float
+  overallComment String?
+  isCorrect      Boolean
+  needsReview    Boolean
+  isApproved     Boolean
+  timestamp      DateTime @default(now())
+
+  // Relações com outras tabelas
+  sessao   Sessao   @relation(fields: [sessionId], references: [id])
+  mensagem Mensagem @relation(fields: [messageId], references: [id])
+
+  // Mapeamento para a tabela de avaliações de critérios
+  criteriaEvaluations CriteriaEvaluation[]
+
+  @@map("evaluations")
+}
+
+// Tabela para as avaliações de critérios
+model CriteriaEvaluation {
+  id           Int        @id @default(autoincrement())
+  criteriaId   String
+  value        Int
+  evaluationId String     @map("evaluationId")
+  evaluation   Evaluation @relation(fields: [evaluationId], references: [id])
+
+  @@map("criteria_evaluations")
+}
+
+// Tabela de Histórico de Consultas
+model Historico {
+  id          Int      @id @default(autoincrement())
+  usuarioId   String   @map("usuario_id")
+  sessaoId    String   @unique @map("sessao_id")
+  consulta    String
+  sqlGerado   String   @map("sql_gerado")
+  resultado   Json
+  modeloUsado String   @map("modelo_usado")
+  timestamp   DateTime @default(now())
+  isFavorito  Boolean  @default(false) @map("is_favorito")
+  tags        String[]
+
+  sessao  Sessao  @relation(fields: [sessaoId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("historico")
+}
+
+// Taneça de Modelos
+model LLMModel {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  provider    String
+  maxTokens   Int
+  isDefault   Boolean
+
+  sessions Sessao[]
+}
+
+// Tabela para os Tokens JWT
+model Token {
+  id         String   @id @default(cuid())
+  usuarioId  String   @map("usuario_id")
+  tokenHash  String   @unique @map("token_hash")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  isRevoked  Boolean  @default(false) @map("is_revoked")
+  deviceInfo String   @map("device_info")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("tokens_jwt")
+}

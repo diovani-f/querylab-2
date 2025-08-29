@@ -22,7 +22,6 @@ import { setupWebSocketHandlers } from './websockets/handlers'
 
 // Importar serviços
 import { DatabaseService } from './services/database-service'
-import { SessionService } from './services/session-service'
 import { QueryDatabaseService } from './services/query-database-service'
 
 // Variáveis de ambiente já carregadas no topo
@@ -85,10 +84,6 @@ async function initializeServices() {
     // Inicializar QueryDatabaseService (DB2 - consultas SQL)
     const queryDbService = QueryDatabaseService.getInstance()
     await queryDbService.initialize()
-
-    // Inicializar SessionService
-    const sessionService = SessionService.getInstance()
-    await sessionService.loadSessions()
 
     console.log('✅ Serviços inicializados com sucesso')
   } catch (error) {

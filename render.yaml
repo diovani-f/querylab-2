@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: querylab-backend
+    env: node
+    buildCommand: |
+      cd backend
+      npm install
+      npm run build
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DB_TYPE
+        value: postgresql
+      - key: QUERY_DB_TYPE
+        value: postgres
+      - key: DB2_SERVICE_URL
+        value: # URL do seu serviço DB2 no Render (se deployado separadamente)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: querylab-db
+          property: connectionString
+      - key: FRONTEND_URL
+        value: # URL do seu Frontend no Render
+      - key: CORS_ORIGIN
+        value: # URL do seu Frontend no Render
+      - key: JWT_SECRET
+        sync: false # Requer que você configure manualmente no Dashboard do Render

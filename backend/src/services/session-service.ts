@@ -31,10 +31,10 @@ export class SessionService {
         // Converter formato do banco para formato interno
         const session: ChatSession = {
           id: sessionData.id,
-          title: sessionData.titulo,
+          titulo: sessionData.titulo,
           createdAt: new Date(sessionData.created_at),
           updatedAt: new Date(sessionData.updated_at),
-          messages: sessionData.mensagens?.map((msg: any) => ({
+          mensagens: sessionData.mensagens?.map((msg: any) => ({
             id: msg.id,
             type: msg.tipo,
             content: msg.conteudo,
@@ -42,7 +42,7 @@ export class SessionService {
             sqlQuery: msg.sql_query,
             queryResult: msg.query_result
           })) || [],
-          model: {
+          modelo: {
             id: sessionData.modelo?.id || 'llama3-70b-8192',
             name: sessionData.modelo?.name || 'Llama 3 70B',
             description: sessionData.modelo?.description || 'Modelo padrão para consultas SQL',
@@ -70,11 +70,11 @@ export class SessionService {
     const now = new Date()
     const session: ChatSession = {
       id: sessionId,
-      title: title || `Nova Sessão ${now.toLocaleString('pt-BR')}`,
+      titulo: title || `Nova Sessão ${now.toLocaleString('pt-BR')}`,
       createdAt: now,
       updatedAt: now,
-      messages: [],
-      model: model || this.getDefaultModel()
+      mensagens: [],
+      modelo: model || this.getDefaultModel()
     }
 
     // Salvar no JSON Server se userId for fornecido
@@ -82,17 +82,17 @@ export class SessionService {
       try {
         const sessionData = {
           id: sessionId,
-          titulo: session.title,
+          titulo: session.titulo,
           usuario_id: userId,
           created_at: now.toISOString(),
           updated_at: now.toISOString(),
           modelo: {
-            id: session.model.id,
-            name: session.model.name,
-            description: session.model.description,
-            provider: session.model.provider,
-            maxTokens: session.model.maxTokens,
-            isDefault: session.model.isDefault
+            id: session.modelo.id,
+            name: session.modelo.name,
+            description: session.modelo.description,
+            provider: session.modelo.provider,
+            maxTokens: session.modelo.maxTokens,
+            isDefault: session.modelo.isDefault
           },
           mensagens: [],
           is_favorita: false,
@@ -179,7 +179,7 @@ export class SessionService {
     }
 
     // Atualizar na memória
-    session.messages.push(newMessage)
+    session.mensagens.push(newMessage)
     session.updatedAt = new Date()
     this.sessions.set(sessionId, session)
 
@@ -187,8 +187,8 @@ export class SessionService {
     try {
       const messageData = {
         id: newMessage.id,
-        tipo: newMessage.type,
-        conteudo: newMessage.content,
+        tipo: newMessage.tipo,
+        conteudo: newMessage.conteudo,
         timestamp: newMessage.timestamp.toISOString(),
         sql_query: newMessage.sqlQuery,
         query_result: newMessage.queryResult
@@ -219,16 +219,16 @@ export class SessionService {
 
   getSessionMessages(sessionId: string): Message[] {
     const session = this.sessions.get(sessionId)
-    return session ? session.messages : []
+    return session ? session.mensagens : []
   }
 
-  updateSessionTitle(sessionId: string, title: string): ChatSession | null {
-    return this.updateSession(sessionId, { title })
+  updateSessionTitle(sessionId: string, titulo: string): ChatSession | null {
+    return this.updateSession(sessionId, { titulo })
   }
 
   getSessionStats(): any {
     const sessions = Array.from(this.sessions.values())
-    const totalMessages = sessions.reduce((sum, session) => sum + session.messages.length, 0)
+    const totalMessages = sessions.reduce((sum, session) => sum + session.mensagens.length, 0)
 
     return {
       totalSessions: sessions.length,
@@ -244,9 +244,9 @@ export class SessionService {
     const queryLower = query.toLowerCase()
     return Array.from(this.sessions.values())
       .filter(session =>
-        session.title.toLowerCase().includes(queryLower) ||
-        session.messages.some(message =>
-          message.content.toLowerCase().includes(queryLower)
+        session.titulo.toLowerCase().includes(queryLower) ||
+        session.mensagens.some(message =>
+          message.conteudo.toLowerCase().includes(queryLower)
         )
       )
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
@@ -277,7 +277,7 @@ export class SessionService {
           session.updatedAt = new Date(session.updatedAt)
         }
 
-        session.messages.forEach(message => {
+        session.mensagens.forEach(message => {
           if (typeof message.timestamp === 'string') {
             message.timestamp = new Date(message.timestamp)
           }

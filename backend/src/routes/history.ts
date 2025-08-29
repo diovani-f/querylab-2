@@ -1,29 +1,28 @@
 import { Router } from 'express'
 import { authMiddleware } from '../middleware/auth-middleware'
 import { AuthRequest } from '../types'
+import { PrismaClient } from '@prisma/client'
 
 const router = Router()
-const JSON_SERVER_URL = process.env.JSON_SERVER_URL || 'http://localhost:3001'
+const prisma = new PrismaClient()
 
 // Buscar histórico do usuário
 router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { userId } = req.params
-    
-    // Verificar se o usuário pode acessar esse histórico
-    if (req.user?.id !== parseInt(userId) && req.user?.role !== 'admin') {
+
+    if (req.user?.id !== userId && req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
         error: 'Acesso negado'
       })
     }
 
-    const response = await fetch(`${JSON_SERVER_URL}/historico?usuario_id=${userId}&_sort=timestamp&_order=desc`)
-    if (!response.ok) {
-      throw new Error('Erro ao buscar histórico')
-    }
+    const history = await prisma.historico.findMany({
+      where: { usuarioId: userId },
+      orderBy: { timestamp: 'desc' }
+    })
 
-    const history = await response.json()
     res.json({
       success: true,
       history,
@@ -41,8 +40,8 @@ router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
 // Adicionar item ao histórico
 router.post('/', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { sessao_id, consulta, sql_gerado, resultado, modelo_usado, tags } = req.body
-    
+    const { sessaoId, consulta, sqlGerado, resultado, modeloUsado, tags } = req.body
+
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -50,34 +49,22 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    const historyItem = {
-      usuario_id: req.user.id,
-      sessao_id,
-      consulta,
-      sql_gerado,
-      resultado,
-      modelo_usado,
-      timestamp: new Date().toISOString(),
-      is_favorito: false,
-      tags: tags || []
-    }
-
-    const response = await fetch(`${JSON_SERVER_URL}/historico`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(historyItem)
+    const historyItem = await prisma.historico.create({
+      data: {
+        usuarioId: req.user.id,
+        sessaoId,
+        consulta,
+        sqlGerado,
+        resultado,
+        modeloUsado,
+        isFavorito: false,
+        tags: tags || []
+      }
     })
 
-    if (!response.ok) {
-      throw new Error('Erro ao salvar no histórico')
-    }
-
-    const savedItem = await response.json()
     res.status(201).json({
       success: true,
-      history: savedItem
+      history: historyItem
     })
   } catch (error) {
     console.error('Erro ao adicionar ao histórico:', error)
@@ -92,41 +79,31 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
 router.patch('/:historyId/favorite', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { historyId } = req.params
-    const { is_favorito } = req.body
-    
-    // Buscar o item do histórico
-    const getResponse = await fetch(`${JSON_SERVER_URL}/historico/${historyId}`)
-    if (!getResponse.ok) {
+    const { isFavorito } = req.body
+
+    const historyItem = await prisma.historico.findUnique({
+      where: { id: parseInt(historyId) }
+    })
+
+    if (!historyItem) {
       return res.status(404).json({
         success: false,
         error: 'Item do histórico não encontrado'
       })
     }
 
-    const historyItem = await getResponse.json()
-    
-    // Verificar se o usuário pode modificar este item
-    if (req.user?.id !== historyItem.usuario_id && req.user?.role !== 'admin') {
+    if (req.user?.id !== historyItem.usuarioId && req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
         error: 'Acesso negado'
       })
     }
 
-    // Atualizar o status de favorito
-    const updateResponse = await fetch(`${JSON_SERVER_URL}/historico/${historyId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ is_favorito })
+    const updatedItem = await prisma.historico.update({
+      where: { id: parseInt(historyId) },
+      data: { isFavorito }
     })
 
-    if (!updateResponse.ok) {
-      throw new Error('Erro ao atualizar favorito')
-    }
-
-    const updatedItem = await updateResponse.json()
     res.json({
       success: true,
       history: updatedItem
@@ -144,34 +121,28 @@ router.patch('/:historyId/favorite', authMiddleware, async (req: AuthRequest, re
 router.delete('/:historyId', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { historyId } = req.params
-    
-    // Buscar o item do histórico
-    const getResponse = await fetch(`${JSON_SERVER_URL}/historico/${historyId}`)
-    if (!getResponse.ok) {
+
+    const historyItem = await prisma.historico.findUnique({
+      where: { id: parseInt(historyId) }
+    })
+
+    if (!historyItem) {
       return res.status(404).json({
         success: false,
         error: 'Item do histórico não encontrado'
       })
     }
 
-    const historyItem = await getResponse.json()
-    
-    // Verificar se o usuário pode deletar este item
-    if (req.user?.id !== historyItem.usuario_id && req.user?.role !== 'admin') {
+    if (req.user?.id !== historyItem.usuarioId && req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
         error: 'Acesso negado'
       })
     }
 
-    // Deletar o item
-    const deleteResponse = await fetch(`${JSON_SERVER_URL}/historico/${historyId}`, {
-      method: 'DELETE'
+    await prisma.historico.delete({
+      where: { id: parseInt(historyId) }
     })
-
-    if (!deleteResponse.ok) {
-      throw new Error('Erro ao deletar item do histórico')
-    }
 
     res.json({
       success: true,
@@ -190,21 +161,25 @@ router.delete('/:historyId', authMiddleware, async (req: AuthRequest, res) => {
 router.get('/search/:userId/:query', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { userId, query } = req.params
-    
-    // Verificar se o usuário pode acessar esse histórico
-    if (req.user?.id !== parseInt(userId) && req.user?.role !== 'admin') {
+
+    if (req.user?.id !== userId && req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
         error: 'Acesso negado'
       })
     }
 
-    const response = await fetch(`${JSON_SERVER_URL}/historico?usuario_id=${userId}&q=${encodeURIComponent(query)}`)
-    if (!response.ok) {
-      throw new Error('Erro ao buscar no histórico')
-    }
+    const history = await prisma.historico.findMany({
+      where: {
+        usuarioId: userId,
+        OR: [
+          { consulta: { contains: query, mode: 'insensitive' } },
+          { sqlGerado: { contains: query, mode: 'insensitive' } }
+        ]
+      },
+      orderBy: { timestamp: 'desc' }
+    })
 
-    const history = await response.json()
     res.json({
       success: true,
       history,

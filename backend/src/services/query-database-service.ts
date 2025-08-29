@@ -2,6 +2,7 @@ import { DatabaseAdapter, QueryResult } from '../types'
 import { DatabaseFactory } from '../adapters/database-factory'
 import { JsonServerAdapter } from '../adapters/json-server-adapter'
 import { DB2HttpAdapter } from '../adapters/db2-http-adapter'
+import { PostgresAdapter } from '../adapters/postgres-adapter'
 
 /**
  * Serviço dedicado para execução de consultas SQL
@@ -16,7 +17,7 @@ export class QueryDatabaseService {
   private queryDbType: string
 
   private constructor() {
-    this.queryDbType = process.env.QUERY_DB_TYPE || 'db2-http'
+    this.queryDbType = process.env.QUERY_DB_TYPE || 'postgres'
   }
 
   static getInstance(): QueryDatabaseService {
@@ -38,13 +39,17 @@ export class QueryDatabaseService {
       // Criar adapter próprio sem interferir no DatabaseFactory singleton
       switch (this.queryDbType) {
         case 'db2-http':
-          const serviceUrl = process.env.DB2_SERVICE_URL || 'http://localhost:5001'
+          const serviceUrl = DatabaseFactory.getDB2HttpConfig()
           this.adapter = new DB2HttpAdapter(serviceUrl)
           break
         case 'json-server':
           const jsonConfig = DatabaseFactory.getJsonServerConfig()
           this.adapter = new JsonServerAdapter(jsonConfig.baseUrl)
           break
+        case 'postgres':
+          const connectionString = DatabaseFactory.getPostgresConfig()
+          this.adapter = new PostgresAdapter(connectionString);
+          break;
         default:
           throw new Error(`Tipo de banco não suportado para consultas: ${this.queryDbType}`)
       }

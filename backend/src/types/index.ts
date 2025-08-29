@@ -1,20 +1,23 @@
 export interface Message {
   id: string
-  type: 'user' | 'assistant' | 'system' | 'error'
-  content: string
+  tipo: string
+  conteudo: string
   timestamp: Date
-  sqlQuery?: string
-  queryResult?: QueryResult
-  hasExplanation?: boolean // Flag para indicar se a mensagem tem explicação textual
-  explanation?: string // Explicação detalhada da consulta
-  reverseTranslation?: string // Tradução reversa do SQL para linguagem natural
+  sqlQuery?: string | null
+  queryResult?: QueryResult | null
+  hasExplanation?: boolean | null // Flag para indicar se a mensagem tem explicação textual
+  explanation?: string | null // Explicação detalhada da consulta
+  reverseTranslation?: string | null // Tradução reversa do SQL para linguagem natural
 }
 
 export interface QueryResult {
-  columns: string[]
-  rows: any[][]
-  rowCount: number
-  executionTime: number
+  columns?: string[] | null;
+  rows?: any[][] | null;
+  rowCount?: number | null;
+  executionTime?: number | null;
+  success?: Boolean | null;
+  error?: string | null;
+  data?: any | null;
 }
 
 // Sistema de Avaliação de Retornos LLM
@@ -50,7 +53,7 @@ export interface QueryEvaluation {
 
   // Avaliação geral
   overallScore: number // 0-10
-  overallComment?: string
+  overallComment?: string | null
 
   // Flags
   isCorrect: boolean
@@ -71,11 +74,11 @@ export interface EvaluationSummary {
 
 export interface ChatSession {
   id: string
-  title: string
+  titulo: string
   createdAt: Date
   updatedAt: Date
-  messages: Message[]
-  model: LLMModel
+  mensagens: Message[]
+  modelo: LLMModel
 }
 
 export type LLMProvider = 'groq' | 'openai' | 'anthropic' | 'local'
@@ -83,8 +86,8 @@ export type LLMProvider = 'groq' | 'openai' | 'anthropic' | 'local'
 export interface LLMModel {
   id: string
   name: string
-  description: string
-  provider: LLMProvider
+  description: string | null
+  provider: LLMProvider | string
   maxTokens: number
   isDefault: boolean
 }
@@ -98,21 +101,17 @@ export interface DatabaseConnection {
 }
 
 export interface User {
-  id: number | string
+  id: string
   nome: string
   email: string
   senha: string
-  role: 'admin' | 'user'
-  avatar?: string
-  created_at: string
-  updated_at: string
-  last_login?: string
-  is_active: boolean
-  preferences: {
-    theme: 'light' | 'dark'
-    language: string
-    default_model: string
-  }
+  role: string
+  avatar?: string | null
+  createdAt: Date;
+  updatedAt: Date;
+  lastLogin: Date | null;
+  isActive: boolean
+  preferences: any
 }
 
 export interface UserRegistration {
@@ -135,7 +134,7 @@ export interface AuthResponse {
 }
 
 export interface JWTPayload {
-  userId: number | string
+  userId: string
   email: string
   role: string
   iat?: number
@@ -151,7 +150,7 @@ export interface AuthRequest extends Request {
 export interface ChatRequest {
   sessionId: string
   message: string
-  model: string
+  model: LLMModel
 }
 
 export interface ChatResponse {
@@ -183,7 +182,7 @@ export interface DatabaseAdapter {
 
 export interface LLMRequest {
   prompt: string
-  model: string
+  model: LLMModel
   context?: any
   maxTokens?: number
   temperature?: number
@@ -195,7 +194,7 @@ export interface LLMResponse {
   explanation?: string
   reverseTranslation?: string
   error?: string
-  model: string
+  model: LLMModel
   tokensUsed: number
   processingTime: number
 }

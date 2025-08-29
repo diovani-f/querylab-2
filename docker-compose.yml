@@ -43,7 +43,7 @@ services:
       - NODE_ENV=production
       - PORT=5000
       - DB_TYPE=postgresql
-      - QUERY_DB_TYPE=db2-http
+      - QUERY_DB_TYPE=postgres
       - DB2_SERVICE_URL=http://db2-service:5001
       - DATABASE_URL=postgresql://querylab:querylab123@postgres:5432/querylab
       - FRONTEND_URL=http://localhost:3000

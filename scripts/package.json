@@ -8,10 +8,18 @@
     "install-deps": "npm install"
   },
   "dependencies": {
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "pg": "^8.16.3"
   },
-  "devDependencies": {},
-  "keywords": ["db2", "schema", "discovery", "inep"],
+  "keywords": [
+    "db2",
+    "schema",
+    "discovery",
+    "inep"
+  ],
   "author": "QueryLab",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "dotenv": "^17.2.1"
+  }
 }

@@ -1,8 +1,9 @@
 import { DatabaseAdapter } from '../types'
 import { JsonServerAdapter } from './json-server-adapter'
 import { DB2HttpAdapter } from './db2-http-adapter'
+import { PostgresAdapter } from './postgres-adapter'
 
-export type DatabaseType = 'json-server' | 'db2-http'
+export type DatabaseType = 'json-server' | 'db2-http' | 'postgres' // Adicionado 'postgres'
 
 export class DatabaseFactory {
   private static instance: DatabaseAdapter | null = null
@@ -10,15 +11,22 @@ export class DatabaseFactory {
 
   static async createAdapter(type: DatabaseType, config?: any): Promise<DatabaseAdapter> {
     let adapter: DatabaseAdapter
+    console.log("🚀 ~ DatabaseFactory ~ createAdapter ~ type:", type)
 
     switch (type) {
       case 'json-server':
         adapter = new JsonServerAdapter(config?.baseUrl || 'http://localhost:3001')
         break
-
       case 'db2-http':
         const serviceUrl = config?.serviceUrl || process.env.DB2_SERVICE_URL || 'http://localhost:5001'
         adapter = new DB2HttpAdapter(serviceUrl)
+        break
+      case 'postgres':
+        const connectionString = config?.connectionString || process.env.POSTGRES_URL
+        if (!connectionString) {
+            throw new Error('POSTGRES_URL não configurado nas variáveis de ambiente.');
+        }
+        adapter = new PostgresAdapter(connectionString)
         break
 
       default:
@@ -37,12 +45,10 @@ export class DatabaseFactory {
   }
 
   static async getInstance(type?: DatabaseType, config?: any): Promise<DatabaseAdapter> {
-    // Se já existe uma instância do mesmo tipo, retornar
     if (this.instance && this.currentType === type) {
       return this.instance
     }
 
-    // Se mudou o tipo ou não existe instância, criar nova
     if (this.instance && this.currentType !== type) {
       await this.instance.disconnect()
     }
@@ -82,7 +88,7 @@ export class DatabaseFactory {
     return envType || 'json-server'
   }
 
-  // Configurações pré-definidas
+  // Métodos de configuração
   static getJsonServerConfig(): any {
     return {
       baseUrl: process.env.JSON_SERVER_URL || 'http://localhost:3001'
@@ -95,7 +101,12 @@ export class DatabaseFactory {
     }
   }
 
-  // Método para testar conectividade
+  static getPostgresConfig(): any {
+    return {
+      connectionString: process.env.POSTGRES_URL
+    }
+  }
+
   static async testConnection(type: DatabaseType, config?: any): Promise<boolean> {
     try {
       const adapter = await this.createAdapter(type, config)
@@ -107,7 +118,6 @@ export class DatabaseFactory {
     }
   }
 
-  // Método para obter informações do banco atual
   static async getDatabaseInfo(): Promise<any> {
     if (!this.instance) {
       throw new Error('Nenhuma conexão de banco ativa')
@@ -116,7 +126,6 @@ export class DatabaseFactory {
     return {
       type: this.currentType,
       connected: await this.instance.testConnection(),
-      // Adicionar mais informações conforme necessário
     }
   }
 }

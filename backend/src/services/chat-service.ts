@@ -1,10 +1,9 @@
-import { Message, ChatSession } from '../types'
-import fetch from 'node-fetch'
-import { SessionService } from './session-service'
+import { Message, ChatSession, LLMModel } from '../types'
 import { LLMService } from './llm-service'
 import { QueryService } from './query-service'
+import { PrismaClient } from '@prisma/client'
 
-const JSON_SERVER_URL = process.env.JSON_SERVER_URL || 'http://localhost:3001'
+const prisma = new PrismaClient()
 
 /**
  * Serviço responsável por processar mensagens de chat
@@ -12,12 +11,10 @@ const JSON_SERVER_URL = process.env.JSON_SERVER_URL || 'http://localhost:3001'
  */
 export class ChatService {
   private static instance: ChatService
-  private sessionService: SessionService
   private llmService: LLMService
   private queryService: QueryService
 
   private constructor() {
-    this.sessionService = SessionService.getInstance()
     this.llmService = LLMService.getInstance()
     this.queryService = QueryService.getInstance()
   }
@@ -35,7 +32,7 @@ export class ChatService {
   async processMessage(params: {
     sessionId: string
     message: string
-    model?: string
+    model: LLMModel
     userId?: number | string
   }): Promise<{
     success: boolean
@@ -51,7 +48,11 @@ export class ChatService {
       let session = await this.getSessionFromDatabase(sessionId)
       if (!session && userId) {
         // Criar nova sessão no banco se não existir
-        session = await this.createSessionInDatabase(userId, `Sessão ${new Date().toLocaleString('pt-BR')}`, model)
+        session = await this.createSessionInDatabase(
+          String(userId),
+          `Sessão ${new Date().toLocaleString('pt-BR')}`,
+          model
+        )
       }
 
       if (!session) {
@@ -65,7 +66,7 @@ export class ChatService {
       const actualSessionId = session.id
 
       // Adicionar mensagem do usuário no banco
-      const userMessage = await this.sessionService.addMessage(actualSessionId, {
+      const userMessage = await this.addMessage(actualSessionId, {
         type: 'user',
         content: message
       })
@@ -77,15 +78,15 @@ export class ChatService {
         }
       }
 
-      const llmResponse: any  = await this.llmService.generateSQL({
+      const llmResponse: any = await this.llmService.generateSQL({
         prompt: message,
-        model: model || 'llama3-70b-8192',
+        model,
         context: { schemaName: 'INEP' }
       })
 
       if (!llmResponse.success) {
         // Criar mensagem de erro
-        const errorMessage = await this.sessionService.addMessage(actualSessionId, {
+        const errorMessage = await this.addMessage(actualSessionId, {
           type: 'error',
           content: `Erro ao processar consulta: ${llmResponse.error}`
         })
@@ -98,117 +99,77 @@ export class ChatService {
         }
       }
 
-      // Verificar se é uma explicação ou SQL
-      if (llmResponse.explanation && !llmResponse.sqlQuery) {
-        // É uma explicação (não uma consulta SQL)
-        const assistantMessage = await this.sessionService.addMessage(actualSessionId, {
-          type: 'assistant',
-          content: llmResponse.explanation
-        })
+      let finalContent = ''
+      if (llmResponse.explanation && !llmResponse.sql) {
+        finalContent = llmResponse.explanation
+      } else if (llmResponse.sql) {
+        const queryResult = await this.queryService.executeQuery(llmResponse.sql)
 
-        return {
-          success: true,
-          userMessage,
-          assistantMessage: assistantMessage || undefined,
-          session: this.sessionService.getSession(actualSessionId) || undefined
+        if (!queryResult.success) {
+          finalContent = `Erro ao executar consulta: ${queryResult.error}`
+        } else {
+          finalContent = JSON.stringify(queryResult.data, null, 2)
         }
       }
 
-      // Executar SQL gerado no banco de dados
-      const queryResult = await this.queryService.executeQuery(llmResponse.sqlQuery!)
-
-      // Adicionar mensagem de resposta no banco com dados técnicos
-      const assistantMessage = await this.sessionService.addMessage(actualSessionId, {
+      // Criar mensagem de resposta do assistente
+      const assistantMessage = await this.addMessage(actualSessionId, {
         type: 'assistant',
-        content: llmResponse.reverseTranslation,
-        sqlQuery: llmResponse.sqlQuery,
-        queryResult,
-        hasExplanation: true,
-        explanation: llmResponse.explanation || '',
+        content: finalContent
       })
-
-      console.log('📤 Mensagem do assistente criada:', {
-        id: assistantMessage?.id,
-        hasExplanation: assistantMessage?.hasExplanation,
-        hasSqlQuery: !!assistantMessage?.sqlQuery,
-        hasQueryResult: !!assistantMessage?.queryResult,
-        queryResultRows: assistantMessage?.queryResult?.rows?.length || 0
-      })
-
-      // Salvar no histórico também
-      if (userId && llmResponse.sqlQuery) {
-        await this.saveToHistory(userId, actualSessionId, message, llmResponse.sqlQuery, queryResult, model || 'llama3-70b-8192')
-      }
 
       return {
         success: true,
         userMessage,
         assistantMessage: assistantMessage || undefined,
-        session: this.sessionService.getSession(actualSessionId) || undefined
+        session
       }
-
-    } catch (error) {
-      console.error('Erro ao processar mensagem:', error)
+    } catch (error: any) {
       return {
         success: false,
-        error: 'Erro interno do servidor'
+        error: `Erro interno: ${error.message}`
       }
     }
   }
 
   /**
-   * Busca sessão no banco de dados
+   * Busca uma sessão no banco de dados via Prisma
    */
-  private async getSessionFromDatabase(sessionId: string): Promise<ChatSession | null> {
-    await this.sessionService.loadSessions() // Garantir que as sessões estão carregadas
-    return this.sessionService.getSession(sessionId)
+  public async getSessionFromDatabase(sessionId: string) {
+    return prisma.sessao.findUnique({
+      where: { id: sessionId },
+      include: { mensagens: true, modelo: true }
+    })
   }
 
   /**
-   * Cria nova sessão no banco de dados
+   * Cria uma nova sessão no banco de dados via Prisma
    */
-  private async createSessionInDatabase(userId: number | string, title: string, model?: string): Promise<ChatSession | null> {
-    const modelObj = {
-      id: model || 'llama3-70b-8192',
-      name: 'Llama 3 70B',
-      description: 'Modelo padrão para consultas SQL',
-      provider: 'groq' as const,
-      maxTokens: 8192,
-      isDefault: true
-    }
-
-    try {
-      return await this.sessionService.createSession(title, modelObj, userId)
-    } catch (error) {
-      console.error('Erro ao criar sessão:', error)
-      return null
-    }
-  }
-
-  /**
-   * Salva consulta no histórico
-   */
-  private async saveToHistory(userId: number | string, sessionId: string, consulta: string, sqlGerado: string, resultado: any, modeloUsado: string): Promise<void> {
-    try {
-      const historyItem = {
-        usuario_id: userId,
-        sessao_id: sessionId,
-        consulta,
-        sql_gerado: sqlGerado,
-        resultado,
-        modelo_usado: modeloUsado,
-        timestamp: new Date().toISOString(),
-        is_favorito: false,
-        tags: []
+  private async createSessionInDatabase(usuarioId: string, titulo: string, modelo: LLMModel) {
+    return prisma.sessao.create({
+      data: {
+        usuarioId,
+        titulo,
+        modeloId: modelo.id
+      },
+      include: {
+        mensagens: true,
+        modelo: true
       }
+    })
+  }
 
-      await fetch(`${JSON_SERVER_URL}/historico`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(historyItem)
-      })
-    } catch (error) {
-      console.error('Erro ao salvar no histórico:', error)
-    }
+  /**
+   * Adiciona mensagem no banco via Prisma
+   */
+  public async addMessage(sessaoId: string, message: { type: string; content: string }) {
+    return prisma.mensagem.create({
+      data: {
+        sessaoId,
+        tipo: message.type,
+        conteudo: message.content,
+        timestamp: new Date()
+      }
+    })
   }
 }

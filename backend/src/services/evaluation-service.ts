@@ -1,6 +1,8 @@
+// src/services/evaluation-service.ts
+import { PrismaClient } from '@prisma/client'
 import { EvaluationCriteria, QueryEvaluation, EvaluationSummary } from '../types'
 
-const JSON_SERVER_URL = process.env.JSON_SERVER_URL || 'http://localhost:3001'
+const prisma = new PrismaClient()
 
 /**
  * Serviço responsável por gerenciar avaliações de retornos LLM
@@ -8,6 +10,7 @@ const JSON_SERVER_URL = process.env.JSON_SERVER_URL || 'http://localhost:3001'
 export class EvaluationService {
   private static instance: EvaluationService
   private criteria: EvaluationCriteria[] = []
+  private prisma: PrismaClient = prisma
 
   private constructor() {
     this.initializeDefaultCriteria()
@@ -84,7 +87,7 @@ export class EvaluationService {
   addCriteria(criteria: Omit<EvaluationCriteria, 'id'>): EvaluationCriteria {
     const newCriteria: EvaluationCriteria = {
       ...criteria,
-      id: this.generateId()
+      id: this.generateId() // O ID do critério em si ainda é gerado manualmente
     }
     this.criteria.push(newCriteria)
     return newCriteria
@@ -94,24 +97,35 @@ export class EvaluationService {
    * Salva uma avaliação no banco de dados
    */
   async saveEvaluation(evaluation: Omit<QueryEvaluation, 'id' | 'timestamp'>): Promise<QueryEvaluation> {
-    const newEvaluation: QueryEvaluation = {
-      ...evaluation,
-      id: this.generateId(),
-      timestamp: new Date()
-    }
-
     try {
-      const response = await fetch(`${JSON_SERVER_URL}/evaluations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEvaluation)
+      const newEvaluation = await this.prisma.evaluation.create({
+        data: {
+          sessionId: evaluation.sessionId,
+          messageId: evaluation.messageId,
+          evaluatorId: evaluation.evaluatorId,
+          evaluatorName: evaluation.evaluatorName,
+          originalQuery: evaluation.originalQuery,
+          generatedSQL: evaluation.generatedSQL,
+          queryResult: evaluation.queryResult as any,
+          overallScore: evaluation.overallScore,
+          overallComment: evaluation.overallComment ?? null,
+          isCorrect: evaluation.isCorrect,
+          needsReview: evaluation.needsReview,
+          isApproved: evaluation.isApproved,
+          criteriaEvaluations: {
+            create: evaluation.criteriaEvaluations.map(ce => ({
+              criteriaId: ce.criteriaId,
+              value: typeof ce.value === 'boolean' ? (ce.value ? 1 : 0) : ce.value as number // Mapeia boolean para 0 ou 1
+            }))
+          }
+        },
+        include: {
+          criteriaEvaluations: true
+        }
       })
 
-      if (!response.ok) {
-        throw new Error('Erro ao salvar avaliação')
-      }
+      return newEvaluation as unknown as QueryEvaluation;
 
-      return newEvaluation
     } catch (error) {
       console.error('Erro ao salvar avaliação:', error)
       throw error
@@ -123,11 +137,11 @@ export class EvaluationService {
    */
   async getEvaluationsBySession(sessionId: string): Promise<QueryEvaluation[]> {
     try {
-      const response = await fetch(`${JSON_SERVER_URL}/evaluations?sessionId=${sessionId}`)
-      if (!response.ok) {
-        throw new Error('Erro ao buscar avaliações')
-      }
-      return await response.json()
+      const evaluations = await this.prisma.evaluation.findMany({
+        where: { sessionId: sessionId },
+        include: { criteriaEvaluations: true }
+      })
+      return evaluations as unknown as QueryEvaluation[]
     } catch (error) {
       console.error('Erro ao buscar avaliações:', error)
       return []
@@ -139,12 +153,11 @@ export class EvaluationService {
    */
   async getEvaluationByMessage(messageId: string): Promise<QueryEvaluation | null> {
     try {
-      const response = await fetch(`${JSON_SERVER_URL}/evaluations?messageId=${messageId}`)
-      if (!response.ok) {
-        throw new Error('Erro ao buscar avaliação')
-      }
-      const evaluations = await response.json()
-      return evaluations.length > 0 ? evaluations[0] : null
+      const evaluation = await this.prisma.evaluation.findFirst({
+        where: { messageId: messageId },
+        include: { criteriaEvaluations: true }
+      })
+      return evaluation as unknown as QueryEvaluation || null
     } catch (error) {
       console.error('Erro ao buscar avaliação:', error)
       return null
@@ -156,17 +169,12 @@ export class EvaluationService {
    */
   async getEvaluationSummary(sessionId?: string): Promise<EvaluationSummary> {
     try {
-      const url = sessionId 
-        ? `${JSON_SERVER_URL}/evaluations?sessionId=${sessionId}`
-        : `${JSON_SERVER_URL}/evaluations`
-      
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error('Erro ao buscar avaliações')
-      }
-      
-      const evaluations: QueryEvaluation[] = await response.json()
-      
+      const where = sessionId ? { sessionId } : {}
+      const evaluations = await this.prisma.evaluation.findMany({
+        where,
+        include: { criteriaEvaluations: true }
+      })
+
       if (evaluations.length === 0) {
         return {
           totalEvaluations: 0,
@@ -178,25 +186,25 @@ export class EvaluationService {
       }
 
       const totalEvaluations = evaluations.length
-      const averageScore = evaluations.reduce((sum, evaluation) => sum + evaluation.overallScore, 0) / totalEvaluations
-      const correctnessRate = evaluations.filter(evaluation => evaluation.isCorrect).length / totalEvaluations
-      const approvalRate = evaluations.filter(evaluation => evaluation.isApproved).length / totalEvaluations
+      const averageScore = evaluations.reduce((sum: any, evaluation: any) => sum + evaluation.overallScore, 0) / totalEvaluations
+      const correctnessRate = evaluations.filter((evaluation: any) => evaluation.isCorrect).length / totalEvaluations
+      const approvalRate = evaluations.filter((evaluation: any) => evaluation.isApproved).length / totalEvaluations
 
       // Calcular médias por critério
       const criteriaAverages = this.criteria.map(criteria => {
-        const criteriaEvals = evaluations.flatMap(evaluation =>
-          evaluation.criteriaEvaluations.filter(ce => ce.criteriaId === criteria.id)
+        const criteriaEvals = evaluations.flatMap((evaluation: any) =>
+          evaluation.criteriaEvaluations.filter((ce: any) => ce.criteriaId === criteria.id)
         )
 
         if (criteriaEvals.length === 0) {
           return { criteriaId: criteria.id, average: 0 }
         }
 
-        const sum = criteriaEvals.reduce((acc, ce) => {
+        const sum = criteriaEvals.reduce((acc: any, ce: any) => {
           if (criteria.type === 'boolean') {
-            return acc + (ce.value ? 1 : 0)
+            return acc + (ce.value === 1 ? 1 : 0) // Interpreta 1 como true, 0 como false
           } else if (criteria.type === 'scale') {
-            return acc + (typeof ce.value === 'number' ? ce.value : 0)
+            return acc + ce.value
           }
           return acc
         }, 0)
@@ -233,7 +241,7 @@ export class EvaluationService {
 
       let normalizedScore = 0
       if (criteria.type === 'boolean') {
-        normalizedScore = evaluation.value ? 10 : 0
+        normalizedScore = (evaluation.value === true) ? 10 : 0
       } else if (criteria.type === 'scale' && typeof evaluation.value === 'number') {
         const min = criteria.scaleMin || 1
         const max = criteria.scaleMax || 5
