@@ -416,7 +416,7 @@ export const useAuthStore = create<AuthStore>()(
 
           // Carregar favoritos (não falhar se der erro)
           try {
-            const favoritesResponse = await fetch(`${API_BASE_URL}/favorites/user/${user.id}`, {
+            const favoritesResponse = await fetch(`${API_BASE_URL}/sessions/favorites/user/${user.id}`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
               },

@@ -77,7 +77,7 @@ export class LLMService {
       const userPrompt = this.buildUserPrompt(prompt);
 
       // Se for o modelo sqlcoder-7b-2, chama o endpoint Python via axios
-      if (model.id === 'sqlcoder-7b-2') {
+      if (model === 'sqlcoder-7b-2') {
         const response = await axios.post(`${process.env.NGROK_MODEL_URL}/generate_sql`, {
           system_prompt: systemPrompt,
           user_prompt: userPrompt
@@ -104,7 +104,7 @@ export class LLMService {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: model.id,
+        model,
         temperature: 0.1,
         max_tokens: 1000,
         top_p: 1,
@@ -156,7 +156,7 @@ export class LLMService {
 
   public async buildSystemPrompt(context?: any): Promise<string> {
   // Obter schema real do banco de dados
-  const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'INEP');
+  const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'inep');
   const basePrompt = `Você é um assistente especializado em consultas SQL para banco de dados DB2, mas também pode conversar normalmente com o usuário.
 
 REGRAS IMPORTANTES:
@@ -165,7 +165,7 @@ REGRAS IMPORTANTES:
 3. NUNCA misture explicação com SQL.
 4. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema.
 5. Para DB2, use sintaxe específica: FETCH FIRST n ROWS ONLY ao invés de LIMIT.
-6. Sempre prefixe o nome da tabela com o schema INEP (ex: INEP.CENSO_IES).
+6. Sempre prefixe o nome da tabela com o schema inep (ex: inep.CENSO_IES).
 7. Se o schema não estiver disponível, avise o usuário e gere consultas genéricas.
 8. Mantenha a conversa fluida e educada quando não for uma consulta SQL.
 
@@ -188,16 +188,16 @@ ${schemaInfo.relationships?.map((rel: any) => `- ${rel.fromTable}.${rel.fromColu
 EXEMPLOS CORRETOS:
 
 Entrada: "oi"
-Saída: EXPLICAÇÃO: Olá! Sou um assistente especializado em consultas SQL para dados do INEP. Posso ajudar você a encontrar informações sobre instituições de ensino, cursos, avaliações e indicadores educacionais. Exemplos: "Quantas instituições existem?", "Liste os cursos de uma área específica", "Mostre dados de avaliação".
+Saída: EXPLICAÇÃO: Olá! Sou um assistente especializado em consultas SQL para dados do inep. Posso ajudar você a encontrar informações sobre instituições de ensino, cursos, avaliações e indicadores educacionais. Exemplos: "Quantas instituições existem?", "Liste os cursos de uma área específica", "Mostre dados de avaliação".
 
 Entrada: "Quantas instituições existem?"
-Saída: SELECT COUNT(*) as total FROM ${context?.schemaName || 'INEP'}.${schemaInfo.tables[0]?.name || 'TABELA'};
+Saída: SELECT COUNT(*) as total FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'TABELA'};
 
 Entrada: "Liste 10 cursos"
-Saída: SELECT SOME_COLUMN_NAME FROM ${context?.schemaName || 'INEP'}.${schemaInfo.tables[0]?.name || 'TABELA'} FETCH FIRST 10 ROWS ONLY;
+Saída: SELECT SOME_COLUMN_NAME FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'TABELA'} FETCH FIRST 10 ROWS ONLY;
 
 Entrada: "o que você faz?"
-Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do INEP. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores.
+Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do inep. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores.
 
 Entrada: "Me conte mais sobre você"
 Saída: EXPLICAÇÃO: Sou um assistente virtual focado em ajudar com consultas SQL e também posso conversar normalmente para tirar dúvidas ou explicar como funciono.

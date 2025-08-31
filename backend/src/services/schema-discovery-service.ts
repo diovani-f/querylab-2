@@ -23,7 +23,7 @@ export class SchemaDiscoveryService {
   /**
    * Obtém schema otimizado para LLM
    */
-  async getSchemaForLLM(schemaName: string = 'INEP'): Promise<any> {
+  async getSchemaForLLM(schemaName: string = 'inep'): Promise<any> {
     try {
       // Verificar cache primeiro
       const cacheKey = `${schemaName.toLowerCase()}-llm`
@@ -59,7 +59,7 @@ export class SchemaDiscoveryService {
   /**
    * Obtém schema completo
    */
-  async getFullSchema(schemaName: string = 'INEP'): Promise<any> {
+  async getFullSchema(schemaName: string = 'inep'): Promise<any> {
     try {
       const fullPath = path.join(this.schemaDir, `${schemaName.toLowerCase()}-schema-full.json`)
 
@@ -194,7 +194,7 @@ export class SchemaDiscoveryService {
   /**
    * Obtém estatísticas do schema
    */
-  async getSchemaStats(schemaName: string = 'INEP'): Promise<any> {
+  async getSchemaStats(schemaName: string = 'inep'): Promise<any> {
     try {
       const schema = await this.getSchemaForLLM(schemaName)
       if (!schema) {

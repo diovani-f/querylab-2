@@ -14,7 +14,7 @@ const client = new Client({
 
 async function discoverSchema() {
   try {
-    console.log('🔍 Conectando e descobrindo schema INEP...');
+    console.log('🔍 Conectando e descobrindo schema inep...');
     await client.connect();
     console.log('✅ Conectado ao banco de dados com sucesso.');
 

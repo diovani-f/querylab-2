@@ -150,7 +150,7 @@ export type AuthRequest = Request & {
 export interface ChatRequest {
   sessionId: string
   message: string
-  model: LLMModel
+  model: string
 }
 
 export interface ChatResponse {
@@ -182,7 +182,7 @@ export interface DatabaseAdapter {
 
 export interface LLMRequest {
   prompt: string
-  model: LLMModel
+  model: string
   context?: any
   maxTokens?: number
   temperature?: number
@@ -194,7 +194,7 @@ export interface LLMResponse {
   explanation?: string
   reverseTranslation?: string
   error?: string
-  model: LLMModel
+  model: string
   tokensUsed: number
   processingTime: number
 }

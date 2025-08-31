@@ -13,7 +13,7 @@ export function setupWebSocketHandlers(io: Server) {
     })
 
     // Processar mensagem de chat
-    socket.on('send-message', async (data: ChatRequest & { userId?: number }) => {
+    socket.on('send-message', async (data: ChatRequest & { userId?: string }) => {
       try {
         const { sessionId, message, model, userId } = data
 

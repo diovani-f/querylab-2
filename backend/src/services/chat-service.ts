@@ -73,8 +73,8 @@ export class ChatService {
   async processMessage(params: {
     sessionId: string
     message: string
-    model: LLMModel
-    userId?: number | string
+    model: string
+    userId?: string
   }): Promise<{
     success: boolean
     userMessage?: Message
@@ -90,9 +90,9 @@ export class ChatService {
       if (!sessionData && userId) {
         // Criar nova sessão no banco se não existir
         sessionData = await this.sessionService.createSession(
-          String(userId),
+          userId,
           `Sessão ${new Date().toLocaleString('pt-BR')}`,
-          String(model)
+          model
         )
       }
 
@@ -120,7 +120,7 @@ export class ChatService {
       const llmResponse: any = await this.llmService.generateSQL({
         prompt: message,
         model,
-        context: { schemaName: 'INEP' }
+        context: { schemaName: 'inep' }
       })
 
       if (!llmResponse.success) {
