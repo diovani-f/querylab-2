@@ -194,7 +194,7 @@ temp/
 
 # Package manager lock files (keep only one)
 # Uncomment the one you're NOT using:
-# package-lock.json
+package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
 
