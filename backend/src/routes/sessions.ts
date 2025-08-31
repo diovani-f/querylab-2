@@ -3,9 +3,11 @@ import { SessionService } from '../services/session-service'
 import { authMiddleware } from '../middleware/auth-middleware'
 import { AuthRequest, ChatSession, QueryResult } from '../types'
 import { PrismaClient } from '@prisma/client'
+import { LLMService } from '../services/llm-service'
 
 const router = Router()
 const sessionService = SessionService.getInstance()
+const llmService = LLMService.getInstance()
 const prisma = new PrismaClient()
 
 // Listar sessões do usuário autenticado
@@ -124,7 +126,8 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    const session = await sessionService.createSession(title, model, req.user.id)
+    const modelSelected = llmService.getModelSelected(model)
+    const session = await sessionService.createSession(title, modelSelected, req.user.id)
 
     res.status(201).json({
       success: true,

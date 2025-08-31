@@ -84,6 +84,10 @@ export class LLMService {
     return this.availableModels.find(model => model.isDefault) || this.availableModels[0]
   }
 
+  getModelSelected(modelId: string): LLMModel {
+    return this.availableModels.find(model => model.id == modelId) || this.availableModels[0]
+  }
+
   async generateSQL(request: LLMRequest): Promise<LLMResponse> {
     const { prompt, model, context } = request;
     try {
