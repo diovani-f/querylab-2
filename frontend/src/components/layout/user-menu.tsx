@@ -4,14 +4,14 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { User, LogOut, Settings, ChevronDown } from "lucide-react"
 
-import { Button } from "src/components/ui/button"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "src/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu"
 import { useAuthStore } from "@/stores/auth-store"
 
 export function UserMenu() {

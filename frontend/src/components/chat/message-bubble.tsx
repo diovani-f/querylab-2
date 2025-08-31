@@ -4,9 +4,9 @@ import ReactMarkdown from 'react-markdown'
 import { Message } from "@/types"
 import { cn } from "@/lib/utils"
 import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeOff } from "lucide-react"
-import { Button } from "src/components/ui/button"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from 'src/components/ui/tooltip'
-import { Badge } from "src/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from 'src/components/ui/dialog'
+} from '@/components/ui/dialog'
 import { useState } from "react"
 import { ChartContainer } from "../charts/chart-container"
 import { EvaluationModal } from "../evaluation/evaluation-modal"

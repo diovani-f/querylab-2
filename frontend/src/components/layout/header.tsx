@@ -1,12 +1,12 @@
 'use client'
 
-import { Button } from "src/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Zap, BarChart3 } from "lucide-react"
-import { ThemeToggle } from "src/components/theme/theme-toggle"
-import { useTheme } from "src/components/theme/theme-provider"
-import { ModelSelector } from "src/components/ui/model-selector"
-import { UserMenu } from "src/components/layout/user-menu"
-import { DatabaseStatus } from "src/components/layout/database-status"
+import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { useTheme } from "@/components/theme/theme-provider"
+import { ModelSelector } from "@/components/ui/model-selector"
+import { UserMenu } from "@/components/layout/user-menu"
+import { DatabaseStatus } from "@/components/layout/database-status"
 import Link from "next/link"
 
 export function Header() {

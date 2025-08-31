@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from 'src/components/ui/button'
-import { Badge } from 'src/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Star, CheckCircle, AlertCircle, Clock, BarChart3 } from 'lucide-react'
 import { QueryEvaluation } from '@/types'
 import { apiService } from '@/lib/api'

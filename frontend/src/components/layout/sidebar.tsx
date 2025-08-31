@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import { useHydration } from "@/hooks/use-hydration"
-import { Button } from "src/components/ui/button"
-import { ScrollArea } from "src/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/stores/app-store"
 import { MessageSquare, Plus, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -16,8 +16,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "src/components/ui/alert-dialog"
-import { useToast } from "src/components/ui/toast"
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/components/ui/toast"
 import { PulseLoader } from "react-spinners"
 
 export function Sidebar() {

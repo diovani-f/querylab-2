@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from 'src/components/ui/button'
-import { Badge } from 'src/components/ui/badge'
-import { Textarea } from 'src/components/ui/textarea'
-import { Label } from 'src/components/ui/label'
-import { Slider } from 'src/components/ui/slider'
-import { Switch } from 'src/components/ui/switch'
-import { ScrollArea } from 'src/components/ui/scroll-area'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from 'src/components/ui/dialog'
+} from '@/components/ui/dialog'
 import { Star, CheckCircle, AlertCircle, Clock, Send, BarChart3 } from 'lucide-react'
 import { EvaluationCriteria, QueryEvaluation, Message } from '@/types'
 import { apiService } from '@/lib/api'

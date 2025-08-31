@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from "react"
-import { Button } from "src/components/ui/button"
-import { Input } from "src/components/ui/input"
-import { ScrollArea } from "src/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/stores/app-store"
 import { Send, MessageSquare } from "lucide-react"
 import { MessageBubble } from "./message-bubble"

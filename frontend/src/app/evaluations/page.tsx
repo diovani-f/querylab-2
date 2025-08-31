@@ -1,8 +1,8 @@
 'use client'
 
-import { EvaluationSummaryComponent } from 'src/components/evaluation/evaluation-summary'
-import { Card, CardContent, CardHeader, CardTitle } from 'src/components/ui/card'
-import { Button } from 'src/components/ui/button'
+import { EvaluationSummaryComponent } from '@/components/evaluation/evaluation-summary'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { ArrowLeft, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 

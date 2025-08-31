@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from 'src/components/ui/card'
-import { Badge } from 'src/components/ui/badge'
-import { Progress } from 'src/components/ui/progress'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import { Star, CheckCircle, AlertTriangle, TrendingUp, BarChart3 } from 'lucide-react'
 import { EvaluationSummary, EvaluationCriteria } from '@/types'
 import { apiService } from '@/lib/api'

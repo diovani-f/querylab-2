@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect } from "react"
-import { Header } from "src/components/layout/header"
-import { Sidebar } from "src/components/layout/sidebar"
-import { ChatInterface } from "src/components/chat/chat-interface"
+import { Header } from "@/components/layout/header"
+import { Sidebar } from "@/components/layout/sidebar"
+import { ChatInterface } from "@/components/chat/chat-interface"
 import { useAppStore } from "@/stores/app-store"
 import { useAuthStore } from "@/stores/auth-store"
-import { AuthenticatedRoute } from "src/components/auth/protected-route"
+import { AuthenticatedRoute } from "@/components/auth/protected-route"
 
 export default function Home() {
   const { loadModels, loadSessions, initializeWebSocket } = useAppStore()
