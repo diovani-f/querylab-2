@@ -3,6 +3,7 @@ import { LLMService } from './llm-service'
 import { QueryService } from './query-service'
 import { PrismaClient } from '@prisma/client'
 import { Mensagem, Sessao as PrismaSessao, LLMModel as PrismaLLMModel } from '@prisma/client'
+import { SessionService } from './session-service'
 
 const prisma = new PrismaClient()
 
@@ -49,10 +50,12 @@ function mapSession(session: PrismaSessao & {
  */
 export class ChatService {
   private static instance: ChatService
+  private sessionService: SessionService
   private llmService: LLMService
   private queryService: QueryService
 
   private constructor() {
+    this.sessionService = SessionService.getInstance()
     this.llmService = LLMService.getInstance()
     this.queryService = QueryService.getInstance()
   }
@@ -83,13 +86,13 @@ export class ChatService {
       const { sessionId, message, model, userId } = params
 
       // Verificar se a sessão existe no banco de dados
-      let sessionData = await this.getSessionFromDatabase(sessionId)
+      let sessionData = await this.sessionService.getSession(sessionId)
       if (!sessionData && userId) {
         // Criar nova sessão no banco se não existir
-        sessionData = await this.createSessionInDatabase(
+        sessionData = await this.sessionService.createSession(
           String(userId),
           `Sessão ${new Date().toLocaleString('pt-BR')}`,
-          model
+          String(model)
         )
       }
 
@@ -183,35 +186,6 @@ export class ChatService {
         error: `Erro interno: ${error.message}`
       }
     }
-  }
-
-  /**
-   * Busca uma sessão no banco de dados via Prisma
-   */
-  public async getSessionFromDatabase(sessionId: string) {
-    return prisma.sessao.findUnique({
-      where: { id: sessionId },
-      include: { mensagens: true, modelo: true }
-    })
-  }
-
-  /**
-   * Cria uma nova sessão no banco de dados via Prisma
-   */
-  private async createSessionInDatabase(usuarioId: string, titulo: string, modelo: LLMModel) {
-    return prisma.sessao.create({
-      data: {
-        usuarioId,
-        titulo,
-        modeloId: modelo.id,
-        isFavorita: false,
-        tags: []
-      },
-      include: {
-        mensagens: true,
-        modelo: true
-      }
-    })
   }
 
   /**

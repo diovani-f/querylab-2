@@ -1,13 +1,11 @@
-import { randomUUID } from 'crypto'
-import { ChatSession, Message, LLMModel } from '../types'
+import { Mensagem, PrismaClient, Sessao } from '@prisma/client'
 
 export class SessionService {
   private static instance: SessionService | null = null
-  private sessions: Map<string, ChatSession> = new Map()
-  private jsonServerUrl: string
+  private prisma: PrismaClient
 
   private constructor() {
-    this.jsonServerUrl = process.env.JSON_SERVER_URL || 'http://localhost:3001'
+    this.prisma = new PrismaClient()
   }
 
   static getInstance(): SessionService {
@@ -17,314 +15,130 @@ export class SessionService {
     return this.instance
   }
 
-  async loadSessions(): Promise<void> {
+   /**
+   * Cria uma nova sessão no banco de dados via Prisma
+   */
+  async createSession(usuarioId: string, titulo: string, modeloId: string) {
+    return this.prisma.sessao.create({
+      data: {
+        usuarioId,
+        titulo,
+        modeloId,
+        isFavorita: false,
+        tags: []
+      },
+      include: {
+        mensagens: true,
+        modelo: true
+      }
+    })
+  }
+
+  /**
+   * Busca uma sessão no banco de dados via Prisma
+   */
+  async getSession(sessaoId: string) {
+    return this.prisma.sessao.findUnique({
+      where: { id: sessaoId },
+      include: { mensagens: true, modelo: true }
+    })
+  }
+
+  async getAllSessions(usuarioId: string) {
+    return this.prisma.sessao.findMany({
+      where: { usuarioId },
+      orderBy: {
+        updatedAt: 'desc'
+      }
+    })
+  }
+
+  async updateSession(sessaoId: string, updates: Partial<Sessao>) {
     try {
-      const response = await fetch(`${this.jsonServerUrl}/sessoes`)
-      if (!response.ok) {
-        throw new Error('Erro ao buscar sessões do JSON Server')
-      }
-
-      const sessionsData = await response.json()
-
-      this.sessions.clear()
-      sessionsData.forEach((sessionData: any) => {
-        // Converter formato do banco para formato interno
-        const session: ChatSession = {
-          id: sessionData.id,
-          titulo: sessionData.titulo,
-          createdAt: new Date(sessionData.created_at),
-          updatedAt: new Date(sessionData.updated_at),
-          mensagens: sessionData.mensagens?.map((msg: any) => ({
-            id: msg.id,
-            type: msg.tipo,
-            content: msg.conteudo,
-            timestamp: new Date(msg.timestamp),
-            sqlQuery: msg.sql_query,
-            queryResult: msg.query_result
-          })) || [],
-          modelo: {
-            id: sessionData.modelo?.id || 'llama3-70b-8192',
-            name: sessionData.modelo?.name || 'Llama 3 70B',
-            description: sessionData.modelo?.description || 'Modelo padrão para consultas SQL',
-            provider: sessionData.modelo?.provider || 'groq',
-            maxTokens: sessionData.modelo?.maxTokens || 8192,
-            isDefault: sessionData.modelo?.isDefault || true
-          }
+      const updatedSession = await this.prisma.sessao.update({
+        where: { id: sessaoId },
+        data: {
+          titulo: updates.titulo,
+          isFavorita: updates.isFavorita,
+          tags: updates.tags
         }
-
-        this.sessions.set(session.id, session)
       })
+      return updatedSession
     } catch (error) {
-      console.error('❌ Erro ao carregar sessões do JSON Server:', error)
-    }
-  }
-
-  async saveSessions(): Promise<void> {
-    // Este método agora é desnecessário pois salvamos diretamente no JSON Server
-    // Mantido para compatibilidade, mas não faz nada
-
-  }
-
-  async createSession(title?: string, model?: LLMModel, userId?: number | string): Promise<ChatSession> {
-    const sessionId = this.generateId()
-    const now = new Date()
-    const session: ChatSession = {
-      id: sessionId,
-      titulo: title || `Nova Sessão ${now.toLocaleString('pt-BR')}`,
-      createdAt: now,
-      updatedAt: now,
-      mensagens: [],
-      modelo: model || this.getDefaultModel()
-    }
-
-    // Salvar no JSON Server se userId for fornecido
-    if (userId) {
-      try {
-        const sessionData = {
-          id: sessionId,
-          titulo: session.titulo,
-          usuario_id: userId,
-          created_at: now.toISOString(),
-          updated_at: now.toISOString(),
-          modelo: {
-            id: session.modelo.id,
-            name: session.modelo.name,
-            description: session.modelo.description,
-            provider: session.modelo.provider,
-            maxTokens: session.modelo.maxTokens,
-            isDefault: session.modelo.isDefault
-          },
-          mensagens: [],
-          is_favorita: false,
-          tags: []
-        }
-
-        const response = await fetch(`${this.jsonServerUrl}/sessoes`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(sessionData)
-        })
-
-        if (!response.ok) {
-          throw new Error('Erro ao salvar sessão no JSON Server')
-        }
-      } catch (error) {
-        console.error('❌ Erro ao salvar sessão no banco:', error)
-      }
-    }
-
-    // Manter na memória para compatibilidade
-    this.sessions.set(session.id, session)
-    return session
-  }
-
-  getSession(sessionId: string): ChatSession | null {
-    return this.sessions.get(sessionId) || null
-  }
-
-  getAllSessions(): ChatSession[] {
-    return Array.from(this.sessions.values())
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-  }
-
-  updateSession(sessionId: string, updates: Partial<ChatSession>): ChatSession | null {
-    const session = this.sessions.get(sessionId)
-    if (!session) {
+      console.error('❌ Erro ao atualizar sessão no banco:', error)
       return null
     }
-
-    const updatedSession = {
-      ...session,
-      ...updates,
-      updatedAt: new Date()
-    }
-
-    this.sessions.set(sessionId, updatedSession)
-    this.saveSessions() // Salvar automaticamente
-
-    return updatedSession
   }
 
-  async deleteSession(sessionId: string): Promise<boolean> {
+  async deleteSession(sessaoId: string): Promise<boolean> {
     try {
-      // Primeiro, tentar deletar do JSON Server
-      const response = await fetch(`${this.jsonServerUrl}/sessoes/${sessionId}`, {
-        method: 'DELETE'
+      await this.prisma.mensagem.deleteMany({
+        where: { sessaoId }
       })
 
-      if (!response.ok) {
-        console.error(`❌ Erro ao deletar sessão ${sessionId} do JSON Server:`, response.status)
-        // Continuar e deletar da memória mesmo se falhar no JSON Server
-      }
+      const result = await this.prisma.sessao.delete({
+        where: { id: sessaoId }
+      })
+      return !!result
     } catch (error) {
-      console.error(`❌ Erro ao conectar com JSON Server para deletar sessão ${sessionId}:`, error)
-      // Continuar e deletar da memória mesmo se falhar no JSON Server
+      console.error(`❌ Erro ao deletar sessão ${sessaoId}:`, error)
+      return false
     }
-
-    // Deletar da memória local
-    const deleted = this.sessions.delete(sessionId)
-    return deleted
   }
 
-  async addMessage(sessionId: string, message: Omit<Message, 'id' | 'timestamp'>): Promise<Message | null> {
-    const session = this.sessions.get(sessionId)
-    if (!session) {
-      return null
-    }
-
-    const newMessage: Message = {
-      ...message,
-      id: this.generateId(),
-      timestamp: new Date()
-    }
-
-    // Atualizar na memória
-    session.mensagens.push(newMessage)
-    session.updatedAt = new Date()
-    this.sessions.set(sessionId, session)
-
-    // Atualizar no JSON Server
+  async addMessage(sessaoId: string, message: Omit<Mensagem, 'id' | 'timestamp' | 'sessaoId'>) {
     try {
-      const messageData = {
-        id: newMessage.id,
-        tipo: newMessage.tipo,
-        conteudo: newMessage.conteudo,
-        timestamp: newMessage.timestamp.toISOString(),
-        sql_query: newMessage.sqlQuery,
-        query_result: newMessage.queryResult
-      }
-
-      // Buscar a sessão atual no banco
-      const sessionResponse = await fetch(`${this.jsonServerUrl}/sessoes/${sessionId}`)
-      if (sessionResponse.ok) {
-        const sessionData = await sessionResponse.json()
-        const updatedMessages = [...(sessionData.mensagens || []), messageData]
-
-        // Atualizar a sessão com a nova mensagem
-        await fetch(`${this.jsonServerUrl}/sessoes/${sessionId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mensagens: updatedMessages,
-            updated_at: new Date().toISOString()
-          })
-        })
-      }
+      const newMessage = await this.prisma.mensagem.create({
+        data: {
+          sessaoId: sessaoId,
+          tipo: message.tipo,
+          conteudo: message.conteudo,
+          sqlQuery: message.sqlQuery,
+          queryResult: message.queryResult || undefined,
+        }
+      })
+      return newMessage
     } catch (error) {
       console.error('❌ Erro ao salvar mensagem no banco:', error)
+      return null
     }
-
-    return newMessage
   }
 
-  getSessionMessages(sessionId: string): Message[] {
-    const session = this.sessions.get(sessionId)
-    return session ? session.mensagens : []
+  async updateSessionTitle(sessaoId: string, titulo: string): Promise<Sessao | null> {
+    return this.updateSession(sessaoId, { titulo })
   }
 
-  updateSessionTitle(sessionId: string, titulo: string): ChatSession | null {
-    return this.updateSession(sessionId, { titulo })
-  }
-
-  getSessionStats(): any {
-    const sessions = Array.from(this.sessions.values())
-    const totalMessages = sessions.reduce((sum, session) => sum + session.mensagens.length, 0)
+  async getSessionStats(usuarioId: string): Promise<any> {
+    const totalSessions = await this.prisma.sessao.count({ where: { usuarioId } })
+    const totalMessages = await this.prisma.mensagem.count({
+      where: { sessao: { usuarioId } }
+    })
 
     return {
-      totalSessions: sessions.length,
+      totalSessions,
       totalMessages,
-      averageMessagesPerSession: sessions.length > 0 ? totalMessages / sessions.length : 0,
-      oldestSession: sessions.length > 0 ? Math.min(...sessions.map(s => s.createdAt.getTime())) : null,
-      newestSession: sessions.length > 0 ? Math.max(...sessions.map(s => s.createdAt.getTime())) : null
     }
   }
 
-  // Buscar sessões por critérios
-  searchSessions(query: string): ChatSession[] {
+  async searchSessions(usuarioId: string, query: string): Promise<Sessao[]> {
     const queryLower = query.toLowerCase()
-    return Array.from(this.sessions.values())
-      .filter(session =>
-        session.titulo.toLowerCase().includes(queryLower) ||
-        session.mensagens.some(message =>
-          message.conteudo.toLowerCase().includes(queryLower)
-        )
-      )
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-  }
-
-  // Exportar sessões
-  async exportSessions(sessionIds?: string[]): Promise<ChatSession[]> {
-    if (sessionIds) {
-      return sessionIds
-        .map(id => this.sessions.get(id))
-        .filter(session => session !== undefined) as ChatSession[]
-    }
-    return this.getAllSessions()
-  }
-
-  // Importar sessões
-  async importSessions(sessions: ChatSession[]): Promise<number> {
-    let imported = 0
-
-    for (const session of sessions) {
-      // Verificar se a sessão já existe
-      if (!this.sessions.has(session.id)) {
-        // Converter strings de data para objetos Date se necessário
-        if (typeof session.createdAt === 'string') {
-          session.createdAt = new Date(session.createdAt)
-        }
-        if (typeof session.updatedAt === 'string') {
-          session.updatedAt = new Date(session.updatedAt)
-        }
-
-        session.mensagens.forEach(message => {
-          if (typeof message.timestamp === 'string') {
-            message.timestamp = new Date(message.timestamp)
+    return this.prisma.sessao.findMany({
+      where: {
+        usuarioId,
+        OR: [
+          { titulo: { contains: queryLower, mode: 'insensitive' } },
+          {
+            mensagens: {
+              some: {
+                conteudo: { contains: queryLower, mode: 'insensitive' }
+              }
+            }
           }
-        })
-
-        this.sessions.set(session.id, session)
-        imported++
+        ]
+      },
+      orderBy: {
+        updatedAt: 'desc'
       }
-    }
-
-    if (imported > 0) {
-      await this.saveSessions()
-
-    }
-
-    return imported
-  }
-
-  private generateId(): string {
-    return randomUUID()
-  }
-
-  private getDefaultModel(): LLMModel {
-    return {
-      id: 'llama3-70b-8192',
-      name: 'Llama 3 70B',
-      description: 'Modelo padrão para consultas SQL',
-      provider: 'groq',
-      maxTokens: 8192,
-      isDefault: true
-    }
-  }
-
-  // Limpeza automática de sessões antigas
-  async cleanupOldSessions(daysOld: number = 30): Promise<number> {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - daysOld)
-
-    const sessionsToDelete = Array.from(this.sessions.values())
-      .filter(session => session.updatedAt < cutoffDate)
-
-    let deleted = 0
-    for (const session of sessionsToDelete) {
-      if (await this.deleteSession(session.id)) {
-        deleted++
-      }
-    }
-    return deleted
+    })
   }
 }

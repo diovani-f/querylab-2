@@ -1,36 +1,43 @@
-import { Client } from 'pg'
+import { Pool, QueryResult as PgQueryResult } from 'pg'
 import { DatabaseAdapter, QueryResult } from '../types'
 
 export class PostgresAdapter implements DatabaseAdapter {
-  private client: Client
+  private pool: Pool
 
   constructor(private connectionString: string) {
-    this.client = new Client({
+    this.pool = new Pool({
       connectionString: this.connectionString,
       ssl: {
-        rejectUnauthorized: false
-      }
+        rejectUnauthorized: false,
+      },
+    })
+
+    // Adiciona um listener para erros no pool.
+    this.pool.on('error', (err, client) => {
+      console.error('❌ Erro inesperado no pool de conexões:', err)
     })
   }
 
   async connect(): Promise<void> {
     try {
-      await this.client.connect()
-      console.log('✅ Conectado ao PostgreSQL.')
+      // Tenta adquirir uma conexão para verificar se o pool está funcionando.
+      const client = await this.pool.connect()
+      client.release() // Libera a conexão imediatamente
+      console.log('✅ Pool de conexões ao PostgreSQL inicializado.')
     } catch (error) {
-      console.error('❌ Erro ao conectar ao PostgreSQL:', error)
+      console.error('❌ Erro ao inicializar o pool de conexões:', error)
       throw error
     }
   }
 
   async disconnect(): Promise<void> {
-    await this.client.end()
-    console.log('🔌 Conexão com PostgreSQL desconectada.')
+    await this.pool.end()
+    console.log('🔌 Pool de conexões com PostgreSQL encerrado.')
   }
 
   async query(sql: string): Promise<QueryResult> {
     try {
-      const result = await this.client.query(sql)
+      const result: PgQueryResult = await this.pool.query(sql)
       return {
         success: true,
         data: result.rows,
@@ -46,7 +53,7 @@ export class PostgresAdapter implements DatabaseAdapter {
 
   async testConnection(): Promise<boolean> {
     try {
-      await this.client.query('SELECT 1')
+      await this.pool.query('SELECT 1')
       return true
     } catch {
       return false

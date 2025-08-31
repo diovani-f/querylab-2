@@ -22,7 +22,6 @@ export class DatabaseFactory {
         break
       case 'postgres':
         const connectionString = config?.connectionString || process.env.POSTGRES_URL
-        console.log("🚀 ~ DatabaseFactory ~ createAdapter ~ connectionString:", connectionString)
         if (!connectionString) {
             throw new Error('POSTGRES_URL não configurado nas variáveis de ambiente.');
         }

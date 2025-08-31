@@ -1,15 +1,20 @@
 import Groq from 'groq-sdk'
 import axios from 'axios'
-import { LLMModel, LLMProvider, LLMRequest, LLMResponse } from '../types'
+import { LLMProvider, LLMRequest, LLMResponse } from '../types'
 import { SchemaDiscoveryService } from './schema-discovery-service'
+import { PrismaClient, LLMModel } from '@prisma/client'
+
 
 export class LLMService {
+  private prisma: PrismaClient
   private static instance: LLMService
   private groqClient: Groq
-  private availableModels: LLMModel[]
+  private availableModels: LLMModel[] = []
   private schemaService: SchemaDiscoveryService
 
   private constructor() {
+    this.prisma = new PrismaClient()
+
     // Verificar se a API key está disponível
     const groqApiKey = process.env.GROQ_API_KEY
     if (!groqApiKey) {
@@ -23,50 +28,6 @@ export class LLMService {
 
     // Inicializar serviço de schema discovery
     this.schemaService = SchemaDiscoveryService.getInstance()
-
-  // Definir modelos disponíveis (atualizados para modelos ativos)
-    this.availableModels = [
-      {
-        id: 'llama3-70b-8192',
-        name: 'Llama 3 70B',
-        provider: 'groq' as LLMProvider,
-        description: 'Modelo mais poderoso para tarefas complexas',
-        maxTokens: 8192,
-        isDefault: true
-      },
-      {
-        id: 'llama3-8b-8192',
-        name: 'Llama 3 8B',
-        provider: 'groq' as LLMProvider,
-        description: 'Modelo rápido para consultas simples',
-        maxTokens: 8192,
-        isDefault: false
-      },
-      {
-        id: 'mixtral-8x7b-32768',
-        name: 'Mixtral 8x7B',
-        provider: 'groq' as LLMProvider,
-        description: 'Excelente para análise de código e SQL',
-        maxTokens: 32768,
-        isDefault: false
-      },
-      {
-        id: 'gemma-7b-it',
-        name: 'Gemma 7B',
-        provider: 'groq' as LLMProvider,
-        description: 'Modelo eficiente do Google',
-        maxTokens: 8192,
-        isDefault: false
-      },
-      {
-        id: 'sqlcoder-7b-2',
-        name: 'SQLCoder 7B-2',
-        provider: 'local' as LLMProvider,
-        description: 'Modelo especializado em SQL rodando via Python',
-        maxTokens: 4096,
-        isDefault: false
-      }
-    ]
   }
 
   static getInstance(): LLMService {
@@ -76,18 +37,39 @@ export class LLMService {
     return LLMService.instance
   }
 
+  public async populateModels() {
+    try {
+      this.availableModels = await this.prisma.lLMModel.findMany()
+    } catch (error) {
+      console.error('❌ Erro ao carregar modelos do banco:', error)
+    }
+  }
+
   getAvailableModels(): LLMModel[] {
     return this.availableModels
   }
 
-  getDefaultModel(): LLMModel {
-    return this.availableModels.find(model => model.isDefault) || this.availableModels[0]
+  async getDefaultModel(): Promise<LLMModel | null> {
+    const defaultModel = await this.prisma.lLMModel.findFirst({
+      where: { isDefault: true }
+    })
+
+    if (!defaultModel) {
+      return this.prisma.lLMModel.findFirst()
+    }
+
+    return defaultModel
   }
 
-  getModelSelected(modelId: string): LLMModel {
-    return this.availableModels.find(model => model.id == modelId) || this.availableModels[0]
-  }
+  getModelSelected(modelId: string): LLMModel | null {
+    const selectedModel = this.availableModels.find(model => model.id === modelId)
 
+    if (selectedModel) {
+      return selectedModel
+    }
+
+    return this.availableModels[0] || null
+  }
   async generateSQL(request: LLMRequest): Promise<LLMResponse> {
     const { prompt, model, context } = request;
     try {

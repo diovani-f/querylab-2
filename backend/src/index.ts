@@ -24,6 +24,7 @@ import { setupWebSocketHandlers } from './websockets/handlers'
 // Importar serviços
 import { DatabaseService } from './services/database-service'
 import { QueryDatabaseService } from './services/query-database-service'
+import { LLMService } from './services/llm-service'
 
 // Variáveis de ambiente já carregadas no topo
 
@@ -79,13 +80,16 @@ global.socketIO = io
 // Inicializar serviços
 async function initializeServices() {
   try {
-    // Inicializar DatabaseService (JSON Server - auth, sessões)
+    // Inicializar DatabaseService (auth, sessões)
     const dbService = DatabaseService.getInstance()
     await dbService.initialize()
 
-    // Inicializar QueryDatabaseService (DB2 - consultas SQL)
+    // Inicializar QueryDatabaseService (consultas SQL)
     const queryDbService = QueryDatabaseService.getInstance()
     await queryDbService.initialize()
+
+    const llmService = LLMService.getInstance()
+    llmService.populateModels();
 
     console.log('✅ Serviços inicializados com sucesso')
   } catch (error) {

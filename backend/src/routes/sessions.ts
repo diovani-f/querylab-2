@@ -126,8 +126,7 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    const modelSelected = llmService.getModelSelected(model)
-    const session = await sessionService.createSession(title, modelSelected, req.user.id)
+    const session = await sessionService.createSession(req.user.id, title, model)
 
     res.status(201).json({
       success: true,

@@ -72,8 +72,6 @@ router.get('/sessions/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params
 
-    // Carregar sessões e buscar a específica
-    await sessionService.loadSessions()
     const session = sessionService.getSession(sessionId)
 
     if (!session) {
