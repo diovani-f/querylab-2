@@ -29,7 +29,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
   const [showTechnicalModal, setShowTechnicalModal] = useState(false)
   const [showExplainModal, setShowExplainModal] = useState(false)
 
-  const getIcon = (type: Message['type']) => {
+  const getIcon = (type: Message['tipo']) => {
     switch (type) {
       case 'user':
         return <User className="h-4 w-4" />
@@ -44,7 +44,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
     }
   }
 
-  const getBubbleStyles = (type: Message['type']) => {
+  const getBubbleStyles = (type: Message['tipo']) => {
     switch (type) {
       case 'user':
         return "bg-primary text-primary-foreground ml-auto"
@@ -59,27 +59,27 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
     }
   }
 
-  const getContainerStyles = (type: Message['type']) => {
+  const getContainerStyles = (type: Message['tipo']) => {
     return type === 'user' ? "justify-end" : "justify-start"
   }
 
   return (
-    <div className={cn("flex", getContainerStyles(message.type), "relative")}> {/* relative para botões absolutos */}
+    <div className={cn("flex", getContainerStyles(message.tipo), "relative")}> {/* relative para botões absolutos */}
       <div className={cn(
         "max-w-[80%] rounded-lg p-4 space-y-2",
-        getBubbleStyles(message.type)
+        getBubbleStyles(message.tipo)
       )}>
         {/* Header da mensagem */}
         <div className="flex items-center space-x-2">
-          {getIcon(message.type)}
+          {getIcon(message.tipo)}
           <span className="text-sm font-medium">
-            {message.type === 'user' ? 'Você' :
-             message.type === 'assistant' ? 'QueryLab' :
-             message.type === 'error' ? 'Erro' : 'Sistema'}
+            {message.tipo === 'user' ? 'Você' :
+             message.tipo === 'assistant' ? 'QueryLab' :
+             message.tipo === 'error' ? 'Erro' : 'Sistema'}
           </span>
 
           {/* Indicador de avaliação para mensagens de assistente */}
-          {message.type === 'assistant' && message.evaluation && (
+          {message.tipo === 'assistant' && message.evaluation && (
             <Badge variant="outline" className="text-xs">
               <Star className="h-3 w-3 mr-1" />
               {message.evaluation.overallScore.toFixed(1)}
@@ -97,12 +97,12 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
 
         {/* Conteúdo da mensagem */}
         <div className="text-sm whitespace-pre-wrap">
-          <ReactMarkdown>{message.content}</ReactMarkdown>
+          <ReactMarkdown>{message.conteudo}</ReactMarkdown>
         </div>
       </div>
 
       {/* Botões flutuantes abaixo do bubble-message */}
-      {message.type === 'assistant' && (
+      {message.tipo === 'assistant' && (
         <div
           className="flex flex-row gap-2 items-center"
           style={{ position: 'absolute', left: '5px', bottom: '0', transform: 'translateY(25px)', marginTop: 12, zIndex: 20 }}
@@ -190,7 +190,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
               </Tooltip>
             )}
             {/* Modal de Avaliação - apenas para mensagens de assistente com SQL */}
-            {message.type === 'assistant' && sessionId && message.sqlQuery && (
+            {message.tipo === 'assistant' && sessionId && message.sqlQuery && (
               <div>
                 <EvaluationModal
                   message={message}

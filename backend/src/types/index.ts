@@ -200,6 +200,6 @@ export interface LLMResponse {
 }
 
 export interface LLMAdapter {
-  generateSQL(prompt: string, schema?: any): Promise<string>
+  handlePrompt(prompt: string, schema?: any): Promise<string>
   isAvailable(): boolean
 }

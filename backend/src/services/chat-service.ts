@@ -117,7 +117,7 @@ export class ChatService {
 
       const userMessage = mapMessage(userMessageData);
 
-      const llmResponse: any = await this.llmService.generateSQL({
+      const llmResponse: any = await this.llmService.handlePrompt({
         prompt: message,
         model,
         context: { schemaName: 'inep' }
@@ -145,6 +145,7 @@ export class ChatService {
       let explanation: string | null = null
       let reverseTranslation: string | null = null
 
+      console.log("🚀 ~ ChatService ~ processMessage ~ llmResponse:", llmResponse)
       if (llmResponse.explanation && !llmResponse.sql) {
         finalContent = llmResponse.explanation
         hasExplanation = true

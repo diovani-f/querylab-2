@@ -273,9 +273,7 @@ router.delete('/:sessionId', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    await prisma.sessao.delete({
-      where: { id: sessionId }
-    })
+    await sessionService.deleteSession(sessionId)
 
     res.json({
       success: true,

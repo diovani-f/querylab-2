@@ -82,7 +82,7 @@ export class SessionService {
       return !!result
     } catch (error) {
       console.error(`❌ Erro ao deletar sessão ${sessaoId}:`, error)
-      return false
+      throw error;
     }
   }
 

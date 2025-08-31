@@ -1,6 +1,6 @@
 import Groq from 'groq-sdk'
 import axios from 'axios'
-import { LLMProvider, LLMRequest, LLMResponse } from '../types'
+import { LLMRequest, LLMResponse } from '../types'
 import { SchemaDiscoveryService } from './schema-discovery-service'
 import { PrismaClient, LLMModel } from '@prisma/client'
 
@@ -63,39 +63,41 @@ export class LLMService {
 
   getModelSelected(modelId: string): LLMModel | null {
     const selectedModel = this.availableModels.find(model => model.id === modelId)
-
     if (selectedModel) {
       return selectedModel
     }
-
     return this.availableModels[0] || null
   }
-  async generateSQL(request: LLMRequest): Promise<LLMResponse> {
-    const { prompt, model, context } = request;
+
+  /**
+   * Determina se o prompt é conversacional ou uma consulta de dados.
+   * Gera uma explicação ou um SQL baseado na intenção.
+   */
+  async handlePrompt(request: LLMRequest): Promise<LLMResponse> {
+    const { prompt, model, context } = request
     try {
-      const systemPrompt = await this.buildSystemPrompt(context);
-      const userPrompt = this.buildUserPrompt(prompt);
+      const systemPrompt = await this.buildSystemPrompt(context)
+      const userPrompt = this.buildUserPrompt(prompt)
 
       // Se for o modelo sqlcoder-7b-2, chama o endpoint Python via axios
       if (model === 'sqlcoder-7b-2') {
         const response = await axios.post(`${process.env.NGROK_MODEL_URL}/generate_sql`, {
           system_prompt: systemPrompt,
           user_prompt: userPrompt
-        });
-        const data = response.data;
-          const reverseTranslation = data.reverse_translation || await this.generateReverseTranslation({
-            prompt,
-            sql: data.sql
-          });
-          return {
-            success: true,
-            sqlQuery: data.sql,
-            reverseTranslation,
-            explanation: undefined, // só retorna quando solicitado
-            model,
-            tokensUsed: 0,
-            processingTime: Date.now()
-          };
+        })
+        const data = response.data
+        const explanation = data.explanation || await this.generateQueryExplanation({
+          prompt,
+          sql: data.sql
+        })
+        return {
+          success: true,
+          sqlQuery: data.sql,
+          explanation: explanation,
+          model,
+          tokensUsed: 0,
+          processingTime: Date.now()
+        }
       }
 
       // Modelos padrão (Groq)
@@ -109,58 +111,152 @@ export class LLMService {
         max_tokens: 1000,
         top_p: 1,
         stream: false
-      });
-      const response = completion.choices[0]?.message?.content;
+      })
+      const response = completion.choices[0]?.message?.content
       if (!response) {
-        throw new Error('Resposta vazia do modelo LLM');
+        throw new Error('Resposta vazia do modelo LLM')
       }
-      // Se a resposta for conversacional (começa com EXPLICAÇÃO:), não tentar extrair SQL
-      if (response.trim().startsWith('EXPLICAÇÃO:')) {
+
+      const sqlQuery = this.extractSQL(response)
+
+      // Se for uma CONVERSA retorna sem explicação simples da query
+      if (response.trim().startsWith('CONVERSA:')) {
         return {
           success: true,
-          sqlQuery: undefined,
-          reverseTranslation: undefined,
-          explanation: response.trim().replace('EXPLICAÇÃO:', ''),
+          sqlQuery,
+          explanation: response.trim().replace('CONVERSA:', ''),
           model,
           tokensUsed: completion.usage?.total_tokens || 0,
           processingTime: Date.now()
-        };
+        }
       }
-      // Extrair SQL da resposta normalmente
-      const sqlQuery = this.extractSQL(response);
-        // Gerar tradução reversa simples
-        const reverseTranslation = await this.generateReverseTranslation({
-          prompt,
-          sql: sqlQuery
-        });
+
+      // Busca explicação simples da query
+      const explanation = await this.generateQueryExplanation({
+        prompt,
+        sql: sqlQuery
+      })
+
+      // Se a resposta for um SQL, retorna o SQL e a explicação da query
       return {
         success: true,
         sqlQuery,
-        reverseTranslation,
-        explanation: undefined,
+        explanation,
         model,
         tokensUsed: completion.usage?.total_tokens || 0,
         processingTime: Date.now()
-      };
+      }
     } catch (error) {
-      console.error('❌ Erro ao gerar SQL:', error);
+      console.error('❌ Erro ao processar prompt:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erro desconhecido',
         model: model,
         tokensUsed: 0,
         processingTime: Date.now()
-      };
+      }
     }
   }
 
+  /**
+   * Gera uma explicação sucinta e amigável da consulta SQL para o usuário leigo.
+   */
+  public async generateQueryExplanation(params: {
+    prompt: string
+    sql: string
+  }): Promise<string> {
+    const { prompt, sql } = params
+    if (!sql) return ''
+    const explanationPrompt = `Gere uma explicação curta e amigável, em uma única frase, para a seguinte consulta SQL. Diga ao usuário o que a consulta irá buscar, sem usar termos técnicos ou repetir o SQL.
+
+    Pergunta original: "${prompt}"
+
+    Consulta SQL: ${sql}
+
+    Explicação amigável:`
+    try {
+      const completion = await this.groqClient.chat.completions.create({
+        messages: [{ role: 'user', content: explanationPrompt }],
+        model: 'llama3-70b-8192',
+        temperature: 0.2,
+        max_tokens: 200
+      })
+      const explanation = completion.choices[0]?.message?.content?.trim()
+      return explanation || ''
+    } catch (error) {
+      console.error('❌ Erro ao gerar explicação da query:', error)
+      return 'Não foi possível gerar uma explicação para a consulta.'
+    }
+  }
+
+  /**
+   * Gera uma explicação detalhada e técnica dos resultados de uma consulta.
+   */
+  async generateDetailedResultExplanation(params: {
+    query: string
+    result: any
+    originalPrompt: string
+  }): Promise<{ success: boolean; explanation?: string; error?: string }> {
+    try {
+      const { query, result, originalPrompt } = params
+      const explanationPrompt = `
+Você é um assistente especializado em análise de dados. Sua tarefa é fornecer uma explicação técnica e detalhada de um resultado de consulta SQL.
+
+PERGUNTA ORIGINAL DO USUÁRIO:
+"${originalPrompt}"
+
+CONSULTA SQL EXECUTADA:
+\`\`\`sql
+${query}
+\`\`\`
+
+RESULTADOS OBTIDOS:
+- Número de registros: ${result.rowCount}
+- Colunas: ${result.columns.join(', ')}
+- Tempo de execução: ${result.executionTime}ms
+
+DADOS (primeiras 5 linhas):
+${result.rows.slice(0, 5).map((row: any[], index: number) =>
+    `${index + 1}. ${result.columns.map((col: string, i: number) => `${col}: ${row[i]}`).join(', ')}`
+  ).join('\n')}
+
+INSTRUÇÕES:
+1. Responda em português brasileiro.
+2. Forneça uma análise técnica do resultado, explicando o que foi encontrado.
+3. Mencione os dados-chave nas primeiras linhas.
+4. Explique o significado dos dados e como eles se relacionam com a pergunta original.
+5. Mencione o número total de registros encontrados.
+6. Mantenha a resposta focada na interpretação técnica dos dados, não na consulta em si.
+7. NÃO repita o SQL na resposta.
+
+Explicação detalhada dos resultados:`
+
+      const response = await this.groqClient.chat.completions.create({
+        messages: [{ role: 'user', content: explanationPrompt }],
+        model: 'llama3-70b-8192',
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+
+      const explanation = response.choices[0]?.message?.content?.trim()
+      if (!explanation) {
+        return { success: false, error: 'Não foi possível gerar explicação detalhada' }
+      }
+      return { success: true, explanation }
+    } catch (error) {
+      console.error('❌ Erro ao gerar explicação detalhada:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' }
+    }
+  }
+
+  // O restante dos métodos (buildSystemPrompt, buildUserPrompt, extractSQL, etc.)
+  // permanecem os mesmos, pois já estão bem implementados para a sua arquitetura.
   public async buildSystemPrompt(context?: any): Promise<string> {
-  // Obter schema real do banco de dados
-  const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'inep');
-  const basePrompt = `Você é um assistente especializado em consultas SQL para banco de dados DB2, mas também pode conversar normalmente com o usuário.
+    const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'inep');
+    const basePrompt = `Você é um assistente especializado em consultas SQL para banco de dados DB2, mas também pode conversar normalmente com o usuário.
 
 REGRAS IMPORTANTES:
-1. Se a mensagem for uma saudação (oi, olá, hello, etc.) ou pergunta geral sobre o que você faz, responda SEMPRE com "EXPLICAÇÃO:" seguido da explicação. Mantenha a conversa natural e amigável.
+1. Se a mensagem for uma saudação (oi, olá, hello, etc.) ou pergunta geral sobre o que você faz, responda SEMPRE com "CONVERSA:" seguido da explicação. Mantenha a conversa natural e amigável.
 2. Se for uma consulta específica sobre dados (quantas, liste, mostre, etc.), gere APENAS o SQL válido.
 3. NUNCA misture explicação com SQL.
 4. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema.
@@ -170,16 +266,16 @@ REGRAS IMPORTANTES:
 8. Mantenha a conversa fluida e educada quando não for uma consulta SQL.
 
 SCHEMA DO BANCO DE DADOS:`;
-  if (schemaInfo && schemaInfo.tables && schemaInfo.tables.length > 0) {
-    const schemaDescription = schemaInfo.tables.map((table: any) => {
-    const keyColumns = table.keyColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || '';
-    const importantColumns = table.importantColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || '';
-    return `- ${table.name}: ${table.columnCount} colunas
+    if (schemaInfo && schemaInfo.tables && schemaInfo.tables.length > 0) {
+      const schemaDescription = schemaInfo.tables.map((table: any) => {
+        const keyColumns = table.keyColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || '';
+        const importantColumns = table.importantColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || '';
+        return `- ${table.name}: ${table.columnCount} colunas
   Chaves: ${keyColumns}
   Colunas importantes: ${importantColumns}
   Tipo: ${table.type}${table.comment ? ` - ${table.comment}` : ''}`;
-    }).join('\n');
-    return `${basePrompt}
+      }).join('\n');
+      return `${basePrompt}
 ${schemaDescription}
 
 RELACIONAMENTOS IDENTIFICADOS:
@@ -188,7 +284,7 @@ ${schemaInfo.relationships?.map((rel: any) => `- ${rel.fromTable}.${rel.fromColu
 EXEMPLOS CORRETOS:
 
 Entrada: "oi"
-Saída: EXPLICAÇÃO: Olá! Sou um assistente especializado em consultas SQL para dados do inep. Posso ajudar você a encontrar informações sobre instituições de ensino, cursos, avaliações e indicadores educacionais. Exemplos: "Quantas instituições existem?", "Liste os cursos de uma área específica", "Mostre dados de avaliação".
+Saída: CONVERSA: Olá! Sou um assistente especializado em consultas SQL para dados do inep. Posso ajudar você a encontrar informações sobre instituições de ensino, cursos, avaliações e indicadores educacionais. Exemplos: "Quantas instituições existem?", "Liste os cursos de uma área específica", "Mostre dados de avaliação".
 
 Entrada: "Quantas instituições existem?"
 Saída: SELECT COUNT(*) as total FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'TABELA'};
@@ -197,57 +293,24 @@ Entrada: "Liste 10 cursos"
 Saída: SELECT SOME_COLUMN_NAME FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'TABELA'} FETCH FIRST 10 ROWS ONLY;
 
 Entrada: "o que você faz?"
-Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do inep. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores.
+Saída: CONVERSA: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do inep. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores.
 
 Entrada: "Me conte mais sobre você"
-Saída: EXPLICAÇÃO: Sou um assistente virtual focado em ajudar com consultas SQL e também posso conversar normalmente para tirar dúvidas ou explicar como funciono.
+Saída: CONVERSA: Sou um assistente virtual focado em ajudar com consultas SQL e também posso conversar normalmente para tirar dúvidas ou explicar como funciono.
 `;
-  }
-  // Fallback para schema básico se não conseguir carregar
-  return `${basePrompt}
+    }
+    // Fallback para schema básico se não conseguir carregar
+    return `${basePrompt}
 - Schema não disponível no momento. Use consultas genéricas.
 
 EXEMPLOS CORRETOS:
 
 Entrada: "oi"
-Saída: EXPLICAÇÃO: Olá! Sou um assistente especializado em consultas SQL. No momento, o schema detalhado não está disponível, mas posso ajudar com consultas básicas.
+Saída: CONVERSA: Olá! Sou um assistente especializado em consultas SQL. No momento, o schema detalhado não está disponível, mas posso ajudar com consultas básicas.
 
 Entrada: "o que você faz?"
-Saída: EXPLICAÇÃO: Sou especializado em converter suas perguntas em consultas SQL. No momento, estou com acesso limitado ao schema do banco.
+Saída: CONVERSA: Sou especializado em converter suas perguntas em consultas SQL. No momento, estou com acesso limitado ao schema do banco.
 `;
-  }
-
-  /**
-   * Gera explicação sucinta do resultado da consulta SQL via LLM
-   * Retorna uma frase curta e direta sobre o que foi buscado, para usuário leigo
-   */
-  public async generateReverseTranslation(params: {
-    prompt: string;
-    sql: string;
-    result?: any;
-  }): Promise<string> {
-    const { prompt, sql, result } = params;
-    if (!sql) return '';
-
-    // Monta o prompt para Groq
-    let resultSummary = '';
-    if (result && result.rowCount !== undefined && result.columns) {
-      const colList = result.columns.slice(0, 3).join(', ');
-      resultSummary = `\n- Registros encontrados: ${result.rowCount}\n- Colunas principais: ${colList}${result.columns.length > 3 ? ', ...' : ''}`;
-    }
-
-    const reversePrompt = `Explique de forma simples e curta para um usuário leigo o que foi feito na consulta SQL abaixo. Não use termos técnicos, apenas diga o que foi buscado e o que foi encontrado, de forma amigável e direta.\n\nPergunta original:\n"${prompt}"\n\nConsulta SQL executada:\n\n${sql}\n${resultSummary}\n\nResponda em uma frase curta e clara, sem repetir o SQL.`;
-
-    const completion = await this.groqClient.chat.completions.create({
-      messages: [
-        { role: 'user', content: reversePrompt }
-      ],
-      model: 'llama3-70b-8192',
-      temperature: 0.2,
-      max_tokens: 200
-    });
-    const explanation = completion.choices[0]?.message?.content?.trim();
-    return explanation || '';
   }
 
   public buildUserPrompt(prompt: string): string {
@@ -276,95 +339,14 @@ Retorne apenas o SQL válido:`
     for (const line of lines) {
       const trimmed = line.trim()
       if (trimmed.toUpperCase().startsWith('SELECT') ||
-          trimmed.toUpperCase().startsWith('INSERT') ||
-          trimmed.toUpperCase().startsWith('UPDATE') ||
-          trimmed.toUpperCase().startsWith('DELETE')) {
+        trimmed.toUpperCase().startsWith('INSERT') ||
+        trimmed.toUpperCase().startsWith('UPDATE') ||
+        trimmed.toUpperCase().startsWith('DELETE')) {
         return trimmed
       }
     }
 
     // Fallback: retornar a resposta completa limpa
     return response.trim()
-  }
-
-  /**
-   * Gera explicação textual dos resultados de uma consulta
-   */
-  async generateExplanation(params: {
-    query: string
-    result: any
-    originalPrompt: string
-  }): Promise<{ success: boolean; explanation?: string; error?: string }> {
-    try {
-      const { query, result, originalPrompt } = params
-
-      // Criar prompt para explicação
-      const explanationPrompt = `
-Você é um assistente especializado em análise de dados universitários.
-
-PERGUNTA ORIGINAL DO USUÁRIO:
-"${originalPrompt}"
-
-CONSULTA SQL EXECUTADA:
-\`\`\`sql
-${query}
-\`\`\`
-
-RESULTADOS OBTIDOS:
-- Número de registros: ${result.rowCount}
-- Colunas: ${result.columns.join(', ')}
-- Tempo de execução: ${result.executionTime}ms
-
-DADOS (primeiras 5 linhas):
-${result.rows.slice(0, 5).map((row: any[], index: number) =>
-  `${index + 1}. ${result.columns.map((col: string, i: number) => `${col}: ${row[i]}`).join(', ')}`
-).join('\n')}
-
-INSTRUÇÕES:
-1. Responda em português brasileiro
-2. Explique os resultados de forma clara e didática
-3. Destaque insights importantes dos dados
-4. Mencione o número total de registros encontrados
-5. Se houver dados interessantes, comente sobre eles
-6. Mantenha um tom conversacional e educativo
-7. NÃO repita o SQL na resposta
-8. Foque na interpretação dos dados, não na consulta técnica
-
-Forneça uma explicação completa e útil dos resultados:
-`
-
-      const response = await this.groqClient.chat.completions.create({
-        messages: [
-          {
-            role: 'user',
-            content: explanationPrompt
-          }
-        ],
-        model: 'llama3-70b-8192',
-        temperature: 0.7,
-        max_tokens: 1000
-      })
-
-      const explanation = response.choices[0]?.message?.content?.trim()
-
-      if (!explanation) {
-        return {
-          success: false,
-          error: 'Não foi possível gerar explicação'
-        }
-      }
-
-      return {
-        success: true,
-        explanation
-      }
-
-    } catch (error) {
-      console.error('Erro ao gerar explicação:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
-      }
-    }
   }
 }

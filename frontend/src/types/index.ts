@@ -1,7 +1,7 @@
 export interface Message {
   id: string
-  type: 'user' | 'assistant' | 'system' | 'error'
-  content: string
+  tipo: 'user' | 'assistant' | 'system' | 'error'
+  conteudo: string
   timestamp: Date
   sqlQuery?: string
   queryResult?: QueryResult
