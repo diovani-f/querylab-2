@@ -69,7 +69,7 @@ export function Sidebar() {
   const confirmDeleteSession = async () => {
     if (!sessionToDelete) return
 
-    const sessionTitle = safeSessions.find(s => s.id === sessionToDelete)?.title || 'Sessão'
+    const sessionTitle = safeSessions.find(s => s.id === sessionToDelete)?.titulo || 'Sessão'
 
     setIsDeleting(true)
 
@@ -150,10 +150,10 @@ export function Sidebar() {
               >
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-medium truncate">
-                    {session.title}
+                    {session.titulo}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {(session.messages || []).length} mensagens
+                    {(session.mensagens || []).length} mensagens
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(session.updatedAt).toLocaleDateString('pt-BR')}
@@ -201,7 +201,7 @@ export function Sidebar() {
                 Tem certeza que deseja deletar esta sessão? Esta ação não pode ser desfeita.
                 {sessionToDelete && (
                   <span className="block mt-2 font-medium">
-                    "{safeSessions.find(s => s.id === sessionToDelete)?.title}"
+                    "{safeSessions.find(s => s.id === sessionToDelete)?.titulo}"
                   </span>
                 )}
               </AlertDialogDescription>

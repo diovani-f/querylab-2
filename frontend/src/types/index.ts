@@ -20,11 +20,11 @@ export interface QueryResult {
 
 export interface ChatSession {
   id: string
-  title: string
+  titulo: string
   createdAt: Date
   updatedAt: Date
-  messages: Message[]
-  model: LLMModel
+  mensagens: Message[]
+  modelo: string
 }
 
 export type LLMProvider = 'groq' | 'openai' | 'anthropic' | 'local'

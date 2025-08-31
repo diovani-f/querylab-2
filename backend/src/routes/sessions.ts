@@ -1,13 +1,11 @@
 import { Router } from 'express'
 import { SessionService } from '../services/session-service'
 import { authMiddleware } from '../middleware/auth-middleware'
-import { AuthRequest, ChatSession, QueryResult } from '../types'
-import { PrismaClient } from '@prisma/client'
-import { LLMService } from '../services/llm-service'
+import { AuthRequest, QueryResult } from '../types'
+import { PrismaClient, Sessao } from '@prisma/client'
 
 const router = Router()
 const sessionService = SessionService.getInstance()
-const llmService = LLMService.getInstance()
 const prisma = new PrismaClient()
 
 // Listar sessões do usuário autenticado
@@ -28,7 +26,7 @@ router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    const sessionsData = await prisma.sessao.findMany({
+    const sessions = await prisma.sessao.findMany({
       where: { usuarioId: userId },
       include: {
         mensagens: true,
@@ -36,21 +34,6 @@ router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
       },
       orderBy: { updatedAt: 'desc' }
     })
-
-    const sessions = sessionsData.map(session => ({
-      ...session,
-      title: session.titulo,
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt,
-      messages: session.mensagens.map(msg => ({
-        id: msg.id,
-        type: msg.tipo,
-        content: msg.conteudo,
-        timestamp: msg.timestamp,
-        sqlQuery: msg.sqlQuery as QueryResult,
-        queryResult: msg.queryResult
-      }))
-    })) as ChatSession[]
 
     res.json({
       success: true,
@@ -84,27 +67,11 @@ router.get('/', authMiddleware, async (req: AuthRequest, res) => {
       orderBy: { updatedAt: 'desc' }
     })
 
-    // Mapeamento para ChatSession
-    const mappedSessions = sessions.map(session => ({
-        ...session,
-        title: session.titulo,
-        createdAt: session.createdAt,
-        updatedAt: session.updatedAt,
-        messages: session.mensagens.map(msg => ({
-            id: msg.id,
-            type: msg.tipo,
-            content: msg.conteudo,
-            timestamp: msg.timestamp,
-            sqlQuery: msg.sqlQuery as QueryResult,
-            queryResult: msg.queryResult
-        }))
-    })) as ChatSession[];
-
 
     res.json({
       success: true,
-      sessions: mappedSessions,
-      total: mappedSessions.length
+      sessions: sessions,
+      total: sessions.length
     })
   } catch (error) {
     console.error('Erro ao listar sessões:', error)
@@ -145,7 +112,7 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
 router.get('/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params
-    const sessionData = await prisma.sessao.findUnique({
+    const session = await prisma.sessao.findUnique({
       where: { id: sessionId },
       include: {
         mensagens: true,
@@ -153,26 +120,12 @@ router.get('/:sessionId', async (req, res) => {
       }
     })
 
-    if (!sessionData) {
+    if (!session) {
       return res.status(404).json({
         success: false,
         error: 'Sessão não encontrada'
       })
     }
-
-    // Mapeamento para ChatSession
-    const session = {
-        ...sessionData,
-        title: sessionData.titulo,
-        messages: sessionData.mensagens.map(msg => ({
-            id: msg.id,
-            type: msg.tipo,
-            content: msg.conteudo,
-            timestamp: msg.timestamp,
-            sqlQuery: msg.sqlQuery,
-            queryResult: msg.queryResult
-        }))
-    } as ChatSession;
 
     res.json({
       success: true,
@@ -196,10 +149,9 @@ router.put('/:sessionId', async (req, res) => {
     // Mapeamento para os campos do Prisma
     const dataUpdates = {
       titulo: updates.title,
-      // ... outros campos que podem ser atualizados
     };
 
-    const sessionData = await prisma.sessao.update({
+    const session = await prisma.sessao.update({
       where: { id: sessionId },
       data: dataUpdates,
       include: {
@@ -208,26 +160,12 @@ router.put('/:sessionId', async (req, res) => {
       }
     })
 
-    if (!sessionData) {
+    if (!session) {
       return res.status(404).json({
         success: false,
         error: 'Sessão não encontrada'
       })
     }
-
-    // Mapeamento de volta para ChatSession
-    const session = {
-      ...sessionData,
-      title: sessionData.titulo,
-      messages: sessionData.mensagens.map(msg => ({
-        id: msg.id,
-        type: msg.tipo,
-        content: msg.conteudo,
-        timestamp: msg.timestamp,
-        sqlQuery: msg.sqlQuery,
-        queryResult: msg.queryResult
-      }))
-    } as ChatSession;
 
     res.json({
       success: true,
@@ -254,19 +192,19 @@ router.delete('/:sessionId', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    const sessionData = await prisma.sessao.findUnique({
+    const session = await prisma.sessao.findUnique({
       where: { id: sessionId },
       select: { usuarioId: true }
     })
 
-    if (!sessionData) {
+    if (!session) {
       return res.status(404).json({
         success: false,
         error: 'Sessão não encontrada'
       })
     }
 
-    if (sessionData.usuarioId !== req.user.id && req.user.role !== 'admin') {
+    if (session.usuarioId !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         error: 'Acesso negado: você só pode deletar suas próprias sessões'
@@ -297,20 +235,10 @@ router.get('/:sessionId/messages', async (req, res) => {
       orderBy: { timestamp: 'asc' }
     })
 
-    // Mapeamento para o tipo 'Message'
-    const mappedMessages = messages.map(msg => ({
-        id: msg.id,
-        type: msg.tipo,
-        content: msg.conteudo,
-        timestamp: msg.timestamp,
-        sqlQuery: msg.sqlQuery,
-        queryResult: msg.queryResult
-    }));
-
     res.json({
       success: true,
-      messages: mappedMessages,
-      total: mappedMessages.length
+      mensagens: messages,
+      total: messages.length
     })
   } catch (error) {
     console.error('Erro ao obter mensagens:', error)
@@ -339,24 +267,10 @@ router.get('/search/:query', async (req, res) => {
       orderBy: { updatedAt: 'desc' }
     })
 
-    // Mapeamento para ChatSession
-    const mappedSessions = sessions.map(session => ({
-        ...session,
-        title: session.titulo,
-        messages: session.mensagens.map(msg => ({
-            id: msg.id,
-            type: msg.tipo,
-            content: msg.conteudo,
-            timestamp: msg.timestamp,
-            sqlQuery: msg.sqlQuery as QueryResult,
-            queryResult: msg.queryResult
-        }))
-    })) as ChatSession[];
-
     res.json({
       success: true,
-      sessions: mappedSessions,
-      total: mappedSessions.length,
+      sessions,
+      total: sessions.length,
       query
     })
   } catch (error) {
@@ -387,7 +301,7 @@ router.get('/history/user/:userId', authMiddleware, async (req: AuthRequest, res
     const mappedHistory = history.map(h => ({
         ...h,
         id: h.id.toString(), // Converter o ID para string
-        isFavorite: h.isFavorito
+        isFavorita: h.isFavorito
     }));
 
     res.json({
@@ -428,27 +342,10 @@ router.get('/favorites/user/:userId', authMiddleware, async (req: AuthRequest, r
       orderBy: { updatedAt: 'desc' }
     });
 
-    const mappedSessions = favoriteSessions.map(session => ({
-      id: session.id,
-      title: session.titulo,
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt,
-      messages: session.mensagens.map(msg => ({
-        id: msg.id,
-        type: msg.tipo,
-        content: msg.conteudo,
-        timestamp: msg.timestamp,
-        sqlQuery: msg.sqlQuery,
-        queryResult: msg.queryResult
-      })),
-      modelo: session.modelo,
-      isFavorite: session.isFavorita
-    }));
-
     res.json({
       success: true,
-      favorites: mappedSessions,
-      total: mappedSessions.length
+      favorites: favoriteSessions,
+      total: favoriteSessions.length
     });
   } catch (error) {
     console.error('Erro ao buscar favoritos:', error);

@@ -45,7 +45,7 @@ export class AuthService {
           preferences: {
             theme: 'dark',
             language: 'pt-BR',
-            default_model: 'llama3-70b-8192'
+            default_model: 'llama-3.3-70b-versatile'
           } as any, // Adicione 'as any' para o tipo Json, se necessário
         },
       });

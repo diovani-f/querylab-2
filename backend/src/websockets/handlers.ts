@@ -35,10 +35,8 @@ export function setupWebSocketHandlers(io: Server) {
 
         // Usar o ID da sessão (pode ter sido criada uma nova)
         const actualSessionId = result.session?.id || sessionId
-        console.log("🚀 ~ setupWebSocketHandlers ~ result.session?.id:", result.session?.id, sessionId)
 
         // Enviar mensagem do usuário para todos na sessão
-        console.log("🚀 ~ setupWebSocketHandlers ~ result:", result)
         if (result.userMessage) {
           io.to(actualSessionId).emit('message-received', result.userMessage)
         }

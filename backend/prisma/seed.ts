@@ -25,10 +25,10 @@ async function main() {
 
   // 2. Criar um modelo LLM padrão (se ainda não existir)
   const defaultModel = await prisma.lLMModel.upsert({
-    where: { id: 'llama3-70b-8192' },
+    where: { id: 'llama-3.3-70b-versatile' },
     update: {},
     create: {
-      id: 'llama3-70b-8192',
+      id: 'llama-3.3-70b-versatile',
       name: 'Llama 3 70B',
       description: 'Modelo padrão para consultas SQL',
       provider: 'groq',

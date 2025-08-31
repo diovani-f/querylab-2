@@ -177,7 +177,7 @@ export class LLMService {
     try {
       const completion = await this.groqClient.chat.completions.create({
         messages: [{ role: 'user', content: explanationPrompt }],
-        model: 'llama3-70b-8192',
+        model: 'llama-3.1-8b-instant',
         temperature: 0.2,
         max_tokens: 200
       })
@@ -233,7 +233,7 @@ Explicação detalhada dos resultados:`
 
       const response = await this.groqClient.chat.completions.create({
         messages: [{ role: 'user', content: explanationPrompt }],
-        model: 'llama3-70b-8192',
+        model: 'llama-3.3-70b-versatile',
         temperature: 0.7,
         max_tokens: 1000
       })

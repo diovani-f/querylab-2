@@ -14,7 +14,7 @@ const normalizeSession = (session: any): ChatSession => ({
   ...session,
   createdAt: new Date(session.createdAt),
   updatedAt: new Date(session.updatedAt),
-  messages: (session.messages || []).map(normalizeMessage)
+  mensagens: (session.mensagens || []).map(normalizeMessage)
 })
 
 interface AppStore extends AppState {
@@ -39,7 +39,7 @@ interface AppStore extends AppState {
 
 const defaultModels: LLMModel[] = [
   {
-    id: 'llama3-70b-8192',
+    id: 'llama-3.3-70b-versatile',
     name: 'Llama 3 70B',
     description: 'Modelo padrão para consultas SQL',
     provider: 'groq',
@@ -86,7 +86,7 @@ export const useAppStore = create<AppStore>()(
 
           const updatedSession = {
             ...state.currentSession,
-            messages: [...state.currentSession.messages, message],
+            mensagens: [...state.currentSession.mensagens, message],
             updatedAt: new Date()
           }
 
@@ -105,7 +105,7 @@ export const useAppStore = create<AppStore>()(
         set((state) => {
           if (!state.currentSession) return state
 
-          const updatedMessages = state.currentSession.messages.map(message =>
+          const updatedMessages = state.currentSession.mensagens.map(message =>
             message.id === messageId
               ? { ...message, evaluation }
               : message
@@ -113,7 +113,7 @@ export const useAppStore = create<AppStore>()(
 
           const updatedSession = {
             ...state.currentSession,
-            messages: updatedMessages,
+            mensagens: updatedMessages,
             updatedAt: new Date()
           }
 
@@ -158,11 +158,11 @@ export const useAppStore = create<AppStore>()(
           // Fallback: criar sessão apenas localmente (temporário)
           const newSession: ChatSession = {
             id: `temp-${crypto.randomUUID()}`,
-            title: title || `Nova Sessão ${new Date().toLocaleString()}`,
+            titulo: title || `Nova Sessão ${new Date().toLocaleString()}`,
             createdAt: new Date(),
             updatedAt: new Date(),
-            messages: [],
-            model: get().selectedModel || defaultModels[0]
+            mensagens: [],
+            modelo: get().selectedModel?.id || defaultModels[0].id
           }
 
           set((state) => ({
@@ -379,8 +379,8 @@ export const useAppStore = create<AppStore>()(
           // Adiciona mensagem de erro na lista de mensagens do chat
           const addMessage = get().addMessage;
           addMessage({
-            type: 'error',
-            content: typeof error === 'string' ? error : 'Erro de conexão com o WebSocket'
+            tipo: 'error',
+            conteudo: typeof error === 'string' ? error : 'Erro de conexão com o WebSocket'
           });
         })
 

@@ -145,7 +145,6 @@ export class ChatService {
       let explanation: string | null = null
       let reverseTranslation: string | null = null
 
-      console.log("🚀 ~ ChatService ~ processMessage ~ llmResponse:", llmResponse)
       if (llmResponse.explanation && !llmResponse.sql) {
         finalContent = llmResponse.explanation
         hasExplanation = true

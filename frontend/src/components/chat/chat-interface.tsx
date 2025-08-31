@@ -41,11 +41,11 @@ export function ChatInterface() {
 
   // Scroll para o final quando mensagens mudarem
   useEffect(() => {
-    if (currentSession?.messages && currentSession.messages.length > 0) {
+    if (currentSession?.mensagens && currentSession.mensagens.length > 0) {
       // Pequeno delay para garantir que o DOM foi atualizado
       setTimeout(scrollToBottom, 100)
     }
-  }, [currentSession?.messages])
+  }, [currentSession?.mensagens])
 
   // Scroll para o final quando entrar em loading (nova mensagem sendo processada)
   useEffect(() => {
@@ -87,8 +87,8 @@ export function ChatInterface() {
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error)
       addMessage({
-        type: 'error',
-        content: 'Erro ao processar sua consulta. Tente novamente.'
+        tipo: 'error',
+        conteudo: 'Erro ao processar sua consulta. Tente novamente.'
       })
     }
   }
@@ -132,14 +132,14 @@ export function ChatInterface() {
       {/* Área de Mensagens */}
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-4 max-w-4xl mx-auto">
-          {(currentSession?.messages || []).length === 0 ? (
+          {(currentSession?.mensagens || []).length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 Digite sua primeira consulta abaixo para começar
               </p>
             </div>
           ) : (
-            (currentSession?.messages || []).map((message) => (
+            (currentSession?.mensagens || []).map((message) => (
               <MessageBubble
                 key={message.id}
                 message={message}
