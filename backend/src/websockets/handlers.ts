@@ -46,7 +46,7 @@ export function setupWebSocketHandlers(io: Server) {
           console.log('📤 Enviando mensagem do assistente via WebSocket:', {
             id: result.assistantMessage.id,
             hasExplanation: result.assistantMessage.hasExplanation,
-            hasSqlQuery: !!result.assistantMessage.sqlQuery,
+            hasSqlQuery: !!result.assistantMessage?.sqlQuery,
             hasQueryResult: !!result.assistantMessage.queryResult
           })
           io.to(actualSessionId).emit('message-received', result.assistantMessage)

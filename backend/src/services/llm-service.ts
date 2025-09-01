@@ -4,7 +4,6 @@ import { LLMRequest, LLMResponse } from '../types'
 import { SchemaDiscoveryService } from './schema-discovery-service'
 import { PrismaClient, LLMModel } from '@prisma/client'
 
-
 export class LLMService {
   private prisma: PrismaClient
   private static instance: LLMService
@@ -117,19 +116,18 @@ export class LLMService {
         throw new Error('Resposta vazia do modelo LLM')
       }
 
-      const sqlQuery = this.extractSQL(response)
-
       // Se for uma CONVERSA retorna sem explicação simples da query
       if (response.trim().startsWith('CONVERSA:')) {
         return {
           success: true,
-          sqlQuery,
-          explanation: response.trim().replace('CONVERSA:', ''),
+          content: response.trim().replace('CONVERSA:', ''),
           model,
           tokensUsed: completion.usage?.total_tokens || 0,
           processingTime: Date.now()
         }
       }
+
+      const sqlQuery = this.extractSQL(response)
 
       // Busca explicação simples da query
       const explanation = await this.generateQueryExplanation({
@@ -140,6 +138,7 @@ export class LLMService {
       // Se a resposta for um SQL, retorna o SQL e a explicação da query
       return {
         success: true,
+        content: "",
         sqlQuery,
         explanation,
         model,

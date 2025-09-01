@@ -87,6 +87,35 @@ router.get('/sessions/:sessionId', async (req, res) => {
     })
   } catch (error) {
     console.error('Erro ao buscar sessão:', error)
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    })
+  }
+})
+
+router.patch('execute', async(req, res) => {
+  try {
+    const { messageId } = req.body
+
+    const message = await chatService.processQuery(messageId)
+    console.log("🚀 ~ message:", message)
+
+    if(!message.success){
+      console.error('[ERRO]: ', message.error || 'Erro ao executar query')
+      res.status(500).json({
+        success: false,
+        error: message.error || 'Erro ao executar query'
+      })
+
+    }
+    res.json({
+      success: true,
+      data: message.assistantMessage
+    })
+
+  } catch (error) {
+    console.error('Erro ao executar query', error)
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'

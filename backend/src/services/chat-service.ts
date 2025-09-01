@@ -113,7 +113,7 @@ export class ChatService {
       const userMessageData = await this.addMessage(actualSessionId, {
         type: 'user',
         content: message
-      }, null, null)
+      })
 
       const userMessage = mapMessage(userMessageData);
 
@@ -122,13 +122,14 @@ export class ChatService {
         model,
         context: { schemaName: 'inep' }
       })
+      console.log("🚀 ~ ChatService ~ processMessage ~ llmResponse:", llmResponse)
 
       if (!llmResponse.success) {
         // Criar mensagem de erro
         const errorMessageData = await this.addMessage(actualSessionId, {
           type: 'error',
           content: `Erro ao processar consulta: ${llmResponse.error}`
-        }, null, null)
+        })
 
         return {
           success: false,
@@ -138,39 +139,11 @@ export class ChatService {
         }
       }
 
-      let finalContent = ''
-      let sqlQuery: string | null = null
-      let queryResult: QueryResult | null = null
-      let hasExplanation: boolean | null = false
-      let explanation: string | null = null
-      let reverseTranslation: string | null = null
-
-      if (llmResponse.explanation && !llmResponse.sql) {
-        finalContent = llmResponse.explanation
-        hasExplanation = true
-        explanation = llmResponse.explanation
-        reverseTranslation = llmResponse.reverseTranslation || null
-      } else if (llmResponse.sql) {
-        sqlQuery = llmResponse.sql
-        hasExplanation = false // Se tem SQL, não é só uma explicação textual
-        explanation = null // A explicação é tratada de forma diferente ou não existe
-        reverseTranslation = llmResponse.reverseTranslation || null
-
-        const queryResultObj = await this.queryService.executeQuery(llmResponse.sql)
-        queryResult = queryResultObj
-
-        if (!queryResult.success) {
-          finalContent = `Erro ao executar consulta: ${queryResult.error}`
-        } else {
-          finalContent = JSON.stringify(queryResult.data, null, 2)
-        }
-      }
-
       // Criar mensagem de resposta do assistente
       const assistantMessageData = await this.addMessage(actualSessionId, {
         type: 'assistant',
-        content: finalContent
-      }, sqlQuery, queryResult, hasExplanation, explanation, reverseTranslation)
+        content: llmResponse.content
+      }, {...llmResponse})
 
       const assistantMessage = mapMessage(assistantMessageData);
 
@@ -180,6 +153,72 @@ export class ChatService {
         assistantMessage: assistantMessage || undefined,
         session
       }
+    } catch (error: any) {
+      console.error("🚀 ~ ChatService ~ processMessage ~ error:", error)
+      return {
+        success: false,
+        error: `Erro interno: ${error.message}`
+      }
+    }
+  }
+
+  async processQuery(params: {
+    messageId: string
+  }): Promise<{
+    success: boolean
+    sessionId?: string
+    assistantMessage?: Message
+    error?: string
+  }> {
+    try {
+      const { messageId } = params
+
+      const mensagem = await prisma.mensagem.findUnique({
+        where: {id: messageId}
+      })
+
+      if(!mensagem || !mensagem?.sqlQuery){
+         return {
+          success: false,
+          sessionId: mensagem?.sessaoId,
+          error: 'Mensagem SQL Query não encontrada'
+        }
+      }
+
+      const dbResponse = await this.queryService.executeQuery(mensagem.sqlQuery);
+      console.log("🚀 ~ ChatService ~ processQuery ~ dbResponse:", dbResponse)
+
+      if (!dbResponse.success) {
+        // Criar mensagem de erro
+        const errorMessageData = await this.addMessage(mensagem.sessaoId, {
+          type: 'error',
+          content: `Erro ao processar consulta: ${dbResponse.error}`
+        })
+
+        return {
+          success: false,
+          error: `Erro ao processar consulta: ${dbResponse.error}`,
+          assistantMessage: mapMessage(errorMessageData) || undefined,
+          sessionId: mensagem.sessaoId
+        }
+      }
+
+      const assistantMessageData = await this.updateMessage(mensagem.id, {
+        sqlQuery: dbResponse.data.sqlQuery,
+        queryResult: dbResponse.data.queryResult,
+        explanation: dbResponse.data.explanation,
+        reverseTranslation: dbResponse.data.reverseTranslation,
+        hasExplanation: dbResponse.data.hasExplanation
+      })
+
+      const assistantMessage = mapMessage(assistantMessageData);
+
+      return {
+        success: true,
+        assistantMessage,
+        sessionId: mensagem.sessaoId
+      };
+
     } catch (error: any) {
       return {
         success: false,
@@ -194,24 +233,41 @@ export class ChatService {
   public async addMessage(
     sessaoId: string,
     message: { type: string; content: string },
-    sqlQuery: string | null,
-    queryResult: QueryResult | null,
-    hasExplanation: boolean | null = null,
-    explanation: string | null = null,
-    reverseTranslation: string | null = null
+    data: any = {}
   ) {
+    const {
+      sqlQuery,
+      queryResult,
+      explanation,
+      reverseTranslation,
+      hasExplanation
+    } = data;
+
     return prisma.mensagem.create({
       data: {
         sessaoId,
         tipo: message.type,
         conteudo: message.content,
         timestamp: new Date(),
-        sqlQuery,
-        queryResult: queryResult as any, // Adicionado 'as any' para forçar a compatibilidade do tipo JSONValue
-        hasExplanation,
-        explanation,
-        reverseTranslation
+        sqlQuery: sqlQuery,
+        queryResult: queryResult as any,
+        hasExplanation: hasExplanation || null,
+        explanation: explanation || null,
+        reverseTranslation: reverseTranslation || null
       }
-    })
+    });
+  }
+
+  public async updateMessage(id: string, updateData: {
+  sqlQuery?: string;
+  queryResult?: any;
+  hasExplanation?: boolean | null;
+  explanation?: string | null;
+  reverseTranslation?: string | null;
+  }) {
+    return prisma.mensagem.update({
+      data: updateData,
+      where: { id }
+    });
   }
 }

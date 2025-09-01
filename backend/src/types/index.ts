@@ -191,6 +191,7 @@ export interface LLMRequest {
 export interface LLMResponse {
   success: boolean
   sqlQuery?: string
+  content?: string | null
   explanation?: string
   reverseTranslation?: string
   error?: string
@@ -200,6 +201,6 @@ export interface LLMResponse {
 }
 
 export interface LLMAdapter {
-  handlePrompt(prompt: string, schema?: any): Promise<string>
+  generateSQL(prompt: string, schema?: any): Promise<string>
   isAvailable(): boolean
 }

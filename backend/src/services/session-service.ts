@@ -1,4 +1,4 @@
-import { Mensagem, PrismaClient, Sessao } from '@prisma/client'
+import { PrismaClient, Sessao } from '@prisma/client'
 
 export class SessionService {
   private static instance: SessionService | null = null
@@ -86,23 +86,23 @@ export class SessionService {
     }
   }
 
-  async addMessage(sessaoId: string, message: Omit<Mensagem, 'id' | 'timestamp' | 'sessaoId'>) {
-    try {
-      const newMessage = await this.prisma.mensagem.create({
-        data: {
-          sessaoId: sessaoId,
-          tipo: message.tipo,
-          conteudo: message.conteudo,
-          sqlQuery: message.sqlQuery,
-          queryResult: message.queryResult || undefined,
-        }
-      })
-      return newMessage
-    } catch (error) {
-      console.error('❌ Erro ao salvar mensagem no banco:', error)
-      return null
-    }
-  }
+  // async addMessage(sessaoId: string, message: Omit<Mensagem, 'id' | 'timestamp' | 'sessaoId'>) {
+  //   try {
+  //     const newMessage = await this.prisma.mensagem.create({
+  //       data: {
+  //         sessaoId: sessaoId,
+  //         tipo: message.tipo,
+  //         conteudo: message.conteudo,
+  //         sqlQuery: message.sqlQuery,
+  //         queryResult: message.queryResult || undefined,
+  //       }
+  //     })
+  //     return newMessage
+  //   } catch (error) {
+  //     console.error('❌ Erro ao salvar mensagem no banco:', error)
+  //     return null
+  //   }
+  // }
 
   async updateSessionTitle(sessaoId: string, titulo: string): Promise<Sessao | null> {
     return this.updateSession(sessaoId, { titulo })

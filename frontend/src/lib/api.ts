@@ -3,86 +3,87 @@ import { ChatRequest, ChatResponse } from '@/types'
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 class ApiService {
-  private baseUrl: string
+  private baseUrl: string;
 
   constructor() {
-    this.baseUrl = API_BASE_URL
+    this.baseUrl = API_BASE_URL;
   }
 
   private getAuthHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-    }
+    };
 
-    // Tentar obter o token do localStorage
     if (typeof window !== 'undefined') {
       try {
-        const authData = localStorage.getItem('querylab-auth')
+        const authData = localStorage.getItem('querylab-auth');
         if (authData) {
-          const parsed = JSON.parse(authData)
+          const parsed = JSON.parse(authData);
           if (parsed.state?.token) {
-            headers['Authorization'] = `Bearer ${parsed.state.token}`
+            headers['Authorization'] = `Bearer ${parsed.state.token}`;
           }
         }
       } catch (error) {
-        // Token inválido ou erro de parsing - ignorar silenciosamente
+        console.error('Erro ao obter token do localStorage:', error);
       }
     }
 
-    return headers
+    return headers;
   }
 
   private async handleResponse(response: Response) {
-    // Verificar se é erro de autenticação
     if (response.status === 401 || response.status === 403) {
-      // Limpar dados de autenticação
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('querylab-auth')
-        // Redirecionar para login
-        window.location.href = '/login'
+        localStorage.removeItem('querylab-auth');
+        window.location.href = '/login';
       }
-
-      throw new Error('Token inválido ou expirado')
+      throw new Error('Token inválido ou expirado. Redirecionando para o login...');
     }
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
-    return response.json()
+    return response.json();
+  }
+
+  private async request(endpoint: string, options: RequestInit) {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      ...options,
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
   }
 
   async get(endpoint: string) {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      headers: this.getAuthHeaders()
-    })
-    return this.handleResponse(response)
+    return this.request(endpoint, { method: 'GET' });
   }
 
   async post(endpoint: string, data: any) {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    return this.request(endpoint, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
-    })
-    return this.handleResponse(response)
+    });
   }
 
   async put(endpoint: string, data: any) {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    return this.request(endpoint, {
       method: 'PUT',
-      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
-    })
-    return this.handleResponse(response)
+    });
+  }
+
+  async patch(endpoint: string, data: any) {
+    return this.request(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   async delete(endpoint: string) {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'DELETE',
-      headers: this.getAuthHeaders(),
-    })
-    return this.handleResponse(response)
+    return this.request(endpoint, { method: 'DELETE' });
   }
 
   // Health check (rota pública)
@@ -121,6 +122,10 @@ class ApiService {
   async getEvaluationSummary(sessionId?: string) {
     const endpoint = sessionId ? `/evaluation/summary/${sessionId}` : '/evaluation/summary'
     return this.get(endpoint)
+  }
+
+  async executeQuery(executionQueryData: any) {
+    return this.patch('/chat/execute', executionQueryData)
   }
 
   // Método para buscar status dos serviços (sem autenticação)
