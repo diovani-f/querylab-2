@@ -202,11 +202,7 @@ export class ChatService {
       }
 
       const assistantMessageData = await this.updateMessage(mensagem.id, {
-        sqlQuery: dbResponse.data.sqlQuery,
-        queryResult: dbResponse.data.queryResult,
-        explanation: dbResponse.data.explanation,
-        reverseTranslation: dbResponse.data.reverseTranslation,
-        hasExplanation: dbResponse.data.hasExplanation
+        queryResult: dbResponse
       })
 
       const assistantMessage = mapMessage(assistantMessageData);
