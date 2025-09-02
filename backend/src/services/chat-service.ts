@@ -162,17 +162,15 @@ export class ChatService {
     }
   }
 
-  async processQuery(params: {
+  async processQuery(
     messageId: string
-  }): Promise<{
+  ): Promise<{
     success: boolean
     sessionId?: string
     assistantMessage?: Message
     error?: string
   }> {
     try {
-      const { messageId } = params
-
       const mensagem = await prisma.mensagem.findUnique({
         where: {id: messageId}
       })
