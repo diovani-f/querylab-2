@@ -94,7 +94,7 @@ router.get('/sessions/:sessionId', async (req, res) => {
   }
 })
 
-router.patch('execute', async(req, res) => {
+router.patch('/execute', async(req, res) => {
   try {
     const { messageId } = req.body
 
