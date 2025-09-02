@@ -25,7 +25,8 @@ export class DatabaseFactory {
         if (!connectionString) {
             throw new Error('POSTGRES_URL não configurado nas variáveis de ambiente.');
         }
-        adapter = new PostgresAdapter(connectionString)
+        const schemas = config?.schemas || ['inep', 'public']
+        adapter = new PostgresAdapter(connectionString, schemas)
         break
 
       default:
@@ -106,7 +107,8 @@ export class DatabaseFactory {
         throw new Error('POSTGRES_URL environment variable is not set.');
     }
     return {
-      connectionString: connectionString
+      connectionString: connectionString,
+      schemas: ['inep', 'public']
     };
   }
 

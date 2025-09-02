@@ -49,9 +49,18 @@ export class PostgresAdapter implements DatabaseAdapter {
     try {
       // Configurar search_path para cada query
       const searchPath = this.schemas.join(', ')
+      console.log(`🔧 Configurando search_path: ${searchPath}`)
       await client.query(`SET search_path TO ${searchPath}`)
 
-      const result: PgQueryResult = await client.query(sql)
+      // Se a query contém schema qualificado, tentar remover para usar search_path
+      let processedSql = sql
+      if (sql.includes('inep.')) {
+        console.log(`🔄 Query original: ${sql}`)
+        processedSql = sql.replace(/inep\./g, '')
+        console.log(`🔄 Query processada: ${processedSql}`)
+      }
+
+      const result: PgQueryResult = await client.query(processedSql)
       const executionTime = Date.now() - startTime
 
       // Extrair nomes das colunas
@@ -62,6 +71,8 @@ export class PostgresAdapter implements DatabaseAdapter {
         columns.map(col => row[col])
       )
 
+      console.log(`✅ Query executada com sucesso: ${result.rowCount} linhas em ${executionTime}ms`)
+
       return {
         success: true,
         columns,
@@ -71,6 +82,7 @@ export class PostgresAdapter implements DatabaseAdapter {
       }
     } catch (error: any) {
       console.error('❌ Erro ao executar query no PostgreSQL:', error)
+      console.error('❌ SQL que causou erro:', sql)
       return {
         success: false,
         error: error.message,
