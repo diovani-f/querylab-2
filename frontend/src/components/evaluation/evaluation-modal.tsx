@@ -120,7 +120,7 @@ export function EvaluationModal({ message, sessionId, onEvaluationSaved, childre
         messageId: message.id,
         evaluatorId: 'current-user', // TODO: Pegar do contexto de autenticação
         evaluatorName: 'Especialista', // TODO: Pegar do contexto de autenticação
-        originalQuery: message.content, // Assumindo que a mensagem anterior é a pergunta
+        originalQuery: message.conteudo, // Assumindo que a mensagem anterior é a pergunta
         generatedSQL: message.sqlQuery,
         queryResult: message.queryResult,
         criteriaEvaluations,
