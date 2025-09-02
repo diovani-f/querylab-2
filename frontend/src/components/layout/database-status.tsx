@@ -216,7 +216,7 @@ function DatabaseStatusComponent() {
             <div className={`h-2 w-2 rounded-full ${statusInfo.statusColor}`} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="w-64">
+        <TooltipContent side="bottom" className="w-64 !z-[9999] bg-popover border shadow-lg">
           {getTooltipContent()}
         </TooltipContent>
       </Tooltip>

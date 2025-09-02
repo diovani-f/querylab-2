@@ -23,7 +23,7 @@ async function main() {
   })
   console.log(`Usuário admin criado com ID: ${adminUser.id}`)
 
-  // 2. Criar um modelo LLM padrão (se ainda não existir)
+  // 2. Criar modelos LLM (se ainda não existirem)
   const defaultModel = await prisma.lLMModel.upsert({
     where: { id: 'llama-3.3-70b-versatile' },
     update: {},
@@ -37,6 +37,36 @@ async function main() {
     },
   })
   console.log(`Modelo LLM padrão criado com ID: ${defaultModel.id}`)
+
+  // Modelo SQLCoder via Replicate
+  const sqlCoderModel = await prisma.lLMModel.upsert({
+    where: { id: 'defog/sqlcoder-7b-2' },
+    update: {},
+    create: {
+      id: 'defog/sqlcoder-7b-2',
+      name: 'SQLCoder 7B',
+      description: 'Modelo especializado em geração de SQL via Replicate',
+      provider: 'replicate',
+      maxTokens: 4096,
+      isDefault: false,
+    },
+  })
+  console.log(`Modelo SQLCoder criado com ID: ${sqlCoderModel.id}`)
+
+  // Modelo CodeLlama via Replicate
+  const codeLlamaModel = await prisma.lLMModel.upsert({
+    where: { id: 'meta/codellama-13b-instruct' },
+    update: {},
+    create: {
+      id: 'meta/codellama-13b-instruct',
+      name: 'CodeLlama 13B Instruct',
+      description: 'Modelo de código da Meta via Replicate',
+      provider: 'replicate',
+      maxTokens: 4096,
+      isDefault: false,
+    },
+  })
+  console.log(`Modelo CodeLlama criado com ID: ${codeLlamaModel.id}`)
 
   // 3. Criar uma sessão de chat para o usuário admin
   const newSession = await prisma.sessao.create({

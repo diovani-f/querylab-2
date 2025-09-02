@@ -27,7 +27,7 @@ export interface ChatSession {
   modelo: string
 }
 
-export type LLMProvider = 'groq' | 'openai' | 'anthropic' | 'local'
+export type LLMProvider = 'groq' | 'openai' | 'anthropic' | 'local' | 'replicate'
 
 export interface LLMModel {
   id: string

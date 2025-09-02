@@ -1,5 +1,5 @@
 import Groq from 'groq-sdk'
-import axios from 'axios'
+import Replicate from 'replicate'
 import { LLMRequest, LLMResponse } from '../types'
 import { SchemaDiscoveryService } from './schema-discovery-service'
 import { PrismaClient, LLMModel } from '@prisma/client'
@@ -8,6 +8,7 @@ export class LLMService {
   private prisma: PrismaClient
   private static instance: LLMService
   private groqClient: Groq
+  private replicateClient: Replicate
   private availableModels: LLMModel[] = []
   private schemaService: SchemaDiscoveryService
 
@@ -20,9 +21,20 @@ export class LLMService {
       throw new Error('GROQ_API_KEY é obrigatória! Verifique o arquivo .env')
     }
 
+    // Verificar se a API key do Replicate está disponível
+    const replicateApiKey = process.env.REPLICATE_API_TOKEN
+    if (!replicateApiKey) {
+      throw new Error('REPLICATE_API_TOKEN é obrigatória! Verifique o arquivo .env')
+    }
+
     // Inicializar cliente Groq
     this.groqClient = new Groq({
       apiKey: groqApiKey
+    })
+
+    // Inicializar cliente Replicate
+    this.replicateClient = new Replicate({
+      auth: replicateApiKey
     })
 
     // Inicializar serviço de schema discovery
@@ -78,25 +90,9 @@ export class LLMService {
       const systemPrompt = await this.buildSystemPrompt(context)
       const userPrompt = this.buildUserPrompt(prompt)
 
-      // Se for o modelo sqlcoder-7b-2, chama o endpoint Python via axios
-      if (model === 'sqlcoder-7b-2') {
-        const response = await axios.post(`${process.env.NGROK_MODEL_URL}/generate_sql`, {
-          system_prompt: systemPrompt,
-          user_prompt: userPrompt
-        })
-        const data = response.data
-        const explanation = data.explanation || await this.generateQueryExplanation({
-          prompt,
-          sql: data.sql
-        })
-        return {
-          success: true,
-          sqlQuery: data.sql,
-          explanation: explanation,
-          model,
-          tokensUsed: 0,
-          processingTime: Date.now()
-        }
+      // Modelos Replicate
+      if (this.isReplicateModel(model)) {
+        return await this.handleReplicateModel(model, systemPrompt, userPrompt, prompt)
       }
 
       // Modelos padrão (Groq)
@@ -347,5 +343,103 @@ Retorne apenas o SQL válido:`
 
     // Fallback: retornar a resposta completa limpa
     return response.trim()
+  }
+
+  /**
+   * Verifica se o modelo é do Replicate
+   */
+  private isReplicateModel(model: string): boolean {
+    const replicateModels = [
+      'defog/sqlcoder-7b-2',
+      'meta/codellama-13b-instruct'
+    ]
+    return replicateModels.includes(model)
+  }
+
+  /**
+   * Lida com modelos do Replicate
+   */
+  private async handleReplicateModel(
+    model: string,
+    systemPrompt: string,
+    userPrompt: string,
+    originalPrompt: string
+  ): Promise<LLMResponse> {
+    try {
+      const startTime = Date.now()
+
+      // Combinar system e user prompt para o Replicate
+      const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`
+
+      let input: any
+
+      if (model === 'defog/sqlcoder-7b-2') {
+        input = {
+          question: combinedPrompt,
+          temperature: 0.1,
+          max_new_tokens: 1000
+        }
+      } else if (model === 'meta/codellama-13b-instruct') {
+        input = {
+          prompt: combinedPrompt,
+          temperature: 0.1,
+          max_new_tokens: 1000,
+          top_p: 0.9
+        }
+      } else {
+        throw new Error(`Modelo Replicate não suportado: ${model}`)
+      }
+
+      const output = await this.replicateClient.run(model as `${string}/${string}`, { input })
+
+      let response: string
+      if (Array.isArray(output)) {
+        response = output.join('')
+      } else if (typeof output === 'string') {
+        response = output
+      } else {
+        response = String(output)
+      }
+
+      const processingTime = Date.now() - startTime
+
+      // Se for uma CONVERSA retorna sem explicação simples da query
+      if (response.trim().startsWith('CONVERSA:')) {
+        return {
+          success: true,
+          content: response.trim().replace('CONVERSA:', ''),
+          model,
+          tokensUsed: 0,
+          processingTime
+        }
+      }
+
+      const sqlQuery = this.extractSQL(response)
+
+      // Busca explicação simples da query
+      const explanation = await this.generateQueryExplanation({
+        prompt: originalPrompt,
+        sql: sqlQuery
+      })
+
+      return {
+        success: true,
+        content: "",
+        sqlQuery,
+        explanation,
+        model,
+        tokensUsed: 0,
+        processingTime
+      }
+    } catch (error) {
+      console.error('❌ Erro ao processar modelo Replicate:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro desconhecido no Replicate',
+        model,
+        tokensUsed: 0,
+        processingTime: Date.now()
+      }
+    }
   }
 }

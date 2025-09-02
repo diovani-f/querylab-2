@@ -9,21 +9,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAppStore } from "@/stores/app-store"
-import { ChevronDown, Bot, Zap, Brain } from "lucide-react"
+import { ChevronDown, Bot, Zap, Brain, Code } from "lucide-react"
 import { LLMModel, LLMProvider } from "@/types"
 
 const providerIcons: Record<LLMProvider, React.ReactNode> = {
   groq: <Zap className="h-4 w-4" />,
   openai: <Brain className="h-4 w-4" />,
   anthropic: <Bot className="h-4 w-4" />,
-  local: <Bot className="h-4 w-4" />
+  local: <Bot className="h-4 w-4" />,
+  replicate: <Code className="h-4 w-4" />
 }
 
 const providerColors: Record<LLMProvider, string> = {
   groq: "text-orange-500",
   openai: "text-green-500",
   anthropic: "text-purple-500",
-  local: "text-blue-500"
+  local: "text-blue-500",
+  replicate: "text-indigo-500"
 }
 
 export function ModelSelector() {
