@@ -108,6 +108,25 @@ export class DatabaseFactory {
     }
     return {
       connectionString: connectionString,
+      schemas: ['public']
+    };
+  }
+
+  static getQueryPostgresConfig(): any {
+    const host = process.env.QUERY_DB_HOST;
+    const port = process.env.QUERY_DB_PORT || '5432';
+    const user = process.env.QUERY_DB_USER;
+    const password = process.env.QUERY_DB_PASSWORD;
+    const database = process.env.QUERY_DB_DATABASE;
+
+    if (!host || !user || !password || !database) {
+        throw new Error('Variáveis de ambiente do banco de consultas não configuradas: QUERY_DB_HOST, QUERY_DB_USER, QUERY_DB_PASSWORD, QUERY_DB_DATABASE');
+    }
+
+    const connectionString = `postgresql://${user}:${password}@${host}:${port}/${database}`;
+
+    return {
+      connectionString: connectionString,
       schemas: ['inep', 'public']
     };
   }

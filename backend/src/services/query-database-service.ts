@@ -47,8 +47,8 @@ export class QueryDatabaseService {
           this.adapter = new JsonServerAdapter(jsonConfig.baseUrl)
           break
         case 'postgres':
-          const postgresConfig = DatabaseFactory.getPostgresConfig()
-          this.adapter = new PostgresAdapter(postgresConfig.connectionString);
+          const postgresConfig = DatabaseFactory.getQueryPostgresConfig()
+          this.adapter = new PostgresAdapter(postgresConfig.connectionString, postgresConfig.schemas);
           break;
         default:
           throw new Error(`Tipo de banco não suportado para consultas: ${this.queryDbType}`)
