@@ -21,7 +21,7 @@ interface AppStore extends AppState {
   // Actions
   setCurrentSession: (session: ChatSession | null) => void
   setSessions: (sessions: ChatSession[]) => void
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
+  addMessage: (message: Partial<Message> & Pick<Message, 'tipo' | 'conteudo'>) => void
   updateMessageEvaluation: (messageId: string, evaluation: QueryEvaluation) => void
   createNewSession: (title?: string) => Promise<void>
   updateSessionTitle: (sessionId: string, title: string) => void
@@ -77,12 +77,19 @@ export const useAppStore = create<AppStore>()(
       addMessage: (messageData) => {
         const message: Message = {
           ...messageData,
-          id: crypto.randomUUID(),
-          timestamp: new Date()
+          id: messageData.id || crypto.randomUUID(),
+          timestamp: messageData.timestamp ? new Date(messageData.timestamp) : new Date()
         }
 
         set((state) => {
           if (!state.currentSession) return state
+
+          // Verificar se a mensagem já existe para evitar duplicatas
+          const existingMessage = state.currentSession.mensagens.find(m => m.id === message.id)
+          if (existingMessage) {
+            console.log('⚠️ Mensagem já existe, ignorando duplicata:', message.id)
+            return state
+          }
 
           const updatedSession = {
             ...state.currentSession,

@@ -98,6 +98,13 @@ router.patch('/execute', async(req, res) => {
   try {
     const { messageId } = req.body
 
+    if (!messageId) {
+      return res.status(400).json({
+        success: false,
+        error: 'messageId é obrigatório'
+      })
+    }
+
     const message = await chatService.processQuery(messageId)
     console.log("🚀 ~ message:", message)
 

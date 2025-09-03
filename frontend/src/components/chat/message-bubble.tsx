@@ -74,6 +74,12 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
     setIsExecuting(true)
     setExecutionStatus('idle')
 
+    console.log('🔍 Executando query para mensagem:', {
+      messageId: message.id,
+      sessionId: sessionId,
+      hasSqlQuery: !!message.sqlQuery
+    })
+
     try {
       const data = await apiService.executeQuery({sessionId: sessionId, messageId: message.id})
       console.log("🚀 ~ handleExecuteQuery ~ data:", data)

@@ -81,12 +81,44 @@ export class LLMService {
   }
 
   /**
+   * Verifica se a pergunta é sobre informações do schema que já estão disponíveis
+   */
+  private isSchemaInfoQuestion(prompt: string): boolean {
+    const schemaQuestions = [
+      /quais?\s+(são\s+)?as?\s+(principais\s+)?tabelas?/i,
+      /que\s+tabelas?\s+(existem?|tem|há)/i,
+      /mostre?\s+(as\s+)?tabelas?/i,
+      /liste?\s+(as\s+)?tabelas?/i,
+      /estrutura\s+do\s+(banco|schema)/i,
+      /schema\s+do\s+banco/i,
+      /informações?\s+sobre\s+(as\s+)?tabelas?/i
+    ]
+
+    return schemaQuestions.some(pattern => pattern.test(prompt))
+  }
+
+  /**
    * Determina se o prompt é conversacional ou uma consulta de dados.
    * Gera uma explicação ou um SQL baseado na intenção.
    */
   async handlePrompt(request: LLMRequest): Promise<LLMResponse> {
     const { prompt, model, context } = request
     try {
+      // Verificar se é uma pergunta sobre schema que pode ser respondida diretamente
+      if (this.isSchemaInfoQuestion(prompt)) {
+        const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'inep')
+        if (schemaInfo && schemaInfo.tables && schemaInfo.tables.length > 0) {
+          const tablesList = schemaInfo.tables.map((t: any) => `${t.name} (${t.columnCount} colunas)`).join(', ')
+          return {
+            success: true,
+            content: `Com base no schema disponível, o banco possui ${schemaInfo.tables.length} tabelas principais: ${tablesList}. Cada tabela contém dados específicos sobre diferentes aspectos educacionais do INEP.`,
+            model,
+            tokensUsed: 0,
+            processingTime: Date.now()
+          }
+        }
+      }
+
       const systemPrompt = await this.buildSystemPrompt(context)
       const userPrompt = this.buildUserPrompt(prompt)
 
@@ -248,17 +280,18 @@ Explicação detalhada dos resultados:`
   // permanecem os mesmos, pois já estão bem implementados para a sua arquitetura.
   public async buildSystemPrompt(context?: any): Promise<string> {
     const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'inep');
-    const basePrompt = `Você é um assistente especializado em consultas SQL para banco de dados DB2, mas também pode conversar normalmente com o usuário.
+    const basePrompt = `Você é um assistente especializado em consultas SQL para banco de dados PostgreSQL, mas também pode conversar normalmente com o usuário.
 
 REGRAS IMPORTANTES:
 1. Se a mensagem for uma saudação (oi, olá, hello, etc.) ou pergunta geral sobre o que você faz, responda SEMPRE com "CONVERSA:" seguido da explicação. Mantenha a conversa natural e amigável.
-2. Se for uma consulta específica sobre dados (quantas, liste, mostre, etc.), gere APENAS o SQL válido.
-3. NUNCA misture explicação com SQL.
-4. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema.
-5. Para DB2, use sintaxe específica: FETCH FIRST n ROWS ONLY ao invés de LIMIT.
-6. Sempre prefixe o nome da tabela com o schema inep (ex: inep.CENSO_IES).
-7. Se o schema não estiver disponível, avise o usuário e gere consultas genéricas.
-8. Mantenha a conversa fluida e educada quando não for uma consulta SQL.
+2. Se for uma pergunta sobre informações do schema que já estão disponíveis no contexto (como "quais são as principais tabelas", "que tabelas existem", "mostre as tabelas"), responda com "CONVERSA:" e forneça a informação diretamente do schema disponível.
+3. Se for uma consulta específica sobre dados (quantas, liste, mostre dados específicos, etc.), gere APENAS o SQL válido.
+4. NUNCA misture explicação com SQL.
+5. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema.
+6. Para PostgreSQL, use sintaxe padrão: LIMIT n ao invés de FETCH FIRST n ROWS ONLY.
+7. Sempre prefixe o nome da tabela com o schema inep (ex: inep.censo_ies).
+8. Se o schema não estiver disponível, avise o usuário e gere consultas genéricas.
+9. Mantenha a conversa fluida e educada quando não for uma consulta SQL.
 
 SCHEMA DO BANCO DE DADOS:`;
     if (schemaInfo && schemaInfo.tables && schemaInfo.tables.length > 0) {
@@ -281,17 +314,23 @@ EXEMPLOS CORRETOS:
 Entrada: "oi"
 Saída: CONVERSA: Olá! Sou um assistente especializado em consultas SQL para dados do inep. Posso ajudar você a encontrar informações sobre instituições de ensino, cursos, avaliações e indicadores educacionais. Exemplos: "Quantas instituições existem?", "Liste os cursos de uma área específica", "Mostre dados de avaliação".
 
+Entrada: "quais são as principais tabelas?"
+Saída: CONVERSA: Com base no schema disponível, as principais tabelas são: ${schemaInfo.tables?.slice(0, 5).map((t: any) => `${t.name} (${t.columnCount} colunas)`).join(', ') || 'informação não disponível'}. Cada tabela contém dados específicos sobre diferentes aspectos educacionais.
+
+Entrada: "que tabelas existem no banco?"
+Saída: CONVERSA: O banco possui ${schemaInfo.tables?.length || 0} tabelas principais: ${schemaInfo.tables?.map((t: any) => t.name).join(', ') || 'informação não disponível'}.
+
 Entrada: "Quantas instituições existem?"
-Saída: SELECT COUNT(*) as total FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'TABELA'};
+Saída: SELECT COUNT(*) as total FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'tabela'};
 
 Entrada: "Liste 10 cursos"
-Saída: SELECT SOME_COLUMN_NAME FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'TABELA'} FETCH FIRST 10 ROWS ONLY;
+Saída: SELECT * FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'tabela'} LIMIT 10;
 
 Entrada: "o que você faz?"
-Saída: CONVERSA: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do inep. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores.
+Saída: CONVERSA: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do inep. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores, além de responder perguntas sobre o schema do banco.
 
 Entrada: "Me conte mais sobre você"
-Saída: CONVERSA: Sou um assistente virtual focado em ajudar com consultas SQL e também posso conversar normalmente para tirar dúvidas ou explicar como funciono.
+Saída: CONVERSA: Sou um assistente virtual focado em ajudar com consultas SQL e também posso conversar normalmente para tirar dúvidas ou explicar como funciono. Tenho acesso ao schema completo do banco de dados educacionais.
 `;
     }
     // Fallback para schema básico se não conseguir carregar
@@ -302,6 +341,9 @@ EXEMPLOS CORRETOS:
 
 Entrada: "oi"
 Saída: CONVERSA: Olá! Sou um assistente especializado em consultas SQL. No momento, o schema detalhado não está disponível, mas posso ajudar com consultas básicas.
+
+Entrada: "quais são as tabelas?"
+Saída: CONVERSA: No momento, não tenho acesso ao schema detalhado do banco. Por favor, tente novamente mais tarde ou faça uma consulta específica.
 
 Entrada: "o que você faz?"
 Saída: CONVERSA: Sou especializado em converter suas perguntas em consultas SQL. No momento, estou com acesso limitado ao schema do banco.
