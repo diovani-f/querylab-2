@@ -57,7 +57,30 @@ export class LLMService {
   }
 
   getAvailableModels(): LLMModel[] {
-    return this.availableModels
+    // Organizar modelos: primeiro Groq (alfabético), depois Replicate (alfabético), depois outros
+    const sortedModels = [...this.availableModels].sort((a, b) => {
+      // Definir ordem de prioridade dos providers
+      const providerOrder: Record<string, number> = {
+        'groq': 1,
+        'replicate': 2,
+        'openai': 3,
+        'anthropic': 4,
+        'local': 5
+      }
+
+      const aOrder = providerOrder[a.provider] || 999
+      const bOrder = providerOrder[b.provider] || 999
+
+      // Se são do mesmo provider, ordenar alfabeticamente pelo nome
+      if (aOrder === bOrder) {
+        return a.name.localeCompare(b.name)
+      }
+
+      // Caso contrário, ordenar pela prioridade do provider
+      return aOrder - bOrder
+    })
+
+    return sortedModels
   }
 
   async getDefaultModel(): Promise<LLMModel | null> {

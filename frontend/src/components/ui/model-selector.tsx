@@ -64,31 +64,64 @@ export function ModelSelector() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="w-[300px]">
-        {availableModels.map((model) => (
-          <DropdownMenuItem
-            key={model.id}
-            onClick={() => handleModelSelect(model)}
-            className="flex flex-col items-start space-y-1 p-3 cursor-pointer"
-          >
-            <div className="flex items-center space-x-2 w-full">
-              <span className={providerColors[model.provider]}>
-                {providerIcons[model.provider]}
-              </span>
-              <span className="font-medium">{model.name}</span>
-              {model.isDefault && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                  Padrão
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">{model.description}</p>
-            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-              <span>Max tokens: {model.maxTokens.toLocaleString()}</span>
-              <span>•</span>
-              <span className="capitalize">{model.provider}</span>
-            </div>
-          </DropdownMenuItem>
-        ))}
+        {(() => {
+          // Agrupar modelos por provider para melhor visualização
+          const groupedModels = availableModels.reduce((acc, model) => {
+            if (!acc[model.provider]) {
+              acc[model.provider] = []
+            }
+            acc[model.provider].push(model)
+            return acc
+          }, {} as Record<string, typeof availableModels>)
+
+          const providerOrder = ['groq', 'replicate', 'openai', 'anthropic', 'local']
+
+          return providerOrder.map((provider) => {
+            const models = groupedModels[provider]
+            if (!models || models.length === 0) return null
+
+            return (
+              <div key={provider}>
+                {/* Separador visual entre grupos */}
+                {provider !== 'groq' && (
+                  <div className="border-t border-border my-1" />
+                )}
+
+                {/* Header do grupo */}
+                <div className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <div className="flex items-center space-x-2">
+                    <span className={providerColors[provider as keyof typeof providerColors]}>
+                      {providerIcons[provider as keyof typeof providerIcons]}
+                    </span>
+                    <span>{provider}</span>
+                  </div>
+                </div>
+
+                {/* Modelos do grupo */}
+                {models.map((model) => (
+                  <DropdownMenuItem
+                    key={model.id}
+                    onClick={() => handleModelSelect(model)}
+                    className="flex flex-col items-start space-y-1 p-3 cursor-pointer ml-2"
+                  >
+                    <div className="flex items-center space-x-2 w-full">
+                      <span className="font-medium">{model.name}</span>
+                      {model.isDefault && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                          Padrão
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{model.description}</p>
+                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                      <span>Max tokens: {model.maxTokens.toLocaleString()}</span>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            )
+          }).filter(Boolean)
+        })()}
       </DropdownMenuContent>
     </DropdownMenu>
   )
