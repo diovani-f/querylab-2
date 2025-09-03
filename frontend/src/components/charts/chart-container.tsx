@@ -32,7 +32,7 @@ export function ChartContainer({ queryResult, title }: ChartContainerProps) {
   const analyzeData = () => {
     const { columns, rows } = queryResult
 
-    if (rows.length === 0) {
+    if (!rows || !columns || rows.length === 0) {
       return { canShowBar: false, canShowPie: false, canShowLine: false }
     }
 

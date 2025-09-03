@@ -68,17 +68,11 @@ function formatCellValue(value: any): string {
 export function QueryResultsTable({ queryResult, onExport }: QueryResultsTableProps) {
   const { columns: columnNames = [], rows = [], rowCount, executionTime } = queryResult
 
-  // Verificar se temos dados válidos
-  if (!columnNames || !rows || columnNames.length === 0 || rows.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <p>Nenhum resultado para exibir</p>
-      </div>
-    )
-  }
-
   // Converter dados para formato de tabela
   const data = useMemo(() => {
+    if (!columnNames || !rows || columnNames.length === 0 || rows.length === 0) {
+      return []
+    }
     return rows.map((row, index) => {
       const rowData: Record<string, any> = { _index: index + 1 }
       columnNames.forEach((columnName, colIndex) => {
@@ -90,6 +84,9 @@ export function QueryResultsTable({ queryResult, onExport }: QueryResultsTablePr
 
   // Definir colunas da tabela
   const columns: ColumnDef<any>[] = useMemo(() => {
+    if (!columnNames || !rows || columnNames.length === 0 || rows.length === 0) {
+      return []
+    }
     const cols: ColumnDef<any>[] = [
       {
         accessorKey: "_index",
@@ -171,6 +168,15 @@ export function QueryResultsTable({ queryResult, onExport }: QueryResultsTablePr
 
     return cols
   }, [columnNames])
+
+  // Verificar se temos dados válidos após os hooks
+  if (!columnNames || !rows || columnNames.length === 0 || rows.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p>Nenhum resultado para exibir</p>
+      </div>
+    )
+  }
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     if (onExport) {

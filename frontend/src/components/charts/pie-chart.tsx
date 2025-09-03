@@ -20,7 +20,7 @@ export function PieChartComponent({ queryResult }: PieChartComponentProps) {
   const chartData = useMemo(() => {
     const { columns, rows } = queryResult
 
-    if (rows.length === 0 || columns.length < 2) {
+    if (!rows || !columns || rows.length === 0 || columns.length < 2) {
       return []
     }
 
@@ -30,7 +30,7 @@ export function PieChartComponent({ queryResult }: PieChartComponentProps) {
 
     columns.forEach((column, index) => {
       const sampleValue = rows[0]?.[index]
-      
+
       if (categoryColumnIndex === -1 && typeof sampleValue === 'string' && isNaN(Number(sampleValue))) {
         categoryColumnIndex = index
       } else if (valueColumnIndex === -1 && (typeof sampleValue === 'number' || !isNaN(Number(sampleValue)))) {
@@ -46,7 +46,7 @@ export function PieChartComponent({ queryResult }: PieChartComponentProps) {
     const data = rows.map(row => {
       const value = row[valueColumnIndex]
       const numericValue = typeof value === 'number' ? value : Number(value)
-      
+
       return {
         name: String(row[categoryColumnIndex]),
         value: isNaN(numericValue) ? 0 : numericValue
@@ -57,11 +57,11 @@ export function PieChartComponent({ queryResult }: PieChartComponentProps) {
     if (data.length > 10) {
       const topItems = data.slice(0, 9)
       const othersValue = data.slice(9).reduce((sum, item) => sum + item.value, 0)
-      
+
       if (othersValue > 0) {
         topItems.push({ name: "Outros", value: othersValue })
       }
-      
+
       return topItems
     }
 
@@ -135,19 +135,19 @@ export function PieChartComponent({ queryResult }: PieChartComponentProps) {
             dataKey="value"
           >
             {chartData.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={colors[index % colors.length]} 
+              <Cell
+                key={`cell-${index}`}
+                fill={colors[index % colors.length]}
               />
             ))}
           </Pie>
-          <Tooltip 
+          <Tooltip
             formatter={(value: any) => [
               typeof value === 'number' ? value.toLocaleString('pt-BR') : value,
               'Valor'
             ]}
           />
-          <Legend 
+          <Legend
             verticalAlign="bottom"
             height={36}
             formatter={(value, entry) => (

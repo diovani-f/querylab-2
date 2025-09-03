@@ -22,7 +22,7 @@ export function LineChartComponent({ queryResult }: LineChartComponentProps) {
   const chartData = useMemo(() => {
     const { columns, rows } = queryResult
 
-    if (rows.length === 0 || columns.length < 2) {
+    if (!rows || !columns || rows.length === 0 || columns.length < 2) {
       return []
     }
 
@@ -32,7 +32,7 @@ export function LineChartComponent({ queryResult }: LineChartComponentProps) {
 
     columns.forEach((column, index) => {
       if (index === 0) return // Pular a primeira coluna (será o eixo X)
-      
+
       const sampleValue = rows[0]?.[index]
       if (typeof sampleValue === 'number' || !isNaN(Number(sampleValue))) {
         numericColumnIndices.push(index)
@@ -61,12 +61,12 @@ export function LineChartComponent({ queryResult }: LineChartComponentProps) {
 
   const getNumericColumns = () => {
     const { columns, rows } = queryResult
-    
-    if (rows.length === 0) return []
+
+    if (!rows || !columns || rows.length === 0) return []
 
     return columns.filter((column, index) => {
       if (index === 0) return false // Pular a primeira coluna
-      
+
       const sampleValue = rows[0]?.[index]
       return typeof sampleValue === 'number' || !isNaN(Number(sampleValue))
     })
@@ -89,17 +89,17 @@ export function LineChartComponent({ queryResult }: LineChartComponentProps) {
   // Verificar se os dados do eixo X são datas
   const isDateData = useMemo(() => {
     if (chartData.length === 0) return false
-    
+
     const firstValue = chartData[0]?.name
     if (!firstValue) return false
-    
+
     // Verificar padrões de data
     const datePatterns = [
       /^\d{4}-\d{2}-\d{2}/, // YYYY-MM-DD
       /^\d{2}\/\d{2}\/\d{4}/, // DD/MM/YYYY
       /^\d{4}\/\d{2}\/\d{2}/, // YYYY/MM/DD
     ]
-    
+
     return datePatterns.some(pattern => pattern.test(firstValue))
   }, [chartData])
 
@@ -124,7 +124,7 @@ export function LineChartComponent({ queryResult }: LineChartComponentProps) {
           }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
+          <XAxis
             dataKey="name"
             angle={isDateData ? -45 : 0}
             textAnchor={isDateData ? "end" : "middle"}
@@ -132,7 +132,7 @@ export function LineChartComponent({ queryResult }: LineChartComponentProps) {
             interval={chartData.length > 20 ? "preserveStartEnd" : 0}
           />
           <YAxis />
-          <Tooltip 
+          <Tooltip
             formatter={(value: any, name: string) => [
               typeof value === 'number' ? value.toLocaleString('pt-BR') : value,
               name
@@ -140,7 +140,7 @@ export function LineChartComponent({ queryResult }: LineChartComponentProps) {
             labelFormatter={(label) => `${isDateData ? 'Data' : 'Categoria'}: ${label}`}
           />
           <Legend />
-          
+
           {numericColumns.map((column, index) => (
             <Line
               key={column}

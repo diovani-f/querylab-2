@@ -22,7 +22,7 @@ export function BarChartComponent({ queryResult }: BarChartComponentProps) {
   const chartData = useMemo(() => {
     const { columns, rows } = queryResult
 
-    if (rows.length === 0 || columns.length < 2) {
+    if (!rows || !columns || rows.length === 0 || columns.length < 2) {
       return []
     }
 
@@ -32,7 +32,7 @@ export function BarChartComponent({ queryResult }: BarChartComponentProps) {
 
     columns.forEach((column, index) => {
       const sampleValue = rows[0]?.[index]
-      
+
       if (categoryColumnIndex === -1 && typeof sampleValue === 'string' && isNaN(Number(sampleValue))) {
         categoryColumnIndex = index
       } else if (typeof sampleValue === 'number' || !isNaN(Number(sampleValue))) {
@@ -62,8 +62,8 @@ export function BarChartComponent({ queryResult }: BarChartComponentProps) {
 
   const getNumericColumns = () => {
     const { columns, rows } = queryResult
-    
-    if (rows.length === 0) return []
+
+    if (!rows || !columns || rows.length === 0) return []
 
     return columns.filter((column, index) => {
       const sampleValue = rows[0]?.[index]
@@ -106,15 +106,15 @@ export function BarChartComponent({ queryResult }: BarChartComponentProps) {
           }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="name" 
+          <XAxis
+            dataKey="name"
             angle={-45}
             textAnchor="end"
             height={80}
             interval={0}
           />
           <YAxis />
-          <Tooltip 
+          <Tooltip
             formatter={(value: any, name: string) => [
               typeof value === 'number' ? value.toLocaleString('pt-BR') : value,
               name
@@ -122,7 +122,7 @@ export function BarChartComponent({ queryResult }: BarChartComponentProps) {
             labelFormatter={(label) => `Categoria: ${label}`}
           />
           <Legend />
-          
+
           {numericColumns.map((column, index) => (
             <Bar
               key={column}
