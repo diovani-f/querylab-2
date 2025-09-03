@@ -426,8 +426,8 @@ Retorne apenas o SQL válido:`
    */
   private isReplicateModel(model: string): boolean {
     const replicateModels = [
-      'defog/sqlcoder-7b-2',
-      'meta/codellama-13b-instruct'
+      'nateraw/defog-sqlcoder-7b-2',
+      'meta/codellama-70b-instruct'
     ]
     return replicateModels.includes(model)
   }
@@ -449,13 +449,13 @@ Retorne apenas o SQL válido:`
 
       let input: any
 
-      if (model === 'defog/sqlcoder-7b-2') {
+      if (model === 'nateraw/defog-sqlcoder-7b-2') {
         input = {
           question: combinedPrompt,
           temperature: 0.1,
           max_new_tokens: 1000
         }
-      } else if (model === 'meta/codellama-13b-instruct') {
+      } else if (model === 'meta/codellama-70b-instruct') {
         input = {
           prompt: combinedPrompt,
           temperature: 0.1,

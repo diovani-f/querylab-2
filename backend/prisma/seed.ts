@@ -38,12 +38,12 @@ async function main() {
   })
   console.log(`Modelo LLM padrão criado com ID: ${defaultModel.id}`)
 
-  // Modelo SQLCoder via Replicate
+  // Modelo SQLCoder via Replicate (atualizado)
   const sqlCoderModel = await prisma.lLMModel.upsert({
-    where: { id: 'defog/sqlcoder-7b-2' },
+    where: { id: 'nateraw/defog-sqlcoder-7b-2' },
     update: {},
     create: {
-      id: 'defog/sqlcoder-7b-2',
+      id: 'nateraw/defog-sqlcoder-7b-2',
       name: 'SQLCoder 7B',
       description: 'Modelo especializado em geração de SQL via Replicate',
       provider: 'replicate',
@@ -53,14 +53,14 @@ async function main() {
   })
   console.log(`Modelo SQLCoder criado com ID: ${sqlCoderModel.id}`)
 
-  // Modelo CodeLlama via Replicate
+  // Modelo CodeLlama via Replicate (atualizado para 70B)
   const codeLlamaModel = await prisma.lLMModel.upsert({
-    where: { id: 'meta/codellama-13b-instruct' },
+    where: { id: 'meta/codellama-70b-instruct' },
     update: {},
     create: {
-      id: 'meta/codellama-13b-instruct',
-      name: 'CodeLlama 13B Instruct',
-      description: 'Modelo de código da Meta via Replicate',
+      id: 'meta/codellama-70b-instruct',
+      name: 'CodeLlama 70B Instruct',
+      description: 'Modelo de código da Meta via Replicate (70B parâmetros)',
       provider: 'replicate',
       maxTokens: 4096,
       isDefault: false,
