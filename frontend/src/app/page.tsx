@@ -7,10 +7,12 @@ import { ChatInterface } from "@/components/chat/chat-interface"
 import { useAppStore } from "@/stores/app-store"
 import { useAuthStore } from "@/stores/auth-store"
 import { AuthenticatedRoute } from "@/components/auth/protected-route"
+import { useSidebar } from "@/hooks/use-sidebar"
 
 export default function Home() {
   const { loadModels, loadSessions, initializeWebSocket } = useAppStore()
   const { isAuthenticated, user } = useAuthStore()
+  const sidebar = useSidebar()
 
   // Carregar modelos e inicializar WebSocket quando a aplicação iniciar
   useEffect(() => {
@@ -30,15 +32,23 @@ export default function Home() {
     <AuthenticatedRoute>
       <div className="h-screen flex flex-col">
         {/* Header */}
-        <Header />
+        <Header sidebarControls={sidebar} />
 
         {/* Main Content */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
+          {/* Sidebar Overlay for Mobile */}
+          {sidebar.isMobile && sidebar.isOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={sidebar.close}
+            />
+          )}
+
           {/* Sidebar */}
-          <Sidebar />
+          <Sidebar sidebarControls={sidebar} />
 
           {/* Chat Area */}
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col min-w-0">
             <ChatInterface />
           </main>
         </div>

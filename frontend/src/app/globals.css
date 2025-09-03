@@ -79,4 +79,45 @@
     @apply bg-background text-foreground;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
+
+  /* Melhorias para responsividade */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent horizontal scroll on mobile */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Better touch targets on mobile */
+  @media (max-width: 768px) {
+    button, a, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Improve text readability on small screens */
+  @media (max-width: 640px) {
+    body {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Prevent overflow on mobile */
+    * {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    /* Ensure code blocks don't overflow */
+    pre, code {
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow-x: auto;
+    }
+
+
+  }
 }

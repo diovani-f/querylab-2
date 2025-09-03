@@ -144,8 +144,8 @@ export function ChatInterface() {
   return (
     <div className="flex h-full flex-col">
       {/* Área de Mensagens */}
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="space-y-8 max-w-4xl mx-auto">
+      <ScrollArea className="flex-1 p-2 sm:p-4" ref={scrollAreaRef}>
+        <div className="space-y-6 sm:space-y-8 w-full">
           {isLoadingMessages ? (
             <div className="text-center py-8">
               <SQLExecutionIndicator />
@@ -179,8 +179,8 @@ export function ChatInterface() {
       </ScrollArea>
 
       {/* Input de Mensagem */}
-      <div className="border-t p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="border-t p-2 sm:p-4">
+        <div className="w-full">
           <div className="flex space-x-2">
             <Input
               value={inputValue}

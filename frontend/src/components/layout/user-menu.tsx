@@ -33,19 +33,23 @@ export function UserMenu() {
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-1 sm:space-x-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push("/login")}
+          className="text-xs sm:text-sm"
         >
-          Entrar
+          <span className="hidden xs:inline">Entrar</span>
+          <span className="xs:hidden">Login</span>
         </Button>
         <Button
           size="sm"
           onClick={() => router.push("/register")}
+          className="text-xs sm:text-sm"
         >
-          Criar Conta
+          <span className="hidden sm:inline">Criar Conta</span>
+          <span className="sm:hidden">Registro</span>
         </Button>
       </div>
     )
@@ -54,11 +58,11 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="flex items-center space-x-2 h-8 px-3">
+        <Button variant="ghost" className="flex items-center space-x-1 sm:space-x-2 h-8 px-2 sm:px-3">
           <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
             <User className="w-3 h-3 text-white" />
           </div>
-          <span className="text-sm font-medium">{user.nome}</span>
+          <span className="text-sm font-medium hidden sm:inline truncate max-w-[100px]">{user.nome}</span>
           <ChevronDown className="w-4 h-4" />
         </Button>
       </DropdownMenuTrigger>

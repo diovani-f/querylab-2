@@ -20,7 +20,17 @@ import {
 import { useToast } from "@/components/ui/toast"
 import { PulseLoader } from "react-spinners"
 
-export function Sidebar() {
+interface SidebarProps {
+  sidebarControls?: {
+    isOpen: boolean
+    isMobile: boolean
+    toggle: () => void
+    close: () => void
+    open: () => void
+  }
+}
+
+export function Sidebar({ sidebarControls }: SidebarProps) {
   const isHydrated = useHydration()
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -41,7 +51,12 @@ export function Sidebar() {
   // Não renderizar até estar hidratado
   if (!isHydrated) {
     return (
-      <div className="w-80 border-r bg-muted/10 flex items-center justify-center">
+      <div className={cn(
+        "border-r flex items-center justify-center transition-all duration-300",
+        sidebarControls?.isMobile
+          ? "fixed inset-y-0 left-0 z-50 w-80 transform -translate-x-full bg-background shadow-lg"
+          : "w-80 bg-muted/10"
+      )}>
         <p className="text-sm text-muted-foreground">Carregando...</p>
       </div>
     )
@@ -60,6 +75,10 @@ export function Sidebar() {
     const session = safeSessions.find(s => s.id === sessionId)
     if (session) {
       setCurrentSession(session)
+      // Close sidebar on mobile after selecting a session
+      if (sidebarControls?.isMobile) {
+        sidebarControls.close()
+      }
     }
   }
 
@@ -114,8 +133,18 @@ export function Sidebar() {
     }
   }
 
+  const sidebarClasses = cn(
+    "flex h-full flex-col border-r transition-all duration-300",
+    sidebarControls?.isMobile
+      ? cn(
+          "fixed inset-y-0 left-0 z-50 w-80 transform bg-background shadow-lg",
+          sidebarControls.isOpen ? "translate-x-0" : "-translate-x-full"
+        )
+      : "w-80 bg-muted/10"
+  )
+
   return (
-    <div className="flex h-full w-80 flex-col border-r bg-muted/10">
+    <div className={sidebarClasses}>
       {/* Header da Sidebar */}
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="text-lg font-semibold">Sessões</h2>

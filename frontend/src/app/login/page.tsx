@@ -36,13 +36,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="max-w-md w-full space-y-6 sm:space-y-8 p-6 sm:p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
             <LogIn className="h-6 w-6 text-white" />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
+          <h2 className="mt-4 sm:mt-6 text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             Entrar no QueryLab
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -50,9 +50,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3 sm:p-4">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}

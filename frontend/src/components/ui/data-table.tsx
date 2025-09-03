@@ -86,7 +86,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between py-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4">
         <div className="flex items-center space-x-2">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -94,7 +94,7 @@ export function DataTable<TData, TValue>({
               placeholder={searchPlaceholder}
               value={globalFilter ?? ""}
               onChange={(event) => setGlobalFilter(String(event.target.value))}
-              className="pl-8 max-w-sm"
+              className="pl-8 w-full sm:max-w-sm"
             />
           </div>
         </div>
@@ -105,7 +105,7 @@ export function DataTable<TData, TValue>({
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 <Eye className="mr-2 h-4 w-4" />
-                Colunas
+                <span className="hidden sm:inline">Colunas</span>
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -138,7 +138,7 @@ export function DataTable<TData, TValue>({
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Download className="mr-2 h-4 w-4" />
-                  Exportar
+                  <span className="hidden sm:inline">Exportar</span>
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -161,14 +161,14 @@ export function DataTable<TData, TValue>({
       </div>
 
       <div className="rounded-md border overflow-hidden">
-        <div className="overflow-auto max-h-[60vh]">
+        <div className="overflow-auto max-h-[60vh] min-h-[200px]">
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
-                      <TableHead key={header.id} className="whitespace-nowrap">
+                      <TableHead key={header.id} className="whitespace-nowrap min-w-[80px] sm:min-w-[100px]">
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -189,8 +189,8 @@ export function DataTable<TData, TValue>({
                     data-state={row.getIsSelected() && "selected"}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="whitespace-nowrap max-w-xs truncate">
-                        <div title={String(cell.getValue())}>
+                      <TableCell key={cell.id} className="max-w-xs truncate min-w-[60px] sm:min-w-[80px]">
+                        <div title={String(cell.getValue())} className="text-sm">
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
@@ -215,14 +215,14 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
 
-      <div className="flex items-center justify-between space-x-2 py-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0 sm:space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length} de{" "}
           {table.getFilteredRowModel().rows.length} linha(s) selecionada(s).
         </div>
-        <div className="flex items-center space-x-6 lg:space-x-8">
+        <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Linhas por página</p>
+            <p className="text-sm font-medium whitespace-nowrap">Linhas por página</p>
             <select
               value={table.getState().pagination.pageSize}
               onChange={(e) => {
@@ -237,14 +237,14 @@ export function DataTable<TData, TValue>({
               ))}
             </select>
           </div>
-          <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+          <div className="flex items-center justify-center text-sm font-medium whitespace-nowrap">
             Página {table.getState().pagination.pageIndex + 1} de{" "}
             {table.getPageCount()}
           </div>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex"
+              className="hidden h-8 w-8 p-0 sm:flex"
               onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
             >
@@ -271,7 +271,7 @@ export function DataTable<TData, TValue>({
             </Button>
             <Button
               variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex"
+              className="hidden h-8 w-8 p-0 sm:flex"
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
               disabled={!table.getCanNextPage()}
             >

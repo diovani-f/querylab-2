@@ -9,6 +9,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      screens: {
+        'xs': '475px',
+        '3xl': '1600px',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -52,6 +56,14 @@ const config: Config = {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Consolas', 'monospace'],
+      },
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
+      },
+      maxWidth: {
+        '8xl': '88rem',
+        '9xl': '96rem',
       },
     },
   },

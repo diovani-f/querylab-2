@@ -99,13 +99,13 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
     }
   }
   return (
-    <div className={cn("flex", getContainerStyles(messageData.tipo), "relative")}> {/* relative para botões absolutos */}
+    <div className={cn("flex", getContainerStyles(messageData.tipo), "relative w-full")}> {/* relative para botões absolutos */}
       <div className={cn(
-        "max-w-[80%] rounded-lg p-4 space-y-2",
+        "max-w-[85%] sm:max-w-[70%] md:max-w-[60%] lg:max-w-[50%] xl:max-w-[45%] rounded-lg p-3 sm:p-4 space-y-2 overflow-hidden break-words",
         getBubbleStyles(messageData.tipo)
       )}>
         {/* Header da mensagem */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-wrap gap-1">
           {getIcon(messageData.tipo)}
           <span className="text-sm font-medium">
             {messageData.tipo === 'user' ? 'Você' :
@@ -122,7 +122,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
             </Badge>
           )}
 
-          <span className="text-xs opacity-70">
+          <span className="text-xs opacity-70 ml-auto">
             {new Date(messageData.timestamp).toLocaleTimeString('pt-BR', {
               hour: '2-digit',
               minute: '2-digit'
@@ -132,7 +132,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
 
         {/* Conteúdo da mensagem */}
         {messageData.conteudo && (
-          <div className="text-sm whitespace-pre-wrap">
+          <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
             <ReactMarkdown>{messageData.conteudo}</ReactMarkdown>
           </div>
         )}
@@ -144,9 +144,9 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
               <Code className="h-4 w-4" />
               <span className="text-sm font-medium">SQL Gerado</span>
             </div>
-            <div className="flex items-start gap-4">
-              <div className="relative bg-black/10 rounded p-3 font-mono text-xs overflow-auto max-w-full flex-grow" style={{ maxHeight: 300 }}>
-                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{messageData.sqlQuery}</pre>
+            <div className="flex items-start gap-2 sm:gap-4 w-full">
+              <div className="relative bg-black/10 rounded p-2 sm:p-3 font-mono text-xs overflow-auto flex-grow min-w-0" style={{ maxHeight: 300 }}>
+                <pre className="whitespace-pre-wrap break-all">{messageData.sqlQuery}</pre>
               </div>
               <TooltipProvider>
                 <Tooltip>
@@ -197,17 +197,18 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
               )}
             </div>
 
-            <div className="bg-background border rounded-lg p-4 overflow-auto" style={{ maxHeight: 400 }}>
+            {/* Mostrar tabela apenas em desktop */}
+            <div className="hidden md:block bg-background border rounded-lg p-2 sm:p-4 overflow-auto" style={{ maxHeight: 400 }}>
               {messageData.queryResult.rows && messageData.queryResult.rows.length > 0 ? (
                 <div className="space-y-3">
                   {/* Tabela simples para resultados pequenos */}
                   {messageData.queryResult.rows.length <= 10 ? (
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
+                      <table className="w-full text-xs sm:text-sm table-auto">
                         <thead>
                           <tr className="border-b">
                             {messageData.queryResult.columns?.map((column, index) => (
-                              <th key={index} className="text-left p-2 font-medium">
+                              <th key={index} className="text-left p-1 sm:p-2 font-medium whitespace-nowrap min-w-[60px]">
                                 {column}
                               </th>
                             ))}
@@ -217,7 +218,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                           {messageData.queryResult.rows.map((row, rowIndex) => (
                             <tr key={rowIndex} className="border-b border-gray-100">
                               {row.map((cell, cellIndex) => (
-                                <td key={cellIndex} className="p-2 font-mono text-xs">
+                                <td key={cellIndex} className="p-1 sm:p-2 font-mono text-xs break-all min-w-[60px] max-w-[120px]">
                                   {cell !== null && cell !== undefined ? String(cell) : '-'}
                                 </td>
                               ))}
@@ -264,6 +265,14 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                 <p className="text-sm text-muted-foreground">Nenhum resultado encontrado.</p>
               )}
             </div>
+
+            {/* Mensagem para mobile indicando onde ver os resultados */}
+            <div className="md:hidden bg-muted/20 border border-dashed rounded-lg p-3 text-center">
+              <p className="text-sm text-muted-foreground">
+                📱 Para visualizar os resultados da consulta em dispositivos móveis,
+                clique no botão <strong>"Detalhes Técnicos"</strong> abaixo.
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -271,8 +280,8 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
       {/* Botões flutuantes abaixo do bubble-message */}
       {messageData.tipo === 'assistant' && (
         <div
-          className="flex flex-row gap-3 items-center mt-4"
-          style={{ position: 'absolute', left: '8px', bottom: '0', transform: 'translateY(40px)', zIndex: 20 }}
+          className="flex flex-row gap-2 sm:gap-3 items-center mt-4"
+          style={{ position: 'absolute', left: '4px', bottom: '0', transform: 'translateY(40px)', zIndex: 20 }}
         >
           <TooltipProvider>
             {/* Botão para explain detalhado */}
