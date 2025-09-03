@@ -12,10 +12,12 @@ export interface Message {
 }
 
 export interface QueryResult {
-  columns: string[]
-  rows: any[][]
-  rowCount: number
-  executionTime: number
+  columns?: string[] | null
+  rows?: any[][] | null
+  rowCount?: number | null
+  executionTime?: number | null
+  success?: boolean | null
+  error?: string | null
 }
 
 export interface ChatSession {

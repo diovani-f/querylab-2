@@ -171,17 +171,22 @@ export class ChatService {
     error?: string
   }> {
     try {
+      console.log(`🔍 Processando query para messageId: ${messageId}`)
+
       const mensagem = await prisma.mensagem.findUnique({
         where: {id: messageId}
       })
 
       if(!mensagem || !mensagem?.sqlQuery){
+        console.log('❌ Mensagem ou SQL Query não encontrada:', { mensagem: !!mensagem, sqlQuery: mensagem?.sqlQuery })
          return {
           success: false,
           sessionId: mensagem?.sessaoId,
           error: 'Mensagem SQL Query não encontrada'
         }
       }
+
+      console.log(`🔍 SQL Query encontrada: ${mensagem.sqlQuery}`)
 
       const dbResponse = await this.queryService.executeQuery(mensagem.sqlQuery);
       console.log("🚀 ~ ChatService ~ processQuery ~ dbResponse:", dbResponse)

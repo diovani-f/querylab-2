@@ -103,12 +103,12 @@ router.patch('/execute', async(req, res) => {
 
     if(!message.success){
       console.error('[ERRO]: ', message.error || 'Erro ao executar query')
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: message.error || 'Erro ao executar query'
       })
-
     }
+
     res.json({
       success: true,
       data: message.assistantMessage

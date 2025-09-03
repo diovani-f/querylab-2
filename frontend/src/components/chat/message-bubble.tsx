@@ -176,13 +176,13 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
         )}
 
         {/* Resultados da Query */}
-        {messageData.queryResult && messageData.queryResult.success && (
+        {messageData.queryResult && messageData.queryResult.success !== false && messageData.queryResult.rows && messageData.queryResult.rows.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Table className="h-4 w-4" />
               <span className="text-sm font-medium">Resultados</span>
               <Badge variant="outline" className="text-xs">
-                {messageData.queryResult.rowCount} linha{messageData.queryResult.rowCount !== 1 ? 's' : ''}
+                {messageData.queryResult.rowCount || 0} linha{(messageData.queryResult.rowCount || 0) !== 1 ? 's' : ''}
               </Badge>
               {messageData.queryResult.executionTime && (
                 <Badge variant="secondary" className="text-xs">
@@ -333,7 +333,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                         </div>
                       </DialogHeader>
                       {/* Resultados da Query */}
-                      {messageData.queryResult && messageData.queryResult.success && messageData.queryResult.rows && messageData.queryResult.rows.length > 0 && (
+                      {messageData.queryResult && messageData.queryResult.success !== false && messageData.queryResult.rows && messageData.queryResult.rows.length > 0 && (
                         <div className="mt-4 overflow-hidden">
                           <QueryResultsTable
                             queryResult={messageData.queryResult}
@@ -344,7 +344,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                           />
                         </div>
                       )}
-                      {messageData.queryResult && !messageData.queryResult.success && (
+                      {messageData.queryResult && messageData.queryResult.success === false && (
                         <div className="mt-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
                           <p className="text-sm text-destructive">
                             Erro na execução: {messageData.queryResult.error}
