@@ -66,7 +66,16 @@ function formatCellValue(value: any): string {
 }
 
 export function QueryResultsTable({ queryResult, onExport }: QueryResultsTableProps) {
-  const { columns: columnNames, rows, rowCount, executionTime } = queryResult
+  const { columns: columnNames = [], rows = [], rowCount, executionTime } = queryResult
+
+  // Verificar se temos dados válidos
+  if (!columnNames || !rows || columnNames.length === 0 || rows.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p>Nenhum resultado para exibir</p>
+      </div>
+    )
+  }
 
   // Converter dados para formato de tabela
   const data = useMemo(() => {
