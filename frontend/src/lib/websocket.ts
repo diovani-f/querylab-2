@@ -72,6 +72,25 @@ class WebSocketService {
     this.socket?.on('message-processing', callback)
   }
 
+  onMessageUpdated(callback: (message: Message) => void) {
+    this.socket?.on('message-updated', callback)
+  }
+
+  onQueryExecuting(callback: (status: string) => void) {
+    this.socket?.on('query-executing', callback)
+  }
+
+  onQueryError(callback: (error: string) => void) {
+    this.socket?.on('query-error', callback)
+  }
+
+  executeQuery(data: { messageId: string, sessionId: string }) {
+    if (!this.socket) {
+      throw new Error('WebSocket não conectado')
+    }
+    this.socket.emit('execute-query', data)
+  }
+
   onSessionJoined(callback: (sessionId: string) => void) {
     this.socket?.on('session-joined', callback)
   }

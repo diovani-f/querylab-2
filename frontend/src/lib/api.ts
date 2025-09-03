@@ -121,6 +121,10 @@ class ApiService {
     return this.get(`/evaluation/message/${messageId}`)
   }
 
+  async getSessionMessages(sessionId: string) {
+    return this.get(`/sessions/${sessionId}/messages`)
+  }
+
   async saveEvaluation(evaluationData: any) {
     return this.post('/evaluation/evaluate', evaluationData)
   }

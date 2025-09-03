@@ -13,16 +13,25 @@ interface EvaluationTriggerProps {
   onClick?: () => void
 }
 
+// Cache simples para evitar requisições duplicadas
+const evaluationCache = new Map<string, QueryEvaluation | null>()
+
 export function EvaluationTrigger({ messageId, evaluation: propEvaluation, onClick }: EvaluationTriggerProps) {
-  const [evaluation, setEvaluation] = useState<QueryEvaluation | null>(propEvaluation || null)
-  const [isLoading, setIsLoading] = useState(!propEvaluation)
+  const [evaluation, setEvaluation] = useState<QueryEvaluation | null>(propEvaluation || evaluationCache.get(messageId) || null)
+  const [isLoading, setIsLoading] = useState(!propEvaluation && !evaluationCache.has(messageId))
 
   useEffect(() => {
     // Se já temos a avaliação via props, não precisamos carregar
     if (propEvaluation) {
       setEvaluation(propEvaluation)
+      evaluationCache.set(messageId, propEvaluation)
+      setIsLoading(false)
+    } else if (evaluationCache.has(messageId)) {
+      // Se já está no cache, usar o valor do cache
+      setEvaluation(evaluationCache.get(messageId) || null)
       setIsLoading(false)
     } else {
+      // Só carregar se realmente não temos a avaliação
       loadEvaluation()
     }
   }, [messageId, propEvaluation])
@@ -33,9 +42,13 @@ export function EvaluationTrigger({ messageId, evaluation: propEvaluation, onCli
       const data = await apiService.getEvaluationByMessage(messageId)
       if (data.success && data.evaluation) {
         setEvaluation(data.evaluation)
+        evaluationCache.set(messageId, data.evaluation)
+      } else {
+        evaluationCache.set(messageId, null)
       }
     } catch (error) {
       console.error('Erro ao carregar avaliação:', error)
+      evaluationCache.set(messageId, null)
     } finally {
       setIsLoading(false)
     }

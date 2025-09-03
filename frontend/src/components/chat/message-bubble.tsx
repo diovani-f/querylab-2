@@ -271,61 +271,69 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
       {/* Botões flutuantes abaixo do bubble-message */}
       {messageData.tipo === 'assistant' && (
         <div
-          className="flex flex-row gap-2 items-center"
-          style={{ position: 'absolute', left: '5px', bottom: '0', transform: 'translateY(25px)', marginTop: 12, zIndex: 20 }}
+          className="flex flex-row gap-3 items-center mt-4"
+          style={{ position: 'absolute', left: '8px', bottom: '0', transform: 'translateY(40px)', zIndex: 20 }}
         >
           <TooltipProvider>
             {/* Botão para explain detalhado */}
             {messageData.explanation && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Dialog open={showExplainModal} onOpenChange={setShowExplainModal}>
+              <Dialog open={showExplainModal} onOpenChange={setShowExplainModal}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
                         size="icon"
-                        className="rounded-full shadow-lg"
+                        className="rounded-full shadow-lg bg-background border-2 hover:bg-accent hover:scale-105 transition-all duration-200"
                         onClick={() => setShowExplainModal(true)}
                       >
-                        <Info className="h-5 w-5" />
+                        <Info className="h-4 w-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl w-full">
-                      <DialogHeader>
-                        <DialogTitle>Explain Detalhado</DialogTitle>
-                      </DialogHeader>
-                      {/* Explain detalhado */}
-                      {messageData.explanation && (
-                        <DialogDescription className="mt-4">
-                          <ReactMarkdown>{messageData.explanation}</ReactMarkdown>
-                        </DialogDescription>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-                </TooltipTrigger>
-                <TooltipContent>Explain Detalhado</TooltipContent>
-              </Tooltip>
+                  </TooltipTrigger>
+                  <TooltipContent>Explain Detalhado</TooltipContent>
+                </Tooltip>
+                <DialogContent className="max-w-2xl w-full">
+                  <DialogHeader>
+                    <DialogTitle>Explain Detalhado</DialogTitle>
+                  </DialogHeader>
+                  {/* Explain detalhado */}
+                  {messageData.explanation && (
+                    <DialogDescription className="mt-4">
+                      <ReactMarkdown>{messageData.explanation}</ReactMarkdown>
+                    </DialogDescription>
+                  )}
+                </DialogContent>
+              </Dialog>
             )}
             {/* Botão de detalhes técnicos */}
             {messageData.queryResult && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Dialog open={showTechnicalModal} onOpenChange={setShowTechnicalModal}>
+              <Dialog open={showTechnicalModal} onOpenChange={setShowTechnicalModal}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
                         size="icon"
-                        className="rounded-full shadow-lg"
+                        className="rounded-full shadow-lg bg-background border-2 hover:bg-accent hover:scale-105 transition-all duration-200"
                         onClick={() => setShowTechnicalModal(true)}
                       >
-                        <Eye className="h-5 w-5" />
+                        <Eye className="h-4 w-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-6xl w-full max-h-[80vh]">
-                      <DialogHeader>
+                  </TooltipTrigger>
+                  <TooltipContent>Detalhes Técnicos</TooltipContent>
+                </Tooltip>
+                    <DialogContent className="max-w-7xl w-[95vw] max-h-[90vh] flex flex-col">
+                      <DialogHeader className="flex-shrink-0">
                         <DialogTitle>Detalhes Técnicos</DialogTitle>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>SQL: {messageData.sqlQuery}</span>
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">SQL:</span>
+                            <code className="bg-muted px-2 py-1 rounded text-xs max-w-md truncate">
+                              {messageData.sqlQuery}
+                            </code>
+                          </div>
                           {messageData.queryResult?.executionTime && (
                             <Badge variant="secondary">
                               {messageData.queryResult.executionTime}ms
@@ -338,30 +346,33 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                           )}
                         </div>
                       </DialogHeader>
-                      {/* Resultados da Query */}
-                      {messageData.queryResult && messageData.queryResult.success !== false && messageData.queryResult.rows && messageData.queryResult.rows.length > 0 && (
-                        <div className="mt-4 overflow-hidden">
-                          <QueryResultsTable
-                            queryResult={messageData.queryResult}
-                            onExport={(format) => {
-                              console.log(`Exportando em formato: ${format}`)
-                              // TODO: Implementar exportação
-                            }}
-                          />
-                        </div>
-                      )}
-                      {messageData.queryResult && messageData.queryResult.success === false && (
-                        <div className="mt-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                          <p className="text-sm text-destructive">
-                            Erro na execução: {messageData.queryResult.error}
-                          </p>
-                        </div>
-                      )}
+
+                      {/* Conteúdo scrollável */}
+                      <div className="flex-1 overflow-hidden">
+                        {/* Resultados da Query */}
+                        {messageData.queryResult && messageData.queryResult.success !== false && messageData.queryResult.rows && messageData.queryResult.rows.length > 0 && (
+                          <div className="h-full overflow-auto">
+                            <QueryResultsTable
+                              queryResult={messageData.queryResult}
+                              onExport={(format) => {
+                                console.log(`Exportando em formato: ${format}`)
+                                // TODO: Implementar exportação
+                              }}
+                            />
+                          </div>
+                        )}
+                        {messageData.queryResult && messageData.queryResult.success === false && (
+                          <div className="p-4">
+                            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                              <p className="text-sm text-destructive">
+                                Erro na execução: {messageData.queryResult.error}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </DialogContent>
-                  </Dialog>
-                </TooltipTrigger>
-                <TooltipContent>Detalhes Técnicos</TooltipContent>
-              </Tooltip>
+              </Dialog>
             )}
             {/* Modal de Avaliação - apenas para mensagens de assistente com SQL */}
             {messageData.tipo === 'assistant' && sessionId && messageData.sqlQuery && (
@@ -375,7 +386,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                 >
                   <EvaluationTrigger
                     messageId={messageData.id}
-                    evaluation={messageData.evaluation}
+                    evaluation={message.evaluation || messageData.evaluation}
                   />
                 </EvaluationModal>
               </div>

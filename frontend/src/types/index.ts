@@ -27,6 +27,7 @@ export interface ChatSession {
   updatedAt: Date
   mensagens: Message[]
   modelo: string
+  messageCount?: number // Para quando carregamos apenas o resumo das sessões
 }
 
 export type LLMProvider = 'groq' | 'openai' | 'anthropic' | 'local' | 'replicate'
@@ -100,6 +101,9 @@ export interface AppState {
   isConnected: boolean
   user: User | null
   isProcessing: boolean
+  isLoadingSessions: boolean
+  isLoadingMessages: boolean
+  isCreatingSession: boolean
 }
 
 export interface ChatResponse {

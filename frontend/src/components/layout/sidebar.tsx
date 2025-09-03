@@ -30,7 +30,9 @@ export function Sidebar() {
     currentSession,
     setCurrentSession,
     createNewSession,
-    deleteSession
+    deleteSession,
+    isLoadingSessions,
+    isCreatingSession
   } = useAppStore()
 
   // Garantir que sessions é sempre um array
@@ -117,15 +119,31 @@ export function Sidebar() {
       {/* Header da Sidebar */}
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="text-lg font-semibold">Sessões</h2>
-        <Button onClick={handleNewSession} size="sm" className="h-8 w-8 p-0">
-          <Plus className="h-4 w-4" />
+        <Button
+          onClick={handleNewSession}
+          size="sm"
+          className="h-8 w-8 p-0"
+          disabled={isCreatingSession}
+        >
+          {isCreatingSession ? (
+            <PulseLoader color="#ffffff" size={4} />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
         </Button>
       </div>
 
       {/* Lista de Sessões */}
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-2">
-          {safeSessions.length === 0 ? (
+          {isLoadingSessions ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <PulseLoader color="#6366f1" size={8} />
+              <p className="text-sm text-muted-foreground mt-4">
+                Carregando sessões...
+              </p>
+            </div>
+          ) : safeSessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground">
@@ -153,7 +171,7 @@ export function Sidebar() {
                     {session.titulo}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {(session.mensagens || []).length} mensagens
+                    {session.messageCount || (session.mensagens || []).length} mensagens
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(session.updatedAt).toLocaleDateString('pt-BR')}

@@ -9,6 +9,7 @@ import { Send, MessageSquare } from "lucide-react"
 import { MessageBubble } from "./message-bubble"
 import { TypingIndicator, SQLExecutionIndicator } from "./typing-indicator"
 import { websocketService } from "@/lib/websocket"
+import { PulseLoader } from "react-spinners"
 
 export function ChatInterface() {
   const [inputValue, setInputValue] = useState("")
@@ -24,6 +25,8 @@ export function ChatInterface() {
     sendMessage,
     initializeWebSocket,
     disconnectWebSocket,
+    isLoadingMessages,
+    isCreatingSession
   } = useAppStore()
 
   // Função para scroll suave para o final
@@ -119,8 +122,19 @@ export function ChatInterface() {
             Faça consultas em linguagem natural e converta-as automaticamente para SQL.
             Comece uma nova conversa para começar.
           </p>
-          <Button onClick={() => createNewSession()}>
-            Iniciar Nova Sessão
+          <Button
+            onClick={() => createNewSession()}
+            disabled={isCreatingSession}
+            className="min-w-[160px]"
+          >
+            {isCreatingSession ? (
+              <div className="flex items-center gap-2">
+                <PulseLoader color="#ffffff" size={6} />
+                <span>Criando...</span>
+              </div>
+            ) : (
+              'Iniciar Nova Sessão'
+            )}
           </Button>
         </div>
       </div>
@@ -131,8 +145,15 @@ export function ChatInterface() {
     <div className="flex h-full flex-col">
       {/* Área de Mensagens */}
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="space-y-4 max-w-4xl mx-auto">
-          {(currentSession?.mensagens || []).length === 0 ? (
+        <div className="space-y-8 max-w-4xl mx-auto">
+          {isLoadingMessages ? (
+            <div className="text-center py-8">
+              <SQLExecutionIndicator />
+              <p className="text-muted-foreground mt-4">
+                Carregando mensagens...
+              </p>
+            </div>
+          ) : (currentSession?.mensagens || []).length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 Digite sua primeira consulta abaixo para começar
@@ -165,16 +186,20 @@ export function ChatInterface() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Digite sua consulta em linguagem natural..."
+              placeholder={isCreatingSession ? "Criando sessão..." : "Digite sua consulta em linguagem natural..."}
               className="flex-1"
-              disabled={isProcessing}
+              disabled={isProcessing || isCreatingSession}
             />
             <Button
               onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isProcessing}
+              disabled={!inputValue.trim() || isProcessing || isCreatingSession}
               size="icon"
             >
-              <Send className="h-4 w-4" />
+              {isCreatingSession ? (
+                <PulseLoader color="#ffffff" size={4} />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">

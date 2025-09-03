@@ -14,7 +14,16 @@ const normalizeSession = (session: any): ChatSession => ({
   ...session,
   createdAt: new Date(session.createdAt),
   updatedAt: new Date(session.updatedAt),
-  mensagens: (session.mensagens || []).map(normalizeMessage)
+  mensagens: (session.mensagens || []).map(normalizeMessage),
+  messageCount: session._count?.mensagens || session.mensagens?.length || 0
+})
+
+const normalizeSessionSummary = (session: any): ChatSession => ({
+  ...session,
+  createdAt: new Date(session.createdAt),
+  updatedAt: new Date(session.updatedAt),
+  mensagens: [], // Não carregar mensagens no resumo
+  messageCount: session._count?.mensagens || 0
 })
 
 interface AppStore extends AppState {
@@ -29,12 +38,16 @@ interface AppStore extends AppState {
   setDatabaseConnection: (connection: DatabaseConnection) => void
   setConnectionStatus: (isConnected: boolean) => void
   loadSessions: () => Promise<void>
+  loadSessionMessages: (sessionId: string) => Promise<void>
   loadModels: () => Promise<void>
   deleteSession: (sessionId: string) => Promise<void>
   sendMessage: (content: string) => Promise<void>
   initializeWebSocket: () => void
   disconnectWebSocket: () => void
   setIsProcessing: (value: boolean) => void
+  setIsLoadingSessions: (value: boolean) => void
+  setIsLoadingMessages: (value: boolean) => void
+  setIsCreatingSession: (value: boolean) => void
 }
 
 const defaultModels: LLMModel[] = [
@@ -60,13 +73,29 @@ export const useAppStore = create<AppStore>()(
       isConnected: false,
       user: null,
       isProcessing: false,
+      isLoadingSessions: false,
+      isLoadingMessages: false,
+      isCreatingSession: false,
 
       setIsProcessing: (value) => set({ isProcessing: value }),
+      setIsLoadingSessions: (value) => set({ isLoadingSessions: value }),
+      setIsLoadingMessages: (value) => set({ isLoadingMessages: value }),
+      setIsCreatingSession: (value) => set({ isCreatingSession: value }),
 
       // Actions
-      setCurrentSession: (session) => {
-        const normalizedSession = session ? normalizeSession(session) : null
+      setCurrentSession: async (session) => {
+        if (!session) {
+          set({ currentSession: null })
+          return
+        }
+
+        const normalizedSession = normalizeSession(session)
         set({ currentSession: normalizedSession })
+
+        // Se a sessão não tem mensagens carregadas, carregar agora
+        if (normalizedSession.mensagens.length === 0 && normalizedSession.messageCount && normalizedSession.messageCount > 0) {
+          await get().loadSessionMessages(session.id)
+        }
       },
 
       setSessions: (sessions) => {
@@ -137,6 +166,9 @@ export const useAppStore = create<AppStore>()(
 
       createNewSession: async (title) => {
         try {
+          set({ isCreatingSession: true })
+          console.log('🔄 Criando nova sessão...')
+
           // Obter usuário do auth store
           const { useAuthStore } = await import('./auth-store')
           const user = useAuthStore.getState().user
@@ -159,9 +191,11 @@ export const useAppStore = create<AppStore>()(
               currentSession: newSession,
               sessions: [newSession, ...state.sessions]
             }))
+
+            console.log('✅ Nova sessão criada:', newSession.id)
           }
         } catch (error) {
-          console.error('Erro ao criar sessão:', error)
+          console.error('❌ Erro ao criar sessão:', error)
           // Fallback: criar sessão apenas localmente (temporário)
           const newSession: ChatSession = {
             id: `temp-${crypto.randomUUID()}`,
@@ -176,6 +210,10 @@ export const useAppStore = create<AppStore>()(
             currentSession: newSession,
             sessions: [newSession, ...state.sessions]
           }))
+
+          console.log('⚠️ Sessão criada localmente como fallback:', newSession.id)
+        } finally {
+          set({ isCreatingSession: false })
         }
       },
 
@@ -204,6 +242,8 @@ export const useAppStore = create<AppStore>()(
 
       loadSessions: async () => {
         try {
+          set({ isLoadingSessions: true })
+
           // Obter usuário do auth store
           const { useAuthStore } = await import('./auth-store')
           const user = useAuthStore.getState().user
@@ -215,11 +255,11 @@ export const useAppStore = create<AppStore>()(
 
           console.log('🔄 Carregando sessões do usuário:', user.id, typeof user.id)
 
-          // Buscar sessões do usuário na API
+          // Buscar sessões do usuário na API (sem mensagens)
           const response = await apiService.get(`/sessions/user/${user.id}`)
 
           if (response.success && response.sessions) {
-            const normalizedSessions = response.sessions.map(normalizeSession)
+            const normalizedSessions = response.sessions.map(normalizeSessionSummary)
             set({ sessions: normalizedSessions })
             console.log('✅ Sessões carregadas:', normalizedSessions.length, 'sessões')
           } else {
@@ -243,7 +283,7 @@ export const useAppStore = create<AppStore>()(
           if (savedSessions) {
             try {
               const sessions = JSON.parse(savedSessions)
-              const normalizedSessions = sessions.map(normalizeSession)
+              const normalizedSessions = sessions.map(normalizeSessionSummary)
               set({ sessions: normalizedSessions })
               console.log('📦 Sessões carregadas do localStorage como fallback')
             } catch (parseError) {
@@ -253,6 +293,57 @@ export const useAppStore = create<AppStore>()(
           } else {
             set({ sessions: [] })
           }
+        } finally {
+          set({ isLoadingSessions: false })
+        }
+      },
+
+      loadSessionMessages: async (sessionId: string) => {
+        try {
+          set({ isLoadingMessages: true })
+          console.log('🔄 Carregando mensagens da sessão com avaliações:', sessionId)
+
+          const response = await apiService.getSessionMessages(sessionId)
+
+          if (response.success && response.mensagens) {
+            const messages = response.mensagens.map((msg: any) => ({
+              ...normalizeMessage(msg),
+              evaluation: msg.evaluation // Incluir avaliação se existir
+            }))
+
+            // Atualizar a sessão atual com as mensagens
+            set((state) => {
+              const updatedSessions = state.sessions.map(session =>
+                session.id === sessionId
+                  ? { ...session, mensagens: messages }
+                  : session
+              )
+
+              const updatedCurrentSession = state.currentSession?.id === sessionId
+                ? { ...state.currentSession, mensagens: messages }
+                : state.currentSession
+
+              return {
+                sessions: updatedSessions,
+                currentSession: updatedCurrentSession
+              }
+            })
+
+            console.log('✅ Mensagens carregadas:', messages.length, 'mensagens')
+            console.log('✅ Avaliações carregadas:', messages.filter((m: any) => m.evaluation).length, 'avaliações')
+          } else {
+            console.log('ℹ️ Nenhuma mensagem encontrada para a sessão')
+          }
+        } catch (error) {
+          console.error('❌ Erro ao carregar mensagens:', error)
+
+          // Adicionar mensagem de erro no chat
+          get().addMessage({
+            tipo: 'error',
+            conteudo: 'Erro ao carregar mensagens da sessão. Tente novamente.'
+          })
+        } finally {
+          set({ isLoadingMessages: false })
         }
       },
 
@@ -389,6 +480,47 @@ export const useAppStore = create<AppStore>()(
             tipo: 'error',
             conteudo: typeof error === 'string' ? error : 'Erro de conexão com o WebSocket'
           });
+        })
+
+        websocketService.onMessageUpdated((message: Message) => {
+          console.log('🔄 Mensagem atualizada via WebSocket:', message)
+          const normalizedMessage = normalizeMessage(message)
+
+          // Atualizar mensagem existente
+          set((state) => {
+            if (!state.currentSession) return state
+
+            const updatedMessages = state.currentSession.mensagens.map(m =>
+              m.id === message.id ? normalizedMessage : m
+            )
+
+            const updatedSession = {
+              ...state.currentSession,
+              mensagens: updatedMessages
+            }
+
+            const updatedSessions = state.sessions.map(session =>
+              session.id === updatedSession.id ? updatedSession : session
+            )
+
+            return {
+              currentSession: updatedSession,
+              sessions: updatedSessions
+            }
+          })
+        })
+
+        websocketService.onQueryExecuting((status: string) => {
+          console.log('⚡ Query sendo executada:', status)
+          // Pode adicionar indicador de execução se necessário
+        })
+
+        websocketService.onQueryError((error: string) => {
+          console.error('❌ Erro na execução da query:', error)
+          get().addMessage({
+            tipo: 'error',
+            conteudo: `Erro na execução: ${error}`
+          })
         })
 
         websocketService.onEvaluationUpdated((data: { messageId: string, evaluation: any }) => {

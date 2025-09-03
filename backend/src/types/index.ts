@@ -163,11 +163,15 @@ export interface WebSocketEvents {
   // Client to Server
   'join-session': (sessionId: string) => void
   'send-message': (data: ChatRequest) => void
+  'execute-query': (data: { messageId: string, sessionId: string }) => void
   'disconnect-session': (sessionId: string) => void
 
   // Server to Client
   'message-received': (message: Message) => void
+  'message-updated': (message: Message) => void
   'message-processing': (status: string) => void
+  'query-executing': (status: string) => void
+  'query-error': (error: string) => void
   'session-joined': (sessionId: string) => void
   'evaluation-updated': (data: { messageId: string, evaluation: QueryEvaluation }) => void
   'error': (error: string) => void

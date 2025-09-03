@@ -29,8 +29,10 @@ router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
     const sessions = await prisma.sessao.findMany({
       where: { usuarioId: userId },
       include: {
-        mensagens: true,
-        modelo: true
+        modelo: true,
+        _count: {
+          select: { mensagens: true }
+        }
       },
       orderBy: { updatedAt: 'desc' }
     })
@@ -133,6 +135,50 @@ router.get('/:sessionId', async (req, res) => {
     })
   } catch (error) {
     console.error('Erro ao obter sessão:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    })
+  }
+})
+
+// Nova rota para obter mensagens de uma sessão com avaliações
+router.get('/:sessionId/messages', async (req, res) => {
+  try {
+    const { sessionId } = req.params
+
+    // Buscar mensagens da sessão
+    const mensagens = await prisma.mensagem.findMany({
+      where: { sessaoId: sessionId },
+      orderBy: { timestamp: 'asc' }
+    })
+
+    // Buscar todas as avaliações da sessão de uma vez
+    const evaluations = await prisma.evaluation.findMany({
+      where: { sessionId: sessionId },
+      include: { criteriaEvaluations: true }
+    })
+
+    // Criar um mapa de avaliações por messageId para acesso rápido
+    const evaluationMap = new Map()
+    evaluations.forEach(evaluation => {
+      if (evaluation.messageId) {
+        evaluationMap.set(evaluation.messageId, evaluation)
+      }
+    })
+
+    // Adicionar avaliações às mensagens correspondentes
+    const mensagensComAvaliacoes = mensagens.map(mensagem => ({
+      ...mensagem,
+      evaluation: evaluationMap.get(mensagem.id) || null
+    }))
+
+    res.json({
+      success: true,
+      mensagens: mensagensComAvaliacoes
+    })
+  } catch (error) {
+    console.error('Erro ao obter mensagens com avaliações:', error)
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'

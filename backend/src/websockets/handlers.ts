@@ -58,6 +58,33 @@ export function setupWebSocketHandlers(io: Server) {
       }
     })
 
+    // Executar query
+    socket.on('execute-query', async (data: { messageId: string, sessionId: string }) => {
+      try {
+        const { messageId, sessionId } = data
+
+        // Notificar que a query está sendo executada
+        socket.to(sessionId).emit('query-executing', 'Executando consulta...')
+
+        // Processar query usando o ChatService
+        const result = await chatService.processQuery(messageId)
+
+        if (!result.success) {
+          socket.to(sessionId).emit('query-error', result.error)
+          return
+        }
+
+        // Enviar resultado para todos na sessão
+        if (result.assistantMessage) {
+          io.to(sessionId).emit('message-updated', result.assistantMessage)
+        }
+
+      } catch (error) {
+        console.error('Erro ao executar query via WebSocket:', error)
+        socket.emit('query-error', 'Erro ao executar consulta')
+      }
+    })
+
     // Sair de uma sessão
     socket.on('disconnect-session', (sessionId: string) => {
       socket.leave(sessionId)
