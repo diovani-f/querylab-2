@@ -288,10 +288,15 @@ REGRAS IMPORTANTES:
 3. Se for uma consulta específica sobre dados (quantas, liste, mostre dados específicos, etc.), gere APENAS o SQL válido.
 4. NUNCA misture explicação com SQL.
 5. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema.
-6. Para PostgreSQL, use sintaxe padrão: LIMIT n ao invés de FETCH FIRST n ROWS ONLY.
-7. Sempre prefixe o nome da tabela com o schema inep (ex: inep.censo_ies).
-8. Se o schema não estiver disponível, avise o usuário e gere consultas genéricas.
-9. Mantenha a conversa fluida e educada quando não for uma consulta SQL.
+6. SELEÇÃO DE COLUNAS: Para consultas que retornam dados, selecione APENAS as colunas mais relevantes e importantes para responder à pergunta. NUNCA use SELECT * - sempre especifique as colunas. Priorize:
+   - Colunas identificadoras (IDs, códigos, nomes)
+   - Colunas diretamente relacionadas à pergunta
+   - Máximo de 8-10 colunas por consulta
+   - Use as colunas marcadas como "importantes" no schema quando disponíveis
+7. Para PostgreSQL, use sintaxe padrão: LIMIT n ao invés de FETCH FIRST n ROWS ONLY.
+8. Sempre prefixe o nome da tabela com o schema inep (ex: inep.censo_ies).
+9. Se o schema não estiver disponível, avise o usuário e gere consultas genéricas.
+10. Mantenha a conversa fluida e educada quando não for uma consulta SQL.
 
 SCHEMA DO BANCO DE DADOS:`;
     if (schemaInfo && schemaInfo.tables && schemaInfo.tables.length > 0) {
@@ -324,7 +329,13 @@ Entrada: "Quantas instituições existem?"
 Saída: SELECT COUNT(*) as total FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'tabela'};
 
 Entrada: "Liste 10 cursos"
-Saída: SELECT * FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'tabela'} LIMIT 10;
+Saída: SELECT codigo_curso, nome_curso, area_conhecimento, modalidade, situacao FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'tabela'} LIMIT 10;
+
+Entrada: "Mostre dados das instituições"
+Saída: SELECT codigo_ies, nome_ies, sigla, categoria_administrativa, organizacao_academica, municipio, uf FROM ${context?.schemaName || 'inep'}.instituicoes LIMIT 20;
+
+Entrada: "Liste avaliações dos cursos"
+Saída: SELECT codigo_curso, nome_curso, conceito_enade, cpc, cc, ano_avaliacao FROM ${context?.schemaName || 'inep'}.avaliacoes ORDER BY conceito_enade DESC LIMIT 15;
 
 Entrada: "o que você faz?"
 Saída: CONVERSA: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do inep. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores, além de responder perguntas sobre o schema do banco.

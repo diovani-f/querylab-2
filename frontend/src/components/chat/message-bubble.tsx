@@ -101,7 +101,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
   return (
     <div className={cn("flex", getContainerStyles(messageData.tipo), "relative w-full")}> {/* relative para botões absolutos */}
       <div className={cn(
-        "max-w-[85%] sm:max-w-[70%] md:max-w-[60%] lg:max-w-[50%] xl:max-w-[45%] rounded-lg p-3 sm:p-4 space-y-2 overflow-hidden break-words",
+        "max-w-[85%] sm:max-w-[70%] md:max-w-[60%] lg:max-w-[50%] xl:max-w-[45%] rounded-lg p-3 sm:p-4 space-y-2 overflow-hidden break-words min-w-0",
         getBubbleStyles(messageData.tipo)
       )}>
         {/* Header da mensagem */}
@@ -197,28 +197,65 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
               )}
             </div>
 
-            {/* Mostrar tabela apenas em desktop */}
-            <div className="hidden md:block bg-background border rounded-lg p-2 sm:p-4 overflow-auto" style={{ maxHeight: 400 }}>
+            {/* Preview dos resultados em desktop */}
+            <div className="hidden md:block bg-background border rounded-lg p-2 sm:p-4 min-w-0">
               {messageData.queryResult.rows && messageData.queryResult.rows.length > 0 ? (
                 <div className="space-y-3">
-                  {/* Tabela simples para resultados pequenos */}
-                  {messageData.queryResult.rows.length <= 10 ? (
+                  {/* Para muitas colunas (>10), mostrar apenas resumo */}
+                  {(messageData.queryResult.columns?.length || 0) > 10 ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">
+                          Resultado com {messageData.queryResult.columns?.length} colunas e {messageData.queryResult.rowCount} linha{(messageData.queryResult.rowCount || 0) !== 1 ? 's' : ''}.
+                        </p>
+                        <Badge variant="outline" className="text-xs">
+                          {messageData.queryResult.columns?.length} colunas
+                        </Badge>
+                      </div>
+
+                      {/* Mostrar apenas as primeiras 3 colunas como preview */}
+                      <div className="bg-muted/30 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground mb-2">Preview das primeiras 3 colunas:</p>
+                        <div className="overflow-hidden">
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            {messageData.queryResult.columns?.slice(0, 3).map((column, index) => (
+                              <div key={index} className="font-medium truncate">
+                                {column}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-xs mt-1 pt-1 border-t">
+                            {messageData.queryResult.rows[0]?.slice(0, 3).map((cell, index) => (
+                              <div key={index} className="font-mono truncate text-muted-foreground">
+                                {cell !== null && cell !== undefined ? String(cell).substring(0, 20) + (String(cell).length > 20 ? '...' : '') : '-'}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground text-center">
+                        📊 Clique em "Detalhes Técnicos" para visualizar todos os dados em uma tabela completa.
+                      </p>
+                    </div>
+                  ) : (
+                    /* Para poucas colunas, mostrar tabela normal */
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs sm:text-sm table-auto">
                         <thead>
                           <tr className="border-b">
                             {messageData.queryResult.columns?.map((column, index) => (
-                              <th key={index} className="text-left p-1 sm:p-2 font-medium whitespace-nowrap min-w-[60px]">
+                              <th key={index} className="text-left p-1 sm:p-2 font-medium whitespace-nowrap min-w-[60px] max-w-[150px] truncate">
                                 {column}
                               </th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {messageData.queryResult.rows.map((row, rowIndex) => (
+                          {messageData.queryResult.rows.slice(0, Math.min(5, messageData.queryResult.rows.length)).map((row, rowIndex) => (
                             <tr key={rowIndex} className="border-b border-gray-100">
                               {row.map((cell, cellIndex) => (
-                                <td key={cellIndex} className="p-1 sm:p-2 font-mono text-xs break-all min-w-[60px] max-w-[120px]">
+                                <td key={cellIndex} className="p-1 sm:p-2 font-mono text-xs max-w-[150px] truncate">
                                   {cell !== null && cell !== undefined ? String(cell) : '-'}
                                 </td>
                               ))}
@@ -226,38 +263,11 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                           ))}
                         </tbody>
                       </table>
-                    </div>
-                  ) : (
-                    /* Para resultados maiores, mostrar apenas as primeiras linhas */
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">
-                        Mostrando as primeiras 5 linhas de {messageData.queryResult.rowCount} resultados.
-                        Clique no botão "Detalhes Técnicos" para ver todos os dados.
-                      </p>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b">
-                              {messageData.queryResult.columns?.map((column, index) => (
-                                <th key={index} className="text-left p-2 font-medium">
-                                  {column}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {messageData.queryResult.rows.slice(0, 5).map((row, rowIndex) => (
-                              <tr key={rowIndex} className="border-b border-gray-100">
-                                {row.map((cell, cellIndex) => (
-                                  <td key={cellIndex} className="p-2 font-mono text-xs">
-                                    {cell !== null && cell !== undefined ? String(cell) : '-'}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      {messageData.queryResult.rows.length > 5 && (
+                        <p className="text-xs text-muted-foreground text-center mt-2">
+                          Mostrando 5 de {messageData.queryResult.rowCount} resultados. Clique em "Detalhes Técnicos" para ver todos.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -268,10 +278,14 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
 
             {/* Mensagem para mobile indicando onde ver os resultados */}
             <div className="md:hidden bg-muted/20 border border-dashed rounded-lg p-3 text-center">
-              <p className="text-sm text-muted-foreground">
-                📱 Para visualizar os resultados da consulta em dispositivos móveis,
-                clique no botão <strong>"Detalhes Técnicos"</strong> abaixo.
-              </p>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  📱 <strong>{messageData.queryResult.columns?.length} colunas</strong> • <strong>{messageData.queryResult.rowCount} linha{(messageData.queryResult.rowCount || 0) !== 1 ? 's' : ''}</strong>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Clique em <strong>"Detalhes Técnicos"</strong> para visualizar a tabela completa.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -281,7 +295,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
       {messageData.tipo === 'assistant' && (
         <div
           className="flex flex-row gap-2 sm:gap-3 items-center mt-4"
-          style={{ position: 'absolute', left: '4px', bottom: '0', transform: 'translateY(40px)', zIndex: 20 }}
+          style={{ position: 'absolute', left: '4px', bottom: '0', transform: 'translateY(25px)', zIndex: 20 }}
         >
           <TooltipProvider>
             {/* Botão para explain detalhado */}
