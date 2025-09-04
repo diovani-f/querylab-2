@@ -143,19 +143,22 @@ export class LLMService {
       }
 
       const systemPrompt = await this.buildSystemPrompt(context)
-      const userPrompt = this.buildUserPrompt(prompt)
+      const conversationMessages = await this.buildConversationMessages(prompt, context?.conversationHistory || [], context)
 
       // Modelos Replicate
       if (this.isReplicateModel(model)) {
-        return await this.handleReplicateModel(model, systemPrompt, userPrompt, prompt)
+        // Para modelos Replicate, usar contexto conversacional simplificado
+        const replicateContext = {
+          ...context,
+          conversationHistory: context?.conversationHistory || []
+        }
+        const userPrompt = this.buildUserPrompt(prompt)
+        return await this.handleReplicateModel(model, systemPrompt, userPrompt, prompt, replicateContext)
       }
 
       // Modelos padrão (Groq)
       const completion = await this.groqClient.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
+        messages: conversationMessages,
         model,
         temperature: 0.1,
         max_tokens: 1000,
@@ -311,15 +314,16 @@ REGRAS IMPORTANTES:
 3. Se for uma consulta específica sobre dados (quantas, liste, mostre dados específicos, etc.), gere APENAS o SQL válido.
 4. NUNCA misture explicação com SQL.
 5. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema.
-6. SELEÇÃO DE COLUNAS: Para consultas que retornam dados, selecione APENAS as colunas mais relevantes e importantes para responder à pergunta. NUNCA use SELECT * - sempre especifique as colunas. Priorize:
+6. CONTEXTO CONVERSACIONAL: Use o histórico da conversa para entender referências como "essa tabela", "os dados anteriores", "a consulta passada", etc. Mantenha consistência com consultas anteriores.
+7. SELEÇÃO DE COLUNAS: Para consultas que retornam dados, selecione APENAS as colunas mais relevantes e importantes para responder à pergunta. NUNCA use SELECT * - sempre especifique as colunas. Priorize:
    - Colunas identificadoras (IDs, códigos, nomes)
    - Colunas diretamente relacionadas à pergunta
    - Máximo de 8-10 colunas por consulta
    - Use as colunas marcadas como "importantes" no schema quando disponíveis
-7. Para PostgreSQL, use sintaxe padrão: LIMIT n ao invés de FETCH FIRST n ROWS ONLY.
-8. Sempre prefixe o nome da tabela com o schema inep (ex: inep.censo_ies).
-9. Se o schema não estiver disponível, avise o usuário e gere consultas genéricas.
-10. Mantenha a conversa fluida e educada quando não for uma consulta SQL.
+8. Para PostgreSQL, use sintaxe padrão: LIMIT n ao invés de FETCH FIRST n ROWS ONLY.
+9. Sempre prefixe o nome da tabela com o schema inep (ex: inep.censo_ies).
+10. Se o schema não estiver disponível, avise o usuário e gere consultas genéricas.
+11. Mantenha a conversa fluida e educada quando não for uma consulta SQL.
 
 SCHEMA DO BANCO DE DADOS:`;
     if (schemaInfo && schemaInfo.tables && schemaInfo.tables.length > 0) {
@@ -392,6 +396,80 @@ Saída: CONVERSA: Sou especializado em converter suas perguntas em consultas SQL
 Retorne apenas o SQL válido:`
   }
 
+  /**
+   * Constrói as mensagens da conversa incluindo o histórico
+   */
+  private async buildConversationMessages(currentPrompt: string, conversationHistory: any[], context?: any): Promise<any[]> {
+    const messages: any[] = []
+
+    // Adicionar mensagem do sistema
+    const systemPrompt = await this.buildSystemPrompt(context)
+    messages.push({
+      role: 'system',
+      content: systemPrompt
+    })
+
+    // Adicionar mensagens do histórico (limitado às últimas 6 mensagens para não sobrecarregar)
+    const recentHistory = conversationHistory.slice(-6)
+
+    for (const msg of recentHistory) {
+      if (msg.tipo === 'user') {
+        messages.push({
+          role: 'user',
+          content: msg.conteudo
+        })
+      } else if (msg.tipo === 'assistant') {
+        // Para mensagens do assistente, incluir o conteúdo principal
+        let assistantContent = ''
+
+        if (msg.conteudo && msg.conteudo.trim()) {
+          // Se é uma resposta conversacional
+          assistantContent = msg.conteudo
+        } else if (msg.sqlQuery) {
+          // Se é uma resposta SQL, criar uma resposta contextual
+          assistantContent = `Gerei esta consulta SQL: ${msg.sqlQuery}`
+
+          // Adicionar informações sobre os resultados se disponível
+          if (msg.queryResult && msg.queryResult.success !== false) {
+            if (msg.queryResult.rowCount !== undefined) {
+              assistantContent += `\n\nA consulta retornou ${msg.queryResult.rowCount} resultado${msg.queryResult.rowCount !== 1 ? 's' : ''}.`
+            }
+          } else if (msg.queryResult && msg.queryResult.success === false) {
+            assistantContent += `\n\nHouve um erro na execução: ${msg.queryResult.error}`
+          }
+        }
+
+        if (assistantContent.trim()) {
+          messages.push({
+            role: 'assistant',
+            content: assistantContent
+          })
+        }
+      }
+    }
+
+    // Adicionar a mensagem atual do usuário
+    const hasHistory = conversationHistory.length > 0
+    const userPromptContent = hasHistory
+      ? `Baseando-se no contexto da nossa conversa anterior, converta esta consulta em linguagem natural para SQL:
+
+"${currentPrompt}"
+
+Retorne apenas o SQL válido:`
+      : `Converta esta consulta em linguagem natural para SQL:
+
+"${currentPrompt}"
+
+Retorne apenas o SQL válido:`
+
+    messages.push({
+      role: 'user',
+      content: userPromptContent
+    })
+
+    return messages
+  }
+
   private extractSQL(response: string): string {
     // Tentar extrair SQL de blocos de código
     const sqlBlockMatch = response.match(/```sql\n([\s\S]*?)\n```/)
@@ -439,7 +517,8 @@ Retorne apenas o SQL válido:`
     model: string,
     systemPrompt: string,
     userPrompt: string,
-    originalPrompt: string
+    originalPrompt: string,
+    context?: any
   ): Promise<LLMResponse> {
     try {
       const startTime = Date.now()
@@ -450,11 +529,69 @@ Retorne apenas o SQL válido:`
       let input: any
 
       if (model === 'nateraw/defog-sqlcoder-7b-2') {
-        input = {
-          question: combinedPrompt,
-          temperature: 0.1,
-          max_new_tokens: 1000
+        // Obter schema das tabelas para o SQLCoder
+        const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'inep')
+        let tableMetadata = ''
+
+        if (schemaInfo && schemaInfo.tables) {
+          tableMetadata = schemaInfo.tables.map((table: any) => {
+            const columns = table.keyColumns?.concat(table.importantColumns || []) || []
+            const columnDefs = columns.map((col: any) =>
+              `  ${col.name} ${col.dataType}${col.nullable ? '' : ' NOT NULL'}`
+            ).join(',\n')
+
+            return `CREATE TABLE ${table.name} (\n${columnDefs}\n);`
+          }).join('\n\n')
+
+          console.log('🔍 SQLCoder - Schema metadata gerado:', tableMetadata.substring(0, 200) + '...')
+        } else {
+          console.log('⚠️ SQLCoder - Schema não disponível, usando schema genérico')
+          tableMetadata = `CREATE TABLE inep.exemplo (
+  id INTEGER PRIMARY KEY,
+  nome VARCHAR(100) NOT NULL,
+  data_criacao DATE
+);`
         }
+
+        // Construir contexto conversacional para SQLCoder
+        let contextualQuestion = originalPrompt
+        const conversationHistory = context?.conversationHistory || []
+
+        if (conversationHistory.length > 0) {
+          // Pegar as últimas 3 mensagens para contexto
+          const recentHistory = conversationHistory.slice(-3)
+          let contextInfo = ''
+
+          for (const msg of recentHistory) {
+            if (msg.tipo === 'user') {
+              contextInfo += `Previous question: "${msg.conteudo}"\n`
+            } else if (msg.sqlQuery) {
+              contextInfo += `Previous SQL: ${msg.sqlQuery}\n`
+            }
+          }
+
+          if (contextInfo) {
+            contextualQuestion = `Context from previous conversation:
+${contextInfo}
+
+Current question: ${originalPrompt}`
+          }
+        }
+
+        input = {
+          question: contextualQuestion, // Incluir contexto se disponível
+          temperature: 0.1,
+          table_metadata: tableMetadata,
+          prompt_template: "### Task\nGenerate a SQL query to answer [QUESTION]{question}[/QUESTION]\n\n### Instructions\n- If you cannot answer the question with the available database schema, return 'I do not know'\n- Use ONLY the table and column names provided in the schema\n- Always prefix table names with the schema name 'inep.'\n- If there is context from previous conversation, use it to understand references like 'that table', 'those results', etc.\n- Select only the most relevant columns (max 8-10 columns)\n- Never use SELECT *\n\n### Database Schema\nThe query will run on a database with the following schema:\n{table_metadata}\n\n### Answer\nGiven the database schema, here is the SQL query that answers [QUESTION]{question}[/QUESTION]\n[SQL]"
+        }
+
+        console.log('🚀 SQLCoder - Enviando request:', {
+          question: contextualQuestion.substring(0, 100) + '...',
+          temperature: input.temperature,
+          hasTableMetadata: !!tableMetadata,
+          tableMetadataLength: tableMetadata.length,
+          hasContext: conversationHistory.length > 0
+        })
       } else if (model === 'meta/codellama-70b-instruct') {
         input = {
           prompt: combinedPrompt,
@@ -466,7 +603,13 @@ Retorne apenas o SQL válido:`
         throw new Error(`Modelo Replicate não suportado: ${model}`)
       }
 
-      const output = await this.replicateClient.run(model as `${string}/${string}`, { input })
+      // Para SQLCoder, usar a versão específica
+      let modelVersion = model as `${string}/${string}`
+      if (model === 'nateraw/defog-sqlcoder-7b-2') {
+        modelVersion = 'nateraw/defog-sqlcoder-7b-2:ced935b577fb52644d933f77e2ff8902744e4c58a2f50023b3a1db80b7a75806' as `${string}/${string}`
+      }
+
+      const output = await this.replicateClient.run(modelVersion, { input })
 
       let response: string
       if (Array.isArray(output)) {

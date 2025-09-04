@@ -3,7 +3,7 @@
 import ReactMarkdown from 'react-markdown'
 import { Message } from "@/types"
 import { cn } from "@/lib/utils"
-import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeOff, Play, Loader2, Check, X } from "lucide-react"
+import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeOff, Play, Loader2, Check, X, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Badge } from "@/components/ui/badge"
@@ -22,17 +22,20 @@ import { QueryResultsTable } from "./query-results-table"
 import { EvaluationModal } from "../evaluation/evaluation-modal"
 import { EvaluationTrigger } from "../evaluation/evaluation-trigger"
 import { apiService } from '@/lib/api'
+import { useAppStore } from '@/stores/app-store'
 
 interface MessageBubbleProps {
   message: Message
   sessionId?: string
 }
 export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
+  const { addMessage } = useAppStore()
   const [showTechnicalModal, setShowTechnicalModal] = useState(false)
   const [showExplainModal, setShowExplainModal] = useState(false)
   const [messageData, setMessageData] = useState(message);
   const [isExecuting, setIsExecuting] = useState(false)
   const [executionStatus, setExecutionStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [isCopied, setIsCopied] = useState(false)
 
   const getIcon = (type: Message['tipo']) => {
     switch (type) {
@@ -88,14 +91,45 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
 
       // Limpar status de sucesso após 3 segundos
       setTimeout(() => setExecutionStatus('idle'), 3000)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao executar query:', error)
       setExecutionStatus('error')
+
+      // Adicionar mensagem de erro na conversa automaticamente
+      const errorMessage = error?.message || 'Erro desconhecido ao executar a consulta'
+      addMessage({
+        tipo: 'error',
+        conteudo: `❌ **Erro na execução da consulta:**\n\n${errorMessage}`
+      })
 
       // Limpar status de erro após 5 segundos
       setTimeout(() => setExecutionStatus('idle'), 5000)
     } finally {
       setIsExecuting(false)
+    }
+  }
+
+  const handleCopySQL = async () => {
+    if (!messageData.sqlQuery) return
+
+    try {
+      await navigator.clipboard.writeText(messageData.sqlQuery)
+      setIsCopied(true)
+
+      // Resetar o estado após 2 segundos
+      setTimeout(() => setIsCopied(false), 2000)
+    } catch (error) {
+      console.error('Erro ao copiar SQL:', error)
+      // Fallback para navegadores mais antigos
+      const textArea = document.createElement('textarea')
+      textArea.value = messageData.sqlQuery
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+
+      setIsCopied(true)
+      setTimeout(() => setIsCopied(false), 2000)
     }
   }
   return (
@@ -140,9 +174,38 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
         {/* SQL Query */}
         {messageData.sqlQuery && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Code className="h-4 w-4" />
-              <span className="text-sm font-medium">SQL Gerado</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Code className="h-4 w-4" />
+                <span className="text-sm font-medium">SQL Gerado</span>
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={handleCopySQL}
+                    >
+                      {isCopied ? (
+                        <>
+                          <Check className="h-3 w-3 mr-1" />
+                          Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copiar
+                        </>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isCopied ? 'SQL copiado para a área de transferência!' : 'Copiar SQL'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="flex items-start gap-2 sm:gap-4 w-full">
               <div className="relative bg-black/10 rounded p-2 sm:p-3 font-mono text-xs overflow-auto flex-grow min-w-0" style={{ maxHeight: 300 }}>
@@ -177,6 +240,21 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+            </div>
+          </div>
+        )}
+
+        {/* Erro na execução da Query */}
+        {messageData.queryResult && messageData.queryResult.success === false && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <span className="text-sm font-medium text-destructive">Erro na Execução</span>
+            </div>
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+              <p className="text-sm text-destructive font-mono">
+                {messageData.queryResult.error}
+              </p>
             </div>
           </div>
         )}

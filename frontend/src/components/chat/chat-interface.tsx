@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/stores/app-store"
 import { Send, MessageSquare } from "lucide-react"
@@ -103,6 +104,12 @@ export function ChatInterface() {
     }
   }
 
+  // Função para ajustar altura do textarea automaticamente
+  const adjustTextareaHeight = (element: HTMLTextAreaElement) => {
+    element.style.height = 'auto'
+    element.style.height = Math.min(element.scrollHeight, 200) + 'px'
+  }
+
   // Não renderizar até estar hidratado
   if (!isHydrated) {
     return (
@@ -181,19 +188,24 @@ export function ChatInterface() {
       {/* Input de Mensagem */}
       <div className="border-t p-2 sm:p-4">
         <div className="w-full">
-          <div className="flex space-x-2">
-            <Input
+          <div className="flex items-end space-x-2">
+            <Textarea
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => {
+                setInputValue(e.target.value)
+                adjustTextareaHeight(e.target)
+              }}
               onKeyDown={handleKeyPress}
               placeholder={isCreatingSession ? "Criando sessão..." : "Digite sua consulta em linguagem natural..."}
-              className="flex-1"
+              className="flex-1 min-h-[44px] max-h-[200px] resize-none"
               disabled={isProcessing || isCreatingSession}
+              rows={1}
             />
             <Button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isProcessing || isCreatingSession}
               size="icon"
+              className="flex-shrink-0"
             >
               {isCreatingSession ? (
                 <PulseLoader color="#ffffff" size={4} />

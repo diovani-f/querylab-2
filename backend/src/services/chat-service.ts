@@ -117,10 +117,23 @@ export class ChatService {
 
       const userMessage = mapMessage(userMessageData);
 
+      // Buscar mensagens anteriores da sessão para contexto
+      const previousMessages = await prisma.mensagem.findMany({
+        where: {
+          sessaoId: actualSessionId,
+          id: { not: userMessageData.id } // Excluir a mensagem atual
+        },
+        orderBy: { timestamp: 'asc' },
+        take: 10 // Limitar a 10 mensagens anteriores para não sobrecarregar
+      })
+
       const llmResponse: any = await this.llmService.handlePrompt({
         prompt: message,
         model,
-        context: { schemaName: 'inep' }
+        context: {
+          schemaName: 'inep',
+          conversationHistory: previousMessages
+        }
       })
       console.log("🚀 ~ ChatService ~ processMessage ~ llmResponse:", llmResponse)
 
