@@ -3,7 +3,7 @@
 import ReactMarkdown from 'react-markdown'
 import { Message } from "@/types"
 import { cn } from "@/lib/utils"
-import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeOff, Play, Loader2, Check, X, Copy } from "lucide-react"
+import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeOff, Play, Loader2, Check, X, Copy, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Badge } from "@/components/ui/badge"
@@ -259,112 +259,16 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
           </div>
         )}
 
-        {/* Resultados da Query */}
-        {messageData.queryResult && messageData.queryResult.success !== false && messageData.queryResult.rows && messageData.queryResult.rows.length > 0 && (
-          <div className="space-y-2">
+        {/* Reverse Translation */}
+        {messageData.reverseTranslation && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
             <div className="flex items-center gap-2">
-              <Table className="h-4 w-4" />
-              <span className="text-sm font-medium">Resultados</span>
-              <Badge variant="outline" className="text-xs">
-                {messageData.queryResult.rowCount || 0} linha{(messageData.queryResult.rowCount || 0) !== 1 ? 's' : ''}
-              </Badge>
-              {messageData.queryResult.executionTime && (
-                <Badge variant="secondary" className="text-xs">
-                  {messageData.queryResult.executionTime}ms
-                </Badge>
-              )}
+              <MessageSquare className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">Resumo da Execução</span>
             </div>
-
-            {/* Preview dos resultados em desktop */}
-            <div className="hidden md:block bg-background border rounded-lg p-2 sm:p-4 min-w-0">
-              {messageData.queryResult.rows && messageData.queryResult.rows.length > 0 ? (
-                <div className="space-y-3">
-                  {/* Para muitas colunas (>10), mostrar apenas resumo */}
-                  {(messageData.queryResult.columns?.length || 0) > 10 ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground">
-                          Resultado com {messageData.queryResult.columns?.length} colunas e {messageData.queryResult.rowCount} linha{(messageData.queryResult.rowCount || 0) !== 1 ? 's' : ''}.
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          {messageData.queryResult.columns?.length} colunas
-                        </Badge>
-                      </div>
-
-                      {/* Mostrar apenas as primeiras 3 colunas como preview */}
-                      <div className="bg-muted/30 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground mb-2">Preview das primeiras 3 colunas:</p>
-                        <div className="overflow-hidden">
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            {messageData.queryResult.columns?.slice(0, 3).map((column, index) => (
-                              <div key={index} className="font-medium truncate">
-                                {column}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 text-xs mt-1 pt-1 border-t">
-                            {messageData.queryResult.rows[0]?.slice(0, 3).map((cell, index) => (
-                              <div key={index} className="font-mono truncate text-muted-foreground">
-                                {cell !== null && cell !== undefined ? String(cell).substring(0, 20) + (String(cell).length > 20 ? '...' : '') : '-'}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground text-center">
-                        📊 Clique em "Detalhes Técnicos" para visualizar todos os dados em uma tabela completa.
-                      </p>
-                    </div>
-                  ) : (
-                    /* Para poucas colunas, mostrar tabela normal */
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs sm:text-sm table-auto">
-                        <thead>
-                          <tr className="border-b">
-                            {messageData.queryResult.columns?.map((column, index) => (
-                              <th key={index} className="text-left p-1 sm:p-2 font-medium whitespace-nowrap min-w-[60px] max-w-[150px] truncate">
-                                {column}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {messageData.queryResult.rows.slice(0, Math.min(5, messageData.queryResult.rows.length)).map((row, rowIndex) => (
-                            <tr key={rowIndex} className="border-b border-gray-100">
-                              {row.map((cell, cellIndex) => (
-                                <td key={cellIndex} className="p-1 sm:p-2 font-mono text-xs max-w-[150px] truncate">
-                                  {cell !== null && cell !== undefined ? String(cell) : '-'}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {messageData.queryResult.rows.length > 5 && (
-                        <p className="text-xs text-muted-foreground text-center mt-2">
-                          Mostrando 5 de {messageData.queryResult.rowCount} resultados. Clique em "Detalhes Técnicos" para ver todos.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Nenhum resultado encontrado.</p>
-              )}
-            </div>
-
-            {/* Mensagem para mobile indicando onde ver os resultados */}
-            <div className="md:hidden bg-muted/20 border border-dashed rounded-lg p-3 text-center">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  📱 <strong>{messageData.queryResult.columns?.length} colunas</strong> • <strong>{messageData.queryResult.rowCount} linha{(messageData.queryResult.rowCount || 0) !== 1 ? 's' : ''}</strong>
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Clique em <strong>"Detalhes Técnicos"</strong> para visualizar a tabela completa.
-                </p>
-              </div>
-            </div>
+            <p className="text-sm text-blue-700 leading-relaxed">
+              {messageData.reverseTranslation}
+            </p>
           </div>
         )}
       </div>
@@ -446,6 +350,19 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                             </Badge>
                           )}
                         </div>
+
+                        {/* Reverse Translation no modal */}
+                        {messageData.reverseTranslation && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <MessageSquare className="h-4 w-4 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-800">Resumo da Execução</span>
+                            </div>
+                            <p className="text-sm text-blue-700 leading-relaxed">
+                              {messageData.reverseTranslation}
+                            </p>
+                          </div>
+                        )}
                       </DialogHeader>
 
                       {/* Conteúdo scrollável */}

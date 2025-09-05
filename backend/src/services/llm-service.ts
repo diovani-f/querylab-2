@@ -1,6 +1,6 @@
 import Groq from 'groq-sdk'
 import Replicate from 'replicate'
-import { LLMRequest, LLMResponse } from '../types'
+import { LLMRequest, LLMResponse, QueryResult } from '../types'
 import { SchemaDiscoveryService } from './schema-discovery-service'
 import { PrismaClient, LLMModel } from '@prisma/client'
 
@@ -300,6 +300,172 @@ Explicação detalhada dos resultados:`
       console.error('❌ Erro ao gerar explicação detalhada:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' }
     }
+  }
+
+  /**
+   * Gera uma tradução reversa (reverse translation) do SQL executado para linguagem natural.
+   * Explica o que foi executado e os resultados obtidos de forma amigável.
+   */
+  public async generateReverseTranslation(params: {
+    sql: string
+    result: QueryResult
+    originalPrompt?: string
+  }): Promise<string> {
+    const { sql, result, originalPrompt } = params
+
+    if (!sql || !result.success) {
+      return ''
+    }
+
+    // Construir descrição dos resultados
+    const resultDescription = result.rowCount === 0
+      ? 'nenhum resultado foi encontrado'
+      : `${result.rowCount} registro${result.rowCount !== 1 ? 's' : ''} ${result.rowCount === 1 ? 'foi encontrado' : 'foram encontrados'}`
+
+    // Construir descrição das tabelas envolvidas
+    const tablesInvolved = this.extractTablesFromSQL(sql)
+    const tablesDescription = tablesInvolved.length > 0
+      ? `da${tablesInvolved.length > 1 ? 's' : ''} tabela${tablesInvolved.length > 1 ? 's' : ''} ${tablesInvolved.join(', ')}`
+      : 'do banco de dados'
+
+    // Construir descrição dos JOINs
+    const joinDescription = this.extractJoinsFromSQL(sql)
+
+    // Construir descrição dos filtros WHERE
+    const whereDescription = this.extractWhereFromSQL(sql)
+
+    // Construir descrição dos dados retornados (primeiras linhas como exemplo)
+    const dataDescription = this.buildDataDescription(result)
+
+    const reverseTranslationPrompt = `Gere uma explicação MUITO BREVE e DIRETA sobre esta consulta SQL executada.
+
+SQL: ${sql}
+RESULTADO: ${resultDescription}
+${dataDescription}
+
+INSTRUÇÕES:
+- Máximo 2 frases curtas
+- Formato: "Consultou [o que] e encontrou [resultado específico]"
+- Seja DIRETO e OBJETIVO
+- NÃO explique detalhes técnicos
+- NÃO repita informações desnecessárias
+
+Exemplo: "Consultou o total de universidades e encontrou 3473 instituições."
+
+Explicação breve:`
+
+    try {
+      const completion = await this.groqClient.chat.completions.create({
+        messages: [{ role: 'user', content: reverseTranslationPrompt }],
+        model: 'llama-3.1-8b-instant',
+        temperature: 0.3,
+        max_tokens: 300
+      })
+
+      const reverseTranslation = completion.choices[0]?.message?.content?.trim()
+      return reverseTranslation || `Consultou ${tablesDescription} e ${resultDescription}.`
+    } catch (error) {
+      console.error('❌ Erro ao gerar reverse translation:', error)
+      // Fallback para uma explicação básica e direta
+      return `Consultou ${tablesDescription} e ${resultDescription}.`
+    }
+  }
+
+  /**
+   * Extrai nomes de tabelas do SQL
+   */
+  private extractTablesFromSQL(sql: string): string[] {
+    const tables: string[] = []
+    const sqlLower = sql.toLowerCase()
+
+    // Buscar padrões FROM e JOIN
+    const fromMatch = sqlLower.match(/from\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)/g)
+    const joinMatch = sqlLower.match(/join\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)/g)
+
+    if (fromMatch) {
+      fromMatch.forEach(match => {
+        const tableName = match.replace(/from\s+/i, '').trim()
+        if (tableName && !tables.includes(tableName)) {
+          tables.push(tableName)
+        }
+      })
+    }
+
+    if (joinMatch) {
+      joinMatch.forEach(match => {
+        const tableName = match.replace(/join\s+/i, '').trim()
+        if (tableName && !tables.includes(tableName)) {
+          tables.push(tableName)
+        }
+      })
+    }
+
+    return tables
+  }
+
+  /**
+   * Extrai informações sobre JOINs do SQL
+   */
+  private extractJoinsFromSQL(sql: string): string {
+    const sqlLower = sql.toLowerCase()
+    const joinCount = (sqlLower.match(/join\s+/g) || []).length
+
+    if (joinCount === 0) {
+      return ''
+    } else if (joinCount === 1) {
+      return ' com relacionamento entre tabelas'
+    } else {
+      return ` com relacionamentos entre múltiplas tabelas`
+    }
+  }
+
+  /**
+   * Extrai informações sobre filtros WHERE do SQL
+   */
+  private extractWhereFromSQL(sql: string): string {
+    const sqlLower = sql.toLowerCase()
+
+    if (!sqlLower.includes('where')) {
+      return ''
+    }
+
+    // Contar condições aproximadamente
+    const whereClause = sqlLower.split('where')[1]?.split(/group by|order by|limit|having/)[0] || ''
+    const conditionCount = (whereClause.match(/and|or/g) || []).length + 1
+
+    if (conditionCount === 1) {
+      return ' aplicando um filtro específico'
+    } else {
+      return ` aplicando ${conditionCount} filtros`
+    }
+  }
+
+  /**
+   * Constrói uma descrição simples dos dados retornados
+   */
+  private buildDataDescription(result: QueryResult): string {
+    if (!result.rows || result.rows.length === 0 || !result.columns) {
+      return ''
+    }
+
+    // Pegar apenas a primeira linha como exemplo
+    const firstRow = result.rows[0]
+    const columns = result.columns
+
+    // Mostrar apenas os valores mais relevantes (primeiras 3 colunas ou valores numéricos)
+    const relevantData = columns.slice(0, 3).map((_, index) => {
+      const value = firstRow[index]
+      if (value !== null && value !== undefined) {
+        return String(value).substring(0, 30)
+      }
+      return null
+    }).filter(v => v !== null)
+
+    if (relevantData.length > 0) {
+      return `DADOS EXEMPLO: ${relevantData.join(', ')}`
+    }
+
+    return ''
   }
 
   // O restante dos métodos (buildSystemPrompt, buildUserPrompt, extractSQL, etc.)

@@ -219,8 +219,24 @@ export class ChatService {
         }
       }
 
+      // Gerar reverse translation após execução bem-sucedida
+      let reverseTranslation = ''
+      try {
+        console.log('🔄 Gerando reverse translation...')
+        reverseTranslation = await this.llmService.generateReverseTranslation({
+          sql: mensagem.sqlQuery,
+          result: dbResponse,
+          originalPrompt: mensagem.conteudo
+        })
+        console.log('✅ Reverse translation gerada:', reverseTranslation)
+      } catch (error) {
+        console.error('❌ Erro ao gerar reverse translation:', error)
+        // Continuar sem reverse translation em caso de erro
+      }
+
       const assistantMessageData = await this.updateMessage(mensagem.id, {
-        queryResult: dbResponse
+        queryResult: dbResponse,
+        reverseTranslation: reverseTranslation || null
       })
 
       const assistantMessage = mapMessage(assistantMessageData);
