@@ -671,7 +671,8 @@ Retorne apenas o SQL válido:`
   private isReplicateModel(model: string): boolean {
     const replicateModels = [
       'nateraw/defog-sqlcoder-7b-2',
-      'meta/codellama-70b-instruct'
+      'meta/codellama-70b-instruct',
+      'meta/meta-llama-3-70b-instruct'  // Modelo mais atual
     ]
     return replicateModels.includes(model)
   }
@@ -700,14 +701,17 @@ Retorne apenas o SQL válido:`
         let tableMetadata = ''
 
         if (schemaInfo && schemaInfo.tables) {
+          // Schema mais conciso para acelerar o processamento
           tableMetadata = schemaInfo.tables.map((table: any) => {
             const columns = table.keyColumns?.concat(table.importantColumns || []) || []
-            const columnDefs = columns.map((col: any) =>
-              `  ${col.name} ${col.dataType}${col.nullable ? '' : ' NOT NULL'}`
-            ).join(',\n')
+            // Limitar a 5 colunas mais importantes para reduzir o tamanho
+            const limitedColumns = columns.slice(0, 5)
+            const columnDefs = limitedColumns.map((col: any) =>
+              `${col.name} ${col.dataType}`
+            ).join(', ')
 
-            return `CREATE TABLE ${table.name} (\n${columnDefs}\n);`
-          }).join('\n\n')
+            return `${table.name}(${columnDefs})`
+          }).join('; ')
 
           console.log('🔍 SQLCoder - Schema metadata gerado:', tableMetadata.substring(0, 200) + '...')
         } else {
@@ -748,7 +752,8 @@ Current question: ${originalPrompt}`
           question: contextualQuestion, // Incluir contexto se disponível
           temperature: 0.1,
           table_metadata: tableMetadata,
-          prompt_template: "### Task\nGenerate a SQL query to answer [QUESTION]{question}[/QUESTION]\n\n### Instructions\n- If you cannot answer the question with the available database schema, return 'I do not know'\n- Use ONLY the table and column names provided in the schema\n- Always prefix table names with the schema name 'inep.'\n- If there is context from previous conversation, use it to understand references like 'that table', 'those results', etc.\n- Select only the most relevant columns (max 8-10 columns)\n- Never use SELECT *\n\n### Database Schema\nThe query will run on a database with the following schema:\n{table_metadata}\n\n### Answer\nGiven the database schema, here is the SQL query that answers [QUESTION]{question}[/QUESTION]\n[SQL]"
+          // Prompt mais conciso para acelerar o processamento
+          prompt_template: "Generate SQL for: {question}\n\nSchema: {table_metadata}\n\nSQL:"
         }
 
         console.log('🚀 SQLCoder - Enviando request:', {
@@ -765,14 +770,27 @@ Current question: ${originalPrompt}`
           max_new_tokens: 1000,
           top_p: 0.9
         }
+      } else if (model === 'meta/meta-llama-3-70b-instruct') {
+        input = {
+          prompt: combinedPrompt,
+          temperature: 0.1,
+          max_new_tokens: 1000,
+          top_p: 0.9
+        }
       } else {
         throw new Error(`Modelo Replicate não suportado: ${model}`)
       }
 
-      // Para SQLCoder, usar a versão específica
+      // Usar versões específicas dos modelos para garantir estabilidade
       let modelVersion = model as `${string}/${string}`
       if (model === 'nateraw/defog-sqlcoder-7b-2') {
         modelVersion = 'nateraw/defog-sqlcoder-7b-2:ced935b577fb52644d933f77e2ff8902744e4c58a2f50023b3a1db80b7a75806' as `${string}/${string}`
+      } else if (model === 'meta/codellama-70b-instruct') {
+        // Usar versão específica mais estável do CodeLlama
+        modelVersion = 'meta/codellama-70b-instruct:a279116fe47a0f65701a8817188601e2fe8f4b9e04a518789655ea7b995851bf' as `${string}/${string}`
+      } else if (model === 'meta/meta-llama-3-70b-instruct') {
+        // Usar versão específica do Llama 3
+        modelVersion = 'meta/meta-llama-3-70b-instruct:fbfb20b472b2f3bdd101412a9f70a0ed4fc0ced78a77ff00970ee7a2383c575d' as `${string}/${string}`
       }
 
       const output = await this.replicateClient.run(modelVersion, { input })
