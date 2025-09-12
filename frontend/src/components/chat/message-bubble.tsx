@@ -270,18 +270,19 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
           </div>
         )}
 
-        {/* Reverse Translation */}
-        {messageData.reverseTranslation && (
+        {/* Explanation */}
+        {/* {messageData.explanation && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">Resumo da Execução</span>
+              <span className="text-sm font-medium text-blue-800">💡 Explicação da Consulta</span>
             </div>
             <p className="text-sm text-blue-700 leading-relaxed">
-              {messageData.reverseTranslation}
+              {messageData.explanation}
             </p>
           </div>
-        )}
+        )} */}
+
       </div>
 
       {/* Botões flutuantes abaixo do bubble-message */}
@@ -362,14 +363,14 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
                           )}
                         </div>
 
-                        {/* Reverse Translation no modal */}
+                        {/* Análise dos Resultados */}
                         {messageData.reverseTranslation && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <MessageSquare className="h-4 w-4 text-blue-600" />
-                              <span className="text-sm font-medium text-blue-800">Resumo da Execução</span>
+                              <MessageSquare className="h-4 w-4 text-green-600" />
+                              <span className="text-sm font-medium text-green-800">💡 Análise dos Resultados</span>
                             </div>
-                            <p className="text-sm text-blue-700 leading-relaxed">
+                            <p className="text-sm text-green-700 leading-relaxed">
                               {messageData.reverseTranslation}
                             </p>
                           </div>

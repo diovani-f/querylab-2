@@ -278,22 +278,28 @@ Explicação detalhada dos resultados:`
     // Construir descrição dos dados retornados (primeiras linhas como exemplo)
     const dataDescription = this.buildDataDescription(result)
 
-    const reverseTranslationPrompt = `Gere uma explicação MUITO BREVE e DIRETA sobre esta consulta SQL executada.
+    const reverseTranslationPrompt = `Analise esta consulta SQL executada e gere um resumo analítico com insights.
 
-SQL: ${sql}
+SQL EXECUTADO: ${sql}
 RESULTADO: ${resultDescription}
 ${dataDescription}
 
 INSTRUÇÕES:
-- Máximo 2 frases curtas
-- Formato: "Consultou [o que] e encontrou [resultado específico]"
-- Seja DIRETO e OBJETIVO
-- NÃO explique detalhes técnicos
-- NÃO repita informações desnecessárias
+- Gere um resumo analítico de 2-3 frases
+- Foque em INSIGHTS e ANÁLISE dos dados, não apenas o que foi consultado
+- Destaque padrões, tendências ou informações relevantes dos resultados
+- Use linguagem natural e amigável
+- Evite repetir informações óbvias
+- Se possível, contextualize os números (ex: "representa X% do total", "indica crescimento", etc.)
 
-Exemplo: "Consultou o total de universidades e encontrou 3473 instituições."
+EXEMPLOS:
+- Em vez de: "Consultou cursos e encontrou 150 registros"
+- Prefira: "Foram identificados 150 cursos de pedagogia, representando uma oferta significativa nesta área educacional"
 
-Explicação breve:`
+- Em vez de: "Consultou universidades por estado"
+- Prefira: "São Paulo lidera com 45 universidades, seguido por MG (32) e RJ (28), mostrando concentração no Sudeste"
+
+Resumo analítico:`
 
     try {
       const completion = await this.groqClient.chat.completions.create({
