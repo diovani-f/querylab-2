@@ -173,6 +173,7 @@ export interface WebSocketEvents {
   'query-executing': (status: string) => void
   'query-error': (error: string) => void
   'session-joined': (sessionId: string) => void
+  'session-title-updated': (data: { sessionId: string, title: string }) => void
   'evaluation-updated': (data: { messageId: string, evaluation: QueryEvaluation }) => void
   'error': (error: string) => void
 }

@@ -233,6 +233,9 @@ console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantPro
 
       const userMessage = mapMessage(userMessageData);
 
+      // Verificar se é a terceira mensagem do usuário para gerar título automaticamente
+      await this.checkAndGenerateAutoTitle(actualSessionId, sessionData)
+
       // NOVO FLUXO: Usar assistente educacional para todas as mensagens
       return await this.processWithEducationalAssistant(actualSessionId, message, userMessage, session, model)
     } catch (error: any) {
@@ -787,5 +790,91 @@ Resposta:`
       data: updateData,
       where: { id }
     });
+  }
+
+  /**
+   * Verifica se é a terceira mensagem do usuário e gera título automaticamente
+   */
+  private async checkAndGenerateAutoTitle(sessionId: string, sessionData: any): Promise<void> {
+    try {
+      // Contar mensagens do usuário na sessão
+      const userMessagesCount = await prisma.mensagem.count({
+        where: {
+          sessaoId: sessionId,
+          tipo: 'user'
+        }
+      })
+
+      console.log(`📊 Sessão ${sessionId}: ${userMessagesCount} mensagens do usuário`)
+
+      // Se é exatamente a terceira mensagem do usuário, gerar título automaticamente
+      if (userMessagesCount === 3) {
+        console.log('🎯 Terceira mensagem detectada! Gerando título automático...')
+
+        // Verificar se a sessão ainda tem título padrão
+        const currentTitle = sessionData.titulo
+        const isDefaultTitle = currentTitle.includes('Sessão') && currentTitle.includes('/')
+
+        if (isDefaultTitle) {
+          await this.generateConversationTitle(sessionId)
+        } else {
+          console.log('ℹ️ Sessão já possui título personalizado, não gerando automaticamente')
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao verificar/gerar título automático:', error)
+      // Não falhar o processamento da mensagem por causa do título
+    }
+  }
+
+  /**
+   * Gera um título para a conversa baseado nas primeiras mensagens usando LLMService
+   */
+  private async generateConversationTitle(sessionId: string): Promise<void> {
+    try {
+      console.log('🤖 Gerando título automático para sessão:', sessionId)
+
+      // Buscar as primeiras mensagens do usuário para gerar o título
+      const userMessages = await prisma.mensagem.findMany({
+        where: {
+          sessaoId: sessionId,
+          tipo: 'user'
+        },
+        orderBy: {
+          timestamp: 'asc'
+        },
+        take: 3 // Pegar as 3 primeiras mensagens do usuário
+      })
+
+      if (userMessages.length === 0) {
+        console.log('⚠️ Nenhuma mensagem do usuário encontrada para gerar título')
+        return
+      }
+
+      // Usar LLMService para gerar o título
+      const generatedTitle = await this.llmService.generateConversationTitle(userMessages)
+
+      if (generatedTitle) {
+        // Atualizar o título da sessão
+        await this.sessionService.updateSessionTitle(sessionId, generatedTitle)
+
+        // Emitir evento WebSocket para notificar o frontend sobre a atualização do título
+        if (global.socketIO) {
+          global.socketIO.to(sessionId).emit('session-title-updated', {
+            sessionId,
+            title: generatedTitle
+          })
+          console.log('📡 Evento session-title-updated emitido para sessão:', sessionId)
+        }
+
+        console.log('✅ Título automático gerado:', generatedTitle)
+      } else {
+        console.log('⚠️ Não foi possível gerar título automático')
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao gerar título automático:', error)
+      // Não falhar o processamento por causa do título
+    }
   }
 }

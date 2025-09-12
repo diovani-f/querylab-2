@@ -103,6 +103,10 @@ class WebSocketService {
     this.socket?.on('evaluation-updated', callback)
   }
 
+  onSessionTitleUpdated(callback: (data: { sessionId: string, title: string }) => void) {
+    this.socket?.on('session-title-updated', callback)
+  }
+
   // Remove listeners
   removeAllListeners() {
     this.socket?.removeAllListeners()

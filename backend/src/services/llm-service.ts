@@ -468,4 +468,71 @@ Resumo analítico:`
 
     return messages
   }
+
+  /**
+   * Gera um título para a conversa baseado nas mensagens do usuário usando Groq
+   */
+  async generateConversationTitle(userMessages: Array<{ conteudo: string }>): Promise<string | null> {
+    try {
+      console.log('🤖 Gerando título automático usando LLMService...')
+
+      if (userMessages.length === 0) {
+        console.log('⚠️ Nenhuma mensagem do usuário fornecida para gerar título')
+        return null
+      }
+
+      // Construir contexto das mensagens para o prompt
+      const messagesContext = userMessages
+        .map((msg, index) => `${index + 1}. ${msg.conteudo}`)
+        .join('\n')
+
+      const titlePrompt = `
+Baseado nas seguintes mensagens de uma conversa sobre consultas SQL e dados educacionais, gere um título conciso e descritivo para a conversa.
+
+Mensagens do usuário:
+${messagesContext}
+
+Regras para o título:
+- Máximo 50 caracteres
+- Seja específico sobre o tema principal
+- Use linguagem clara e direta
+- Foque no assunto principal da consulta
+- Não use aspas ou caracteres especiais
+- Exemplos: "Universidades por Estado", "Análise de Cursos EAD", "Dados de Matrículas 2023"
+
+Título:`
+
+      // Usar Groq para gerar o título
+      const completion = await this.groqClient.chat.completions.create({
+        messages: [
+          {
+            role: 'user',
+            content: titlePrompt
+          }
+        ],
+        model: 'llama-3.1-8b-instant', // Modelo rápido
+        temperature: 0.3,
+        max_tokens: 50
+      })
+
+      const generatedTitle = completion.choices[0]?.message?.content?.trim()
+
+      if (generatedTitle && generatedTitle.length > 0) {
+        // Limitar o título a 50 caracteres
+        const finalTitle = generatedTitle.length > 50
+          ? generatedTitle.substring(0, 47) + '...'
+          : generatedTitle
+
+        console.log('✅ Título automático gerado pelo LLMService:', finalTitle)
+        return finalTitle
+      } else {
+        console.log('⚠️ Não foi possível gerar título automático')
+        return null
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao gerar título automático no LLMService:', error)
+      return null
+    }
+  }
 }

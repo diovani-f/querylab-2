@@ -590,6 +590,30 @@ export const useAppStore = create<AppStore>()(
           console.log('📊 Avaliação atualizada via WebSocket:', data)
           get().updateMessageEvaluation(data.messageId, data.evaluation)
         })
+
+        websocketService.onSessionTitleUpdated((data: { sessionId: string, title: string }) => {
+          console.log('📝 Título da sessão atualizado via WebSocket:', data)
+
+          set((state) => {
+            // Atualizar sessão atual se for a mesma
+            const updatedCurrentSession = state.currentSession?.id === data.sessionId
+              ? { ...state.currentSession, titulo: data.title }
+              : state.currentSession
+
+            // Atualizar lista de sessões
+            const updatedSessions = state.sessions.map(session =>
+              session.id === data.sessionId
+                ? { ...session, titulo: data.title }
+                : session
+            )
+
+            return {
+              ...state,
+              currentSession: updatedCurrentSession,
+              sessions: updatedSessions
+            }
+          })
+        })
       },
 
       disconnectWebSocket: () => {
