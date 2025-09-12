@@ -191,6 +191,11 @@ Generate a SQL query to answer this question: ${question}
 ### Database Schema
 ${schemaReduction.reducedSchema}
 
+### Important Rules
+- ALWAYS add LIMIT 100 to SELECT * queries to prevent database overload
+- Use LIMIT 50 for complex queries with JOINs
+- Optimize for performance and safety
+
 ### SQL Query
 `
 

@@ -74,9 +74,9 @@ export class ChatService {
   }
 
   /**
-   * Roteador inteligente que usa Groq rápido para identificar e processar consultas
+   * Assistente que usa Groq rápido para identificar e processar consultas educacionais
    */
-  private async processWithIntelligentRouter(
+  private async processWithEducationalAssistant(
     sessionId: string,
     message: string,
     userMessage: Message,
@@ -90,16 +90,17 @@ export class ChatService {
     error?: string
   }> {
     try {
-      // Usar Groq rápido como roteador e resposta direta
-      const routerPrompt = `
-Você é um roteador inteligente. Sua única função é classificar a mensagem do usuário em uma das 3 categorias.
+      // Usar Groq rápido como assistente educacional e resposta direta
+      const assistantPrompt = `
+Você é um assistente especializado em consultas SQL educacionais. Sua função é classificar a mensagem do usuário e responder adequadamente.
 
 MENSAGEM DO USUÁRIO: "${message}"
 
 INSTRUÇÕES IMPORTANTES:
-- Responda APENAS com uma das palavras-chave abaixo
-- NÃO adicione explicações, SQL ou texto extra
-- Seja preciso na classificação
+- Para consultas de dados: responda APENAS com "SQL_QUERY"
+- Para perguntas sobre estrutura: responda APENAS com "SCHEMA_INFO"
+- Para saudações/conversas: responda de forma amigável como assistente educacional
+- NÃO se identifique como "roteador" - você é um assistente para consultas SQL educacionais
 
 CATEGORIAS:
 
@@ -109,37 +110,37 @@ SQL_QUERY
 2. Se for uma PERGUNTA sobre estrutura/schema do banco (como "quais tabelas", "que dados existem", "estrutura do banco"), responda APENAS:
 SCHEMA_INFO
 
-3. Se for SAUDAÇÃO ou CONVERSA geral (como "oi", "olá", "como funciona", "o que você faz"), responda normalmente de forma amigável.
+3. Se for SAUDAÇÃO ou CONVERSA geral (como "oi", "olá", "como funciona", "o que você faz"), responda normalmente de forma amigável como um assistente educacional.
 
 EXEMPLOS:
-- "oi" → Olá! Sou um assistente para consultas SQL educacionais.
+- "oi" → Olá! Sou seu assistente para consultas em dados educacionais. Posso ajudar você a explorar informações do INEP através de consultas SQL. Como posso ajudar?
 - "quantos cursos de pedagogia existem" → SQL_QUERY
 - "mostre dados de 2023" → SQL_QUERY
 - "liste as universidades" → SQL_QUERY
 - "quais tabelas existem" → SCHEMA_INFO
 - "que dados temos disponíveis" → SCHEMA_INFO
-- "como funciona o SQL" → SQL é uma linguagem para consultar bancos de dados.
+- "como funciona o SQL" → SQL é uma linguagem para consultar bancos de dados. Posso ajudar você a criar consultas para explorar dados educacionais do INEP!
 
 RESPOSTA:`
 
-console.log("🚀 ~ ChatService ~ processWithIntelligentRouter ~ routerPrompt:", routerPrompt)
+console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantPrompt:", assistantPrompt)
       // Usar LLMService para chamar o modelo rápido
-      const routerResponse = await this.llmService.handlePrompt({
-        prompt: routerPrompt,
+      const assistantResponse = await this.llmService.handlePrompt({
+        prompt: assistantPrompt,
         model: 'llama-3.1-8b-instant'
 
       })
-      console.log("🚀 ~ ChatService ~ processWithIntelligentRouter ~ routerResponse:", routerResponse)
+      console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantResponse:", assistantResponse)
 
-      if (!routerResponse.success) {
-        throw new Error(`Erro no roteador: ${routerResponse.error}`)
+      if (!assistantResponse.success) {
+        throw new Error(`Erro no assistente: ${assistantResponse.error}`)
       }
 
-      console.log("🚀 ~ ChatService ~ processWithIntelligentRouter ~ routerResponse:", routerResponse)
-      const response = (routerResponse.content || '').trim()
+      console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantResponse:", assistantResponse)
+      const response = (assistantResponse.content || '').trim()
 
       if (!response) {
-        throw new Error('Resposta vazia do roteador')
+        throw new Error('Resposta vazia do assistente')
       }
 
       if (response.includes('SQL_QUERY')) {
@@ -164,7 +165,7 @@ console.log("🚀 ~ ChatService ~ processWithIntelligentRouter ~ routerPrompt:",
       }
 
     } catch (error) {
-      console.error('❌ Erro no roteador inteligente:', error)
+      console.error('❌ Erro no assistente educacional:', error)
 
       const errorMessageData = await this.addMessage(sessionId, {
         type: 'error',
@@ -232,8 +233,8 @@ console.log("🚀 ~ ChatService ~ processWithIntelligentRouter ~ routerPrompt:",
 
       const userMessage = mapMessage(userMessageData);
 
-      // NOVO FLUXO: Usar roteador inteligente para todas as mensagens
-      return await this.processWithIntelligentRouter(actualSessionId, message, userMessage, session, model)
+      // NOVO FLUXO: Usar assistente educacional para todas as mensagens
+      return await this.processWithEducationalAssistant(actualSessionId, message, userMessage, session, model)
     } catch (error: any) {
       console.error("🚀 ~ ChatService ~ processMessage ~ error:", error)
       return {
@@ -387,6 +388,11 @@ Generate a SQL query to answer this question: ${question}
 ### Database Schema
 ${schemaReduction.reducedSchema}
 
+### Important Rules
+- ALWAYS add LIMIT 100 to SELECT * queries to prevent database overload
+- Use LIMIT 50 for complex queries with JOINs
+- Optimize for performance and safety
+
 ### SQL Query
 `
         sqlResponse = await this.cloudflareAI.generateSQL({ prompt })
@@ -400,11 +406,17 @@ PERGUNTA: ${question}
 SCHEMA DO BANCO:
 ${schemaReduction.reducedSchema}
 
-INSTRUÇÕES:
+INSTRUÇÕES OBRIGATÓRIAS:
 - Retorne APENAS o código SQL, sem explicações
 - Use nomes de tabelas e colunas exatos do schema
-- Otimize a consulta para performance
+- SEMPRE adicione LIMIT 100 em consultas SELECT * para proteger o banco
+- Use LIMIT 50 para consultas complexas com JOINs
+- Otimize a consulta para performance e segurança
 - Use JOINs quando necessário
+
+EXEMPLO:
+SELECT * FROM tabela LIMIT 100;
+SELECT t1.*, t2.nome FROM tabela1 t1 JOIN tabela2 t2 ON t1.id = t2.id LIMIT 50;
 
 SQL:`
 
@@ -437,8 +449,13 @@ SQL:`
         }
       }
 
+      // Sanitizar SQL para garantir LIMIT
+      const sanitizedSQL = this.sanitizeSQL(sqlResponse.sql!)
+      console.log('🔧 SQL original:', sqlResponse.sql)
+      console.log('✅ SQL sanitizado:', sanitizedSQL)
+
       // Executar SQL
-      const queryResult = await this.queryService.executeQuery(sqlResponse.sql!)
+      const queryResult = await this.queryService.executeQuery(sanitizedSQL)
 
       if (!queryResult.success) {
         const errorMessageData = await this.addMessage(sessionId, {
@@ -494,7 +511,7 @@ Seja conciso mas informativo. Use linguagem natural, não técnica.
         type: 'assistant',
         content
       }, {
-        sqlQuery: sqlResponse.sql,
+        sqlQuery: sanitizedSQL, // Usar SQL sanitizado
         queryResult,
         reverseTranslation: explanation || question,
         hasExplanation: !!explanation,
@@ -522,6 +539,47 @@ Seja conciso mas informativo. Use linguagem natural, não técnica.
         userMessage,
         assistantMessage: mapMessage(errorMessageData)
       }
+    }
+  }
+
+  /**
+   * Sanitiza SQL para garantir que sempre tenha LIMIT em consultas SELECT
+   */
+  private sanitizeSQL(sql: string): string {
+    if (!sql) return sql
+
+    // Remover espaços extras e quebras de linha
+    const cleanSQL = sql.trim().replace(/\s+/g, ' ')
+
+    // Verificar se é uma consulta SELECT
+    if (!cleanSQL.toLowerCase().startsWith('select')) {
+      return cleanSQL
+    }
+
+    // Verificar se já tem LIMIT
+    if (cleanSQL.toLowerCase().includes('limit')) {
+      return cleanSQL
+    }
+
+    // Adicionar LIMIT baseado no tipo de consulta
+    const hasJoin = cleanSQL.toLowerCase().includes('join')
+    const hasSelectStar = cleanSQL.toLowerCase().includes('select *')
+
+    let limitValue = 100 // Padrão
+    if (hasJoin) {
+      limitValue = 50 // Consultas com JOIN são mais pesadas
+    } else if (hasSelectStar) {
+      limitValue = 100 // SELECT * pode retornar muitos dados
+    }
+
+    // Adicionar LIMIT no final (antes de possível ORDER BY)
+    if (cleanSQL.toLowerCase().includes('order by')) {
+      const orderByIndex = cleanSQL.toLowerCase().lastIndexOf('order by')
+      const beforeOrderBy = cleanSQL.substring(0, orderByIndex).trim()
+      const orderByPart = cleanSQL.substring(orderByIndex)
+      return `${beforeOrderBy} LIMIT ${limitValue} ${orderByPart}`
+    } else {
+      return `${cleanSQL} LIMIT ${limitValue}`
     }
   }
 
