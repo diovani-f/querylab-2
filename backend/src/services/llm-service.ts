@@ -3,6 +3,7 @@ import Replicate from 'replicate'
 import { LLMRequest, LLMResponse, QueryResult } from '../types'
 import { SchemaDiscoveryService } from './schema-discovery-service'
 import { PrismaClient, LLMModel } from '@prisma/client'
+import { CloudflareAIService } from './cloudflare-ai-service'
 
 export class LLMService {
   private prisma: PrismaClient
@@ -62,10 +63,11 @@ export class LLMService {
       // Definir ordem de prioridade dos providers
       const providerOrder: Record<string, number> = {
         'groq': 1,
-        'replicate': 2,
+        'cloudflare': 2,
         'openai': 3,
         'anthropic': 4,
-        'local': 5
+        'local': 5,
+        'replicate': 6
       }
 
       const aOrder = providerOrder[a.provider] || 999
@@ -104,59 +106,16 @@ export class LLMService {
   }
 
   /**
-   * Verifica se a pergunta é sobre informações do schema que já estão disponíveis
-   */
-  private isSchemaInfoQuestion(prompt: string): boolean {
-    const schemaQuestions = [
-      /quais?\s+(são\s+)?as?\s+(principais\s+)?tabelas?/i,
-      /que\s+tabelas?\s+(existem?|tem|há)/i,
-      /mostre?\s+(as\s+)?tabelas?/i,
-      /liste?\s+(as\s+)?tabelas?/i,
-      /estrutura\s+do\s+(banco|schema)/i,
-      /schema\s+do\s+banco/i,
-      /informações?\s+sobre\s+(as\s+)?tabelas?/i
-    ]
-
-    return schemaQuestions.some(pattern => pattern.test(prompt))
-  }
-
-  /**
-   * Determina se o prompt é conversacional ou uma consulta de dados.
-   * Gera uma explicação ou um SQL baseado na intenção.
+   * Método simples para chamar o Groq e retornar a resposta direta
    */
   async handlePrompt(request: LLMRequest): Promise<LLMResponse> {
     const { prompt, model, context } = request
     try {
-      // Verificar se é uma pergunta sobre schema que pode ser respondida diretamente
-      if (this.isSchemaInfoQuestion(prompt)) {
-        const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'inep')
-        if (schemaInfo && schemaInfo.tables && schemaInfo.tables.length > 0) {
-          const tablesList = schemaInfo.tables.map((t: any) => `${t.name} (${t.columnCount} colunas)`).join(', ')
-          return {
-            success: true,
-            content: `Com base no schema disponível, o banco possui ${schemaInfo.tables.length} tabelas principais: ${tablesList}. Cada tabela contém dados específicos sobre diferentes aspectos educacionais do INEP.`,
-            model,
-            tokensUsed: 0,
-            processingTime: Date.now()
-          }
-        }
-      }
+      // Construir mensagens para o modelo
+      const conversationMessages = this.buildConversationMessages(prompt, context?.conversationHistory || [])
+      console.log("🚀 ~ LLMService ~ handlePrompt ~ conversationMessages:", conversationMessages)
 
-      const systemPrompt = await this.buildSystemPrompt(context)
-      const conversationMessages = await this.buildConversationMessages(prompt, context?.conversationHistory || [], context)
-
-      // Modelos Replicate
-      if (this.isReplicateModel(model)) {
-        // Para modelos Replicate, usar contexto conversacional simplificado
-        const replicateContext = {
-          ...context,
-          conversationHistory: context?.conversationHistory || []
-        }
-        const userPrompt = this.buildUserPrompt(prompt)
-        return await this.handleReplicateModel(model, systemPrompt, userPrompt, prompt, replicateContext)
-      }
-
-      // Modelos padrão (Groq)
+      // Chamar Groq diretamente
       const completion = await this.groqClient.chat.completions.create({
         messages: conversationMessages,
         model,
@@ -165,40 +124,22 @@ export class LLMService {
         top_p: 1,
         stream: false
       })
+
       const response = completion.choices[0]?.message?.content
+
       if (!response) {
         throw new Error('Resposta vazia do modelo LLM')
       }
 
-      // Se for uma CONVERSA retorna sem explicação simples da query
-      if (response.trim().startsWith('CONVERSA:')) {
-        return {
-          success: true,
-          content: response.trim().replace('CONVERSA:', ''),
-          model,
-          tokensUsed: completion.usage?.total_tokens || 0,
-          processingTime: Date.now()
-        }
-      }
-
-      const sqlQuery = this.extractSQL(response)
-
-      // Busca explicação simples da query
-      const explanation = await this.generateQueryExplanation({
-        prompt,
-        sql: sqlQuery
-      })
-
-      // Se a resposta for um SQL, retorna o SQL e a explicação da query
+      // Retornar resposta simples e direta
       return {
         success: true,
-        content: "",
-        sqlQuery,
-        explanation,
+        content: response.trim(),
         model,
         tokensUsed: completion.usage?.total_tokens || 0,
         processingTime: Date.now()
       }
+
     } catch (error) {
       console.error('❌ Erro ao processar prompt:', error)
       return {
@@ -468,112 +409,11 @@ Explicação breve:`
     return ''
   }
 
-  // O restante dos métodos (buildSystemPrompt, buildUserPrompt, extractSQL, etc.)
-  // permanecem os mesmos, pois já estão bem implementados para a sua arquitetura.
-  public async buildSystemPrompt(context?: any): Promise<string> {
-    const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'inep');
-    const basePrompt = `Você é um assistente especializado em consultas SQL para banco de dados PostgreSQL, mas também pode conversar normalmente com o usuário.
-
-REGRAS IMPORTANTES:
-1. Se a mensagem for uma saudação (oi, olá, hello, etc.) ou pergunta geral sobre o que você faz, responda SEMPRE com "CONVERSA:" seguido da explicação. Mantenha a conversa natural e amigável.
-2. Se for uma pergunta sobre informações do schema que já estão disponíveis no contexto (como "quais são as principais tabelas", "que tabelas existem", "mostre as tabelas"), responda com "CONVERSA:" e forneça a informação diretamente do schema disponível.
-3. Se for uma consulta específica sobre dados (quantas, liste, mostre dados específicos, etc.), gere APENAS o SQL válido.
-4. NUNCA misture explicação com SQL.
-5. Use SEMPRE nomes de tabelas e colunas EXATOS como mostrados no schema.
-6. CONTEXTO CONVERSACIONAL: Use o histórico da conversa para entender referências como "essa tabela", "os dados anteriores", "a consulta passada", etc. Mantenha consistência com consultas anteriores.
-7. SELEÇÃO DE COLUNAS: Para consultas que retornam dados, selecione APENAS as colunas mais relevantes e importantes para responder à pergunta. NUNCA use SELECT * - sempre especifique as colunas. Priorize:
-   - Colunas identificadoras (IDs, códigos, nomes)
-   - Colunas diretamente relacionadas à pergunta
-   - Máximo de 8-10 colunas por consulta
-   - Use as colunas marcadas como "importantes" no schema quando disponíveis
-8. Para PostgreSQL, use sintaxe padrão: LIMIT n ao invés de FETCH FIRST n ROWS ONLY.
-9. Sempre prefixe o nome da tabela com o schema inep (ex: inep.censo_ies).
-10. Se o schema não estiver disponível, avise o usuário e gere consultas genéricas.
-11. Mantenha a conversa fluida e educada quando não for uma consulta SQL.
-
-SCHEMA DO BANCO DE DADOS:`;
-    if (schemaInfo && schemaInfo.tables && schemaInfo.tables.length > 0) {
-      const schemaDescription = schemaInfo.tables.map((table: any) => {
-        const keyColumns = table.keyColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || '';
-        const importantColumns = table.importantColumns?.map((col: any) => `${col.name} (${col.dataType})${col.nullable ? ' NULL' : ' NOT NULL'}`).join(', ') || '';
-        return `- ${table.name}: ${table.columnCount} colunas
-  Chaves: ${keyColumns}
-  Colunas importantes: ${importantColumns}
-  Tipo: ${table.type}${table.comment ? ` - ${table.comment}` : ''}`;
-      }).join('\n');
-      return `${basePrompt}
-${schemaDescription}
-
-RELACIONAMENTOS IDENTIFICADOS:
-${schemaInfo.relationships?.map((rel: any) => `- ${rel.fromTable}.${rel.fromColumn} → ${rel.toTable} (${rel.type})`).join('\n') || 'Nenhum relacionamento identificado'}
-
-EXEMPLOS CORRETOS:
-
-Entrada: "oi"
-Saída: CONVERSA: Olá! Sou um assistente especializado em consultas SQL para dados do inep. Posso ajudar você a encontrar informações sobre instituições de ensino, cursos, avaliações e indicadores educacionais. Exemplos: "Quantas instituições existem?", "Liste os cursos de uma área específica", "Mostre dados de avaliação".
-
-Entrada: "quais são as principais tabelas?"
-Saída: CONVERSA: Com base no schema disponível, as principais tabelas são: ${schemaInfo.tables?.slice(0, 5).map((t: any) => `${t.name} (${t.columnCount} colunas)`).join(', ') || 'informação não disponível'}. Cada tabela contém dados específicos sobre diferentes aspectos educacionais.
-
-Entrada: "que tabelas existem no banco?"
-Saída: CONVERSA: O banco possui ${schemaInfo.tables?.length || 0} tabelas principais: ${schemaInfo.tables?.map((t: any) => t.name).join(', ') || 'informação não disponível'}.
-
-Entrada: "Quantas instituições existem?"
-Saída: SELECT COUNT(*) as total FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'tabela'};
-
-Entrada: "Liste 10 cursos"
-Saída: SELECT codigo_curso, nome_curso, area_conhecimento, modalidade, situacao FROM ${context?.schemaName || 'inep'}.${schemaInfo.tables[0]?.name || 'tabela'} LIMIT 10;
-
-Entrada: "Mostre dados das instituições"
-Saída: SELECT codigo_ies, nome_ies, sigla, categoria_administrativa, organizacao_academica, municipio, uf FROM ${context?.schemaName || 'inep'}.instituicoes LIMIT 20;
-
-Entrada: "Liste avaliações dos cursos"
-Saída: SELECT codigo_curso, nome_curso, conceito_enade, cpc, cc, ano_avaliacao FROM ${context?.schemaName || 'inep'}.avaliacoes ORDER BY conceito_enade DESC LIMIT 15;
-
-Entrada: "o que você faz?"
-Saída: CONVERSA: Sou especializado em converter suas perguntas em consultas SQL para buscar dados educacionais do inep. Posso ajudar com informações sobre instituições, cursos, avaliações e indicadores, além de responder perguntas sobre o schema do banco.
-
-Entrada: "Me conte mais sobre você"
-Saída: CONVERSA: Sou um assistente virtual focado em ajudar com consultas SQL e também posso conversar normalmente para tirar dúvidas ou explicar como funciono. Tenho acesso ao schema completo do banco de dados educacionais.
-`;
-    }
-    // Fallback para schema básico se não conseguir carregar
-    return `${basePrompt}
-- Schema não disponível no momento. Use consultas genéricas.
-
-EXEMPLOS CORRETOS:
-
-Entrada: "oi"
-Saída: CONVERSA: Olá! Sou um assistente especializado em consultas SQL. No momento, o schema detalhado não está disponível, mas posso ajudar com consultas básicas.
-
-Entrada: "quais são as tabelas?"
-Saída: CONVERSA: No momento, não tenho acesso ao schema detalhado do banco. Por favor, tente novamente mais tarde ou faça uma consulta específica.
-
-Entrada: "o que você faz?"
-Saída: CONVERSA: Sou especializado em converter suas perguntas em consultas SQL. No momento, estou com acesso limitado ao schema do banco.
-`;
-  }
-
-  public buildUserPrompt(prompt: string): string {
-    return `Converta esta consulta em linguagem natural para SQL:
-
-"${prompt}"
-
-Retorne apenas o SQL válido:`
-  }
-
   /**
-   * Constrói as mensagens da conversa incluindo o histórico
+   * Constrói as mensagens da conversa incluindo apenas o histórico simples
    */
-  private async buildConversationMessages(currentPrompt: string, conversationHistory: any[], context?: any): Promise<any[]> {
+  private buildConversationMessages(currentPrompt: string, conversationHistory: any[]): any[] {
     const messages: any[] = []
-
-    // Adicionar mensagem do sistema
-    const systemPrompt = await this.buildSystemPrompt(context)
-    messages.push({
-      role: 'system',
-      content: systemPrompt
-    })
 
     // Adicionar mensagens do histórico (limitado às últimas 6 mensagens para não sobrecarregar)
     const recentHistory = conversationHistory.slice(-6)
@@ -615,234 +455,11 @@ Retorne apenas o SQL válido:`
     }
 
     // Adicionar a mensagem atual do usuário
-    const hasHistory = conversationHistory.length > 0
-    const userPromptContent = hasHistory
-      ? `Baseando-se no contexto da nossa conversa anterior, converta esta consulta em linguagem natural para SQL:
-
-"${currentPrompt}"
-
-Retorne apenas o SQL válido:`
-      : `Converta esta consulta em linguagem natural para SQL:
-
-"${currentPrompt}"
-
-Retorne apenas o SQL válido:`
-
     messages.push({
       role: 'user',
-      content: userPromptContent
+      content: currentPrompt
     })
 
     return messages
-  }
-
-  private extractSQL(response: string): string {
-    // Tentar extrair SQL de blocos de código
-    const sqlBlockMatch = response.match(/```sql\n([\s\S]*?)\n```/)
-    if (sqlBlockMatch) {
-      return sqlBlockMatch[1].trim()
-    }
-
-    // Tentar extrair SQL de blocos genéricos
-    const codeBlockMatch = response.match(/```\n([\s\S]*?)\n```/)
-    if (codeBlockMatch) {
-      return codeBlockMatch[1].trim()
-    }
-
-    // Se não encontrar blocos, procurar por SQL direto
-    const lines = response.split('\n')
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (trimmed.toUpperCase().startsWith('SELECT') ||
-        trimmed.toUpperCase().startsWith('INSERT') ||
-        trimmed.toUpperCase().startsWith('UPDATE') ||
-        trimmed.toUpperCase().startsWith('DELETE')) {
-        return trimmed
-      }
-    }
-
-    // Fallback: retornar a resposta completa limpa
-    return response.trim()
-  }
-
-  /**
-   * Verifica se o modelo é do Replicate
-   */
-  private isReplicateModel(model: string): boolean {
-    const replicateModels = [
-      'nateraw/defog-sqlcoder-7b-2',
-      'meta/codellama-70b-instruct',
-      'meta/meta-llama-3-70b-instruct'  // Modelo mais atual
-    ]
-    return replicateModels.includes(model)
-  }
-
-  /**
-   * Lida com modelos do Replicate
-   */
-  private async handleReplicateModel(
-    model: string,
-    systemPrompt: string,
-    userPrompt: string,
-    originalPrompt: string,
-    context?: any
-  ): Promise<LLMResponse> {
-    try {
-      const startTime = Date.now()
-
-      // Combinar system e user prompt para o Replicate
-      const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`
-
-      let input: any
-
-      if (model === 'nateraw/defog-sqlcoder-7b-2') {
-        // Obter schema das tabelas para o SQLCoder
-        const schemaInfo = await this.schemaService.getSchemaForLLM(context?.schemaName || 'inep')
-        let tableMetadata = ''
-
-        if (schemaInfo && schemaInfo.tables) {
-          // Schema mais conciso para acelerar o processamento
-          tableMetadata = schemaInfo.tables.map((table: any) => {
-            const columns = table.keyColumns?.concat(table.importantColumns || []) || []
-            // Limitar a 5 colunas mais importantes para reduzir o tamanho
-            const limitedColumns = columns.slice(0, 5)
-            const columnDefs = limitedColumns.map((col: any) =>
-              `${col.name} ${col.dataType}`
-            ).join(', ')
-
-            return `${table.name}(${columnDefs})`
-          }).join('; ')
-
-          console.log('🔍 SQLCoder - Schema metadata gerado:', tableMetadata.substring(0, 200) + '...')
-        } else {
-          console.log('⚠️ SQLCoder - Schema não disponível, usando schema genérico')
-          tableMetadata = `CREATE TABLE inep.exemplo (
-  id INTEGER PRIMARY KEY,
-  nome VARCHAR(100) NOT NULL,
-  data_criacao DATE
-);`
-        }
-
-        // Construir contexto conversacional para SQLCoder
-        let contextualQuestion = originalPrompt
-        const conversationHistory = context?.conversationHistory || []
-
-        if (conversationHistory.length > 0) {
-          // Pegar as últimas 3 mensagens para contexto
-          const recentHistory = conversationHistory.slice(-3)
-          let contextInfo = ''
-
-          for (const msg of recentHistory) {
-            if (msg.tipo === 'user') {
-              contextInfo += `Previous question: "${msg.conteudo}"\n`
-            } else if (msg.sqlQuery) {
-              contextInfo += `Previous SQL: ${msg.sqlQuery}\n`
-            }
-          }
-
-          if (contextInfo) {
-            contextualQuestion = `Context from previous conversation:
-${contextInfo}
-
-Current question: ${originalPrompt}`
-          }
-        }
-
-        input = {
-          question: contextualQuestion, // Incluir contexto se disponível
-          temperature: 0.1,
-          table_metadata: tableMetadata,
-          // Prompt mais conciso para acelerar o processamento
-          prompt_template: "Generate SQL for: {question}\n\nSchema: {table_metadata}\n\nSQL:"
-        }
-
-        console.log('🚀 SQLCoder - Enviando request:', {
-          question: contextualQuestion.substring(0, 100) + '...',
-          temperature: input.temperature,
-          hasTableMetadata: !!tableMetadata,
-          tableMetadataLength: tableMetadata.length,
-          hasContext: conversationHistory.length > 0
-        })
-      } else if (model === 'meta/codellama-70b-instruct') {
-        input = {
-          prompt: combinedPrompt,
-          temperature: 0.1,
-          max_new_tokens: 1000,
-          top_p: 0.9
-        }
-      } else if (model === 'meta/meta-llama-3-70b-instruct') {
-        input = {
-          prompt: combinedPrompt,
-          temperature: 0.1,
-          max_new_tokens: 1000,
-          top_p: 0.9
-        }
-      } else {
-        throw new Error(`Modelo Replicate não suportado: ${model}`)
-      }
-
-      // Usar versões específicas dos modelos para garantir estabilidade
-      let modelVersion = model as `${string}/${string}`
-      if (model === 'nateraw/defog-sqlcoder-7b-2') {
-        modelVersion = 'nateraw/defog-sqlcoder-7b-2:ced935b577fb52644d933f77e2ff8902744e4c58a2f50023b3a1db80b7a75806' as `${string}/${string}`
-      } else if (model === 'meta/codellama-70b-instruct') {
-        // Usar versão específica mais estável do CodeLlama
-        modelVersion = 'meta/codellama-70b-instruct:a279116fe47a0f65701a8817188601e2fe8f4b9e04a518789655ea7b995851bf' as `${string}/${string}`
-      } else if (model === 'meta/meta-llama-3-70b-instruct') {
-        // Usar versão específica do Llama 3
-        modelVersion = 'meta/meta-llama-3-70b-instruct:fbfb20b472b2f3bdd101412a9f70a0ed4fc0ced78a77ff00970ee7a2383c575d' as `${string}/${string}`
-      }
-
-      const output = await this.replicateClient.run(modelVersion, { input })
-
-      let response: string
-      if (Array.isArray(output)) {
-        response = output.join('')
-      } else if (typeof output === 'string') {
-        response = output
-      } else {
-        response = String(output)
-      }
-
-      const processingTime = Date.now() - startTime
-
-      // Se for uma CONVERSA retorna sem explicação simples da query
-      if (response.trim().startsWith('CONVERSA:')) {
-        return {
-          success: true,
-          content: response.trim().replace('CONVERSA:', ''),
-          model,
-          tokensUsed: 0,
-          processingTime
-        }
-      }
-
-      const sqlQuery = this.extractSQL(response)
-
-      // Busca explicação simples da query
-      const explanation = await this.generateQueryExplanation({
-        prompt: originalPrompt,
-        sql: sqlQuery
-      })
-
-      return {
-        success: true,
-        content: "",
-        sqlQuery,
-        explanation,
-        model,
-        tokensUsed: 0,
-        processingTime
-      }
-    } catch (error) {
-      console.error('❌ Erro ao processar modelo Replicate:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido no Replicate',
-        model,
-        tokensUsed: 0,
-        processingTime: Date.now()
-      }
-    }
   }
 }

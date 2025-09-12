@@ -11,12 +11,14 @@ import { MessageBubble } from "./message-bubble"
 import { TypingIndicator, SQLExecutionIndicator } from "./typing-indicator"
 import { websocketService } from "@/lib/websocket"
 import { PulseLoader } from "react-spinners"
+import { useUserSettings } from "@/hooks/use-user-settings"
 
 export function ChatInterface() {
   const [inputValue, setInputValue] = useState("")
   const [isHydrated, setIsHydrated] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { settings } = useUserSettings()
 
   const {
     isProcessing,
@@ -214,9 +216,22 @@ export function ChatInterface() {
               )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Pressione Enter para enviar, Shift+Enter para nova linha
-          </p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-muted-foreground">
+              Pressione Enter para enviar, Shift+Enter para nova linha
+            </p>
+            {settings.developerMode ? (
+              <div className="flex items-center gap-1 text-xs text-orange-600">
+                <MessageSquare className="h-3 w-3" />
+                <span>Modo Desenvolvedor</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-xs text-green-600">
+                <Send className="h-3 w-3" />
+                <span>Modo Automático</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -428,6 +428,18 @@ export const useAppStore = create<AppStore>()(
           throw new Error('Nenhuma sessão ativa ou modelo selecionado')
         }
 
+        // 1. PRIMEIRO: Adicionar mensagem do usuário imediatamente na UI
+        const userMessage: Message = {
+          id: `temp-${Date.now()}`, // ID temporário
+          tipo: 'user',
+          conteudo: content,
+          timestamp: new Date()
+        }
+
+        // Adicionar mensagem do usuário na UI imediatamente
+        get().addMessage(userMessage)
+
+        // 2. SEGUNDO: Definir estado de processamento
         set({ isProcessing: true });
 
         try {
@@ -446,7 +458,7 @@ export const useAppStore = create<AppStore>()(
             }
           }
 
-          // Enviar via WebSocket (o backend vai adicionar a mensagem e retornar via WebSocket)
+          // 3. TERCEIRO: Enviar via WebSocket para processar resposta
           websocketService.sendMessage({
             sessionId: state.currentSession.id,
             message: content,
@@ -455,6 +467,22 @@ export const useAppStore = create<AppStore>()(
           })
         } catch (error) {
           console.error('Erro ao enviar mensagem:', error)
+          // Remover mensagem temporária em caso de erro
+          set((state) => {
+            if (!state.currentSession) return state
+
+            const updatedMessages = state.currentSession.mensagens.filter(m => m.id !== userMessage.id)
+            const updatedSession = {
+              ...state.currentSession,
+              mensagens: updatedMessages
+            }
+
+            return {
+              ...state,
+              currentSession: updatedSession,
+              isProcessing: false
+            }
+          })
           throw error
         }
       },
@@ -465,10 +493,45 @@ export const useAppStore = create<AppStore>()(
 
         // Setup listeners
         websocketService.onMessageReceived((message: Message) => {
-          set({ isProcessing: false });
           console.log('📨 Mensagem recebida via WebSocket:', message)
           const normalizedMessage = normalizeMessage(message)
-          get().addMessage(normalizedMessage)
+
+          // Se for mensagem do usuário, substituir mensagem temporária se existir
+          if (message.tipo === 'user') {
+            set((state) => {
+              if (!state.currentSession) return state
+
+              // Procurar mensagem temporária com mesmo conteúdo
+              const tempMessageIndex = state.currentSession.mensagens.findIndex(m =>
+                m.id.startsWith('temp-') &&
+                m.tipo === 'user' &&
+                m.conteudo === message.conteudo
+              )
+
+              if (tempMessageIndex !== -1) {
+                // Substituir mensagem temporária pela real
+                const updatedMessages = [...state.currentSession.mensagens]
+                updatedMessages[tempMessageIndex] = normalizedMessage
+
+                const updatedSession = {
+                  ...state.currentSession,
+                  mensagens: updatedMessages
+                }
+
+                return {
+                  ...state,
+                  currentSession: updatedSession
+                }
+              } else {
+                // Se não encontrou temporária, adicionar normalmente
+                return state
+              }
+            })
+          } else {
+            // Para mensagens do assistente, adicionar normalmente e parar processamento
+            set({ isProcessing: false });
+            get().addMessage(normalizedMessage)
+          }
         })
 
         websocketService.onError((error: string) => {

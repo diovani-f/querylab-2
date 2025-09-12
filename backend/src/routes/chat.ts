@@ -106,7 +106,6 @@ router.patch('/execute', async(req, res) => {
     }
 
     const message = await chatService.processQuery(messageId)
-    console.log("🚀 ~ message:", message)
 
     if(!message.success){
       console.error('[ERRO]: ', message.error || 'Erro ao executar query')

@@ -3,7 +3,7 @@
 import ReactMarkdown from 'react-markdown'
 import { Message } from "@/types"
 import { cn } from "@/lib/utils"
-import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeOff, Play, Loader2, Check, X, Copy, MessageSquare } from "lucide-react"
+import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeOff, Play, Loader2, Check, X, Copy, MessageSquare, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +23,7 @@ import { EvaluationModal } from "../evaluation/evaluation-modal"
 import { EvaluationTrigger } from "../evaluation/evaluation-trigger"
 import { apiService } from '@/lib/api'
 import { useAppStore } from '@/stores/app-store'
+import { useUserSettings } from '@/hooks/use-user-settings'
 
 interface MessageBubbleProps {
   message: Message
@@ -30,6 +31,7 @@ interface MessageBubbleProps {
 }
 export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
   const { addMessage } = useAppStore()
+  const { settings } = useUserSettings()
   const [showTechnicalModal, setShowTechnicalModal] = useState(false)
   const [showExplainModal, setShowExplainModal] = useState(false)
   const [messageData, setMessageData] = useState(message);
@@ -85,7 +87,6 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
 
     try {
       const data = await apiService.executeQuery({sessionId: sessionId, messageId: message.id})
-      console.log("🚀 ~ handleExecuteQuery ~ data:", data)
       setMessageData(data?.data || data)
       setExecutionStatus('success')
 
@@ -211,35 +212,45 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
               <div className="relative bg-black/10 rounded p-2 sm:p-3 font-mono text-xs overflow-auto flex-grow min-w-0" style={{ maxHeight: 300 }}>
                 <pre className="whitespace-pre-wrap break-all">{messageData.sqlQuery}</pre>
               </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={executionStatus === 'success' ? 'default' : executionStatus === 'error' ? 'destructive' : 'default'}
-                      size="icon"
-                      className="rounded-full shadow-lg flex-shrink-0"
-                      onClick={handleExecuteQuery}
-                      disabled={isExecuting}
-                    >
-                      {isExecuting ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : executionStatus === 'success' ? (
-                        <Check className="h-5 w-5" />
-                      ) : executionStatus === 'error' ? (
-                        <X className="h-5 w-5" />
-                      ) : (
-                        <Play className="h-5 w-5" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {isExecuting ? 'Executando...' :
-                     executionStatus === 'success' ? 'Executado com sucesso!' :
-                     executionStatus === 'error' ? 'Erro na execução' :
-                     'Executar SQL'}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {/* Botão de executar só aparece no modo desenvolvedor */}
+              {settings.developerMode && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={executionStatus === 'success' ? 'default' : executionStatus === 'error' ? 'destructive' : 'default'}
+                        size="icon"
+                        className="rounded-full shadow-lg flex-shrink-0"
+                        onClick={handleExecuteQuery}
+                        disabled={isExecuting}
+                      >
+                        {isExecuting ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : executionStatus === 'success' ? (
+                          <Check className="h-5 w-5" />
+                        ) : executionStatus === 'error' ? (
+                          <X className="h-5 w-5" />
+                        ) : (
+                          <Play className="h-5 w-5" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {isExecuting ? 'Executando...' :
+                       executionStatus === 'success' ? 'Executado com sucesso!' :
+                       executionStatus === 'error' ? 'Erro na execução' :
+                       'Executar SQL'}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {/* Indicador de execução automática */}
+              {!settings.developerMode && messageData.queryResult && messageData.queryResult.success !== false && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-green-600">
+                  <Zap className="h-3 w-3" />
+                  <span>Executado automaticamente</span>
+                </div>
+              )}
             </div>
           </div>
         )}

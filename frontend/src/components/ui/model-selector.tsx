@@ -17,7 +17,8 @@ const providerIcons: Record<LLMProvider, React.ReactNode> = {
   openai: <Brain className="h-4 w-4" />,
   anthropic: <Bot className="h-4 w-4" />,
   local: <Bot className="h-4 w-4" />,
-  replicate: <Code className="h-4 w-4" />
+  replicate: <Code className="h-4 w-4" />,
+  cloudflare: <Code className="h-4 w-4" />
 }
 
 const providerColors: Record<LLMProvider, string> = {
@@ -25,7 +26,8 @@ const providerColors: Record<LLMProvider, string> = {
   openai: "text-green-500",
   anthropic: "text-purple-500",
   local: "text-blue-500",
-  replicate: "text-indigo-500"
+  replicate: "text-indigo-500",
+  cloudflare: "text-cyan-500"
 }
 
 export function ModelSelector() {
@@ -74,7 +76,7 @@ export function ModelSelector() {
             return acc
           }, {} as Record<string, typeof availableModels>)
 
-          const providerOrder = ['groq', 'replicate', 'openai', 'anthropic', 'local']
+          const providerOrder = ['groq', 'cloudflare', 'openai', 'anthropic', 'local']
 
           return providerOrder.map((provider) => {
             const models = groupedModels[provider]

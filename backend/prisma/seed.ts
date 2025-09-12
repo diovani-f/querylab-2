@@ -29,8 +29,8 @@ async function main() {
     update: {},
     create: {
       id: 'llama-3.3-70b-versatile',
-      name: 'Llama 3 70B',
-      description: 'Modelo padrão para consultas SQL',
+      name: 'Llama 3.3 70B Versatile',
+      description: 'Modelo principal para conversas e consultas SQL via Groq',
       provider: 'groq',
       maxTokens: 8192,
       isDefault: true,
@@ -38,35 +38,50 @@ async function main() {
   })
   console.log(`Modelo LLM padrão criado com ID: ${defaultModel.id}`)
 
-  // Modelo SQLCoder via Replicate (atualizado)
-  const sqlCoderModel = await prisma.lLMModel.upsert({
-    where: { id: 'nateraw/defog-sqlcoder-7b-2' },
+  // Modelo Llama 3.1 8B (mais rápido)
+  const llama8bModel = await prisma.lLMModel.upsert({
+    where: { id: 'llama-3.1-8b-instant' },
     update: {},
     create: {
-      id: 'nateraw/defog-sqlcoder-7b-2',
-      name: 'SQLCoder 7B',
-      description: 'Modelo especializado em geração de SQL via Replicate',
-      provider: 'replicate',
+      id: 'llama-3.1-8b-instant',
+      name: 'Llama 3.1 8B Instant',
+      description: 'Modelo rápido para consultas simples via Groq',
+      provider: 'groq',
+      maxTokens: 8192,
+      isDefault: false,
+    },
+  })
+  console.log(`Modelo Llama 8B criado com ID: ${llama8bModel.id}`)
+
+  // Modelo Mixtral (alternativa)
+  const mixtralModel = await prisma.lLMModel.upsert({
+    where: { id: 'mixtral-8x7b-32768' },
+    update: {},
+    create: {
+      id: 'mixtral-8x7b-32768',
+      name: 'Mixtral 8x7B',
+      description: 'Modelo Mixtral com contexto estendido via Groq',
+      provider: 'groq',
+      maxTokens: 32768,
+      isDefault: false,
+    },
+  })
+  console.log(`Modelo Mixtral criado com ID: ${mixtralModel.id}`)
+
+  // Modelo SQLCoder via Cloudflare (usado internamente)
+  const sqlCoderModel = await prisma.lLMModel.upsert({
+    where: { id: 'cloudflare-sqlcoder-7b-2' },
+    update: {},
+    create: {
+      id: 'cloudflare-sqlcoder-7b-2',
+      name: 'SQLCoder 7B (Cloudflare)',
+      description: 'Modelo especializado em SQL via Cloudflare Workers AI (uso interno)',
+      provider: 'cloudflare',
       maxTokens: 4096,
       isDefault: false,
     },
   })
   console.log(`Modelo SQLCoder criado com ID: ${sqlCoderModel.id}`)
-
-  // Modelo CodeLlama via Replicate (atualizado para 70B)
-  const codeLlamaModel = await prisma.lLMModel.upsert({
-    where: { id: 'meta/codellama-70b-instruct' },
-    update: {},
-    create: {
-      id: 'meta/codellama-70b-instruct',
-      name: 'CodeLlama 70B Instruct',
-      description: 'Modelo de código da Meta via Replicate (70B parâmetros)',
-      provider: 'replicate',
-      maxTokens: 4096,
-      isDefault: false,
-    },
-  })
-  console.log(`Modelo CodeLlama criado com ID: ${codeLlamaModel.id}`)
 
   // 3. Criar uma sessão de chat para o usuário admin
   const newSession = await prisma.sessao.create({
