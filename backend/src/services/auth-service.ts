@@ -158,6 +158,7 @@ export class AuthService {
     try {
       // Verificar se o token não foi revogado
       const isRevoked = await this.isTokenRevoked(token);
+
       if (isRevoked) {
         return null;
       }
@@ -222,6 +223,17 @@ export class AuthService {
 
   private async saveToken(userId: string, token: string): Promise<void> {
     try {
+      // Primeiro, revogar todos os tokens antigos deste usuário
+      await prisma.token.updateMany({
+        where: {
+          usuarioId: userId,
+          isRevoked: false,
+        },
+        data: {
+          isRevoked: true,
+        },
+      });
+
       const tokenHash = await bcrypt.hash(token, 10);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
@@ -278,9 +290,11 @@ export class AuthService {
 
       for (const tokenRecord of tokens) {
         const isMatch = await bcrypt.compare(token, tokenRecord.tokenHash);
+
         if (isMatch) {
           const expiresAt = new Date(tokenRecord.expiresAt);
-          return expiresAt < new Date();
+          const isExpired = expiresAt < new Date();
+          return isExpired;
         }
       }
 

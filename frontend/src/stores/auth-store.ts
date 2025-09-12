@@ -44,6 +44,11 @@ export const useAuthStore = create<AuthStore>()(
           set({ isLoading: true, error: null })
 
           try {
+            // Limpar qualquer token antigo antes do login
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('querylab-auth')
+            }
+
             const response = await fetch(`${API_BASE_URL}/auth/login`, {
               method: 'POST',
               headers: {
@@ -63,12 +68,25 @@ export const useAuthStore = create<AuthStore>()(
                 error: null,
               })
 
-              // Carregar histórico do usuário após login (não bloquear se falhar)
+              // Forçar persistência imediata no localStorage
+              if (typeof window !== 'undefined') {
+                const stateToSave = {
+                  state: {
+                    user: data.user,
+                    token: data.token,
+                    isAuthenticated: true
+                  },
+                  version: 0
+                }
+                localStorage.setItem('querylab-auth', JSON.stringify(stateToSave))
+              }
+
+              // Aguardar a persistência antes de carregar histórico
               setTimeout(() => {
                 get().loadUserHistory().catch(error => {
-                  console.warn('⚠️ Falha ao carregar histórico (não crítico):', error.message)
+                  console.warn('Falha ao carregar histórico:', error.message)
                 })
-              }, 500)
+              }, 1000)
             } else {
               set({
                 isLoading: false,
@@ -156,12 +174,18 @@ export const useAuthStore = create<AuthStore>()(
           } catch (error) {
             console.error('Erro ao fazer logout no servidor:', error)
           } finally {
+            // Limpar estado do Zustand
             set({
               user: null,
               token: null,
               isAuthenticated: false,
               error: null,
             })
+
+            // Limpar localStorage manualmente
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('querylab-auth')
+            }
           }
         },
 
@@ -170,14 +194,10 @@ export const useAuthStore = create<AuthStore>()(
 
           // Evitar múltiplas verificações simultâneas
           if (isCheckingAuth) {
-            console.log('⏳ Verificação de auth já em andamento, ignorando...')
             return
           }
 
-          console.log('🔍 Verificando autenticação...', { hasToken: !!token })
-
           if (!token) {
-            console.log('❌ Nenhum token encontrado')
             set({
               user: null,
               isAuthenticated: false,
@@ -190,18 +210,14 @@ export const useAuthStore = create<AuthStore>()(
           set({ isLoading: true, isCheckingAuth: true })
 
           try {
-            console.log('📡 Fazendo requisição para /auth/me...')
             const response = await fetch(`${API_BASE_URL}/auth/me`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
               },
             })
 
-            console.log('📡 Resposta recebida:', { status: response.status, ok: response.ok })
-
             if (response.ok) {
               const data = await response.json()
-              console.log('✅ Dados da resposta:', { success: data.success, hasUser: !!data.user })
 
               if (data.success && data.user) {
                 set({
@@ -211,15 +227,12 @@ export const useAuthStore = create<AuthStore>()(
                   isCheckingAuth: false,
                 })
 
-                console.log('✅ Usuário autenticado com sucesso:', data.user.nome)
-
                 // Carregar histórico do usuário após autenticação (não bloquear se falhar)
                 get().loadUserHistory().catch(error => {
-                  console.warn('⚠️ Falha ao carregar histórico (não crítico):', error.message)
+                  console.warn('Falha ao carregar histórico:', error.message)
                 })
               } else {
-                console.log('❌ Token inválido - dados inválidos')
-                // Token inválido - limpar estado e redirecionar
+                // Token inválido - limpar estado
                 set({
                   user: null,
                   token: null,

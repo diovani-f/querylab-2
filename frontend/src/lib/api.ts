@@ -16,15 +16,31 @@ class ApiService {
 
     if (typeof window !== 'undefined') {
       try {
-        const authData = localStorage.getItem('querylab-auth');
-        if (authData) {
-          const parsed = JSON.parse(authData);
-          if (parsed.state?.token) {
-            headers['Authorization'] = `Bearer ${parsed.state.token}`;
+        let token: string | null = null;
+
+        // Primeiro, tentar obter do Zustand store (mais confiável)
+        try {
+          const { useAuthStore } = require('@/stores/auth-store');
+          const authState = useAuthStore.getState();
+          token = authState.token;
+        } catch (zustandError) {
+          // Fallback para localStorage se Zustand não estiver disponível
+        }
+
+        // Se não conseguiu do Zustand, tentar localStorage
+        if (!token) {
+          const authData = localStorage.getItem('querylab-auth');
+          if (authData) {
+            const parsed = JSON.parse(authData);
+            token = parsed.state?.token;
           }
         }
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
       } catch (error) {
-        console.error('Erro ao obter token do localStorage:', error);
+        console.error('Erro ao obter token:', error);
       }
     }
 
