@@ -14,18 +14,16 @@ export function useApiErrorHandler() {
     // Interceptar erros não capturados relacionados a autenticação
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const error = event.reason
-      
+
       if (error instanceof Error) {
         // Verificar se é erro de autenticação
-        if (error.message.includes('Token inválido') || 
-            error.message.includes('401') || 
+        if (error.message.includes('Token inválido') ||
+            error.message.includes('401') ||
             error.message.includes('403')) {
-          
-          console.log('🔒 Erro de autenticação detectado globalmente - fazendo logout')
-          
+
           // Fazer logout e limpar estado
-          logout().catch(console.error)
-          
+          logout().catch(() => {})
+
           // Redirecionar para login
           if (typeof window !== 'undefined') {
             window.location.href = '/login'

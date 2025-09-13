@@ -47,7 +47,6 @@ export class SchemaDiscoveryService {
       // Cachear resultado
       this.schemaCache.set(cacheKey, optimizedSchema)
 
-      console.log(`✅ Schema ${schemaName} carregado para LLM (${optimizedSchema.tables.length} tabelas)`)
       return optimizedSchema
 
     } catch (error) {

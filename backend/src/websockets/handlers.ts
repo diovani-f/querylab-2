@@ -54,7 +54,7 @@ export function setupWebSocketHandlers(io: Server) {
 
       } catch (error) {
         console.error('Erro ao processar mensagem via WebSocket:', error)
-        socket.emit('error', 'Erro ao processar mensagem')
+        socket.emit('error', 'Erro ao processar sua mensagem. Tente novamente.')
       }
     })
 
@@ -81,7 +81,7 @@ export function setupWebSocketHandlers(io: Server) {
 
       } catch (error) {
         console.error('Erro ao executar query via WebSocket:', error)
-        socket.emit('query-error', 'Erro ao executar consulta')
+        socket.emit('query-error', 'Erro ao executar consulta. Verifique os dados solicitados.')
       }
     })
 

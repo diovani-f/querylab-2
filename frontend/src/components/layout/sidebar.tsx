@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/components/ui/toast"
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { PulseLoader } from "react-spinners"
 
 interface SidebarProps {
@@ -164,7 +165,8 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
 
       {/* Lista de Sessões */}
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-2">
+        <TooltipProvider>
+          <div className="p-2 space-y-2">
           {isLoadingSessions ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <PulseLoader color="#6366f1" size={8} />
@@ -196,9 +198,16 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
                 onClick={() => handleSelectSession(session.id)}
               >
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium truncate">
-                    {session.titulo}
-                  </h3>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <h3 className="text-sm font-medium truncate cursor-help">
+                        {session.titulo}
+                      </h3>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs">
+                      <p className="break-words">{session.titulo}</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <p className="text-xs text-muted-foreground">
                     {session.messageCount || (session.mensagens || []).length} mensagens
                   </p>
@@ -218,7 +227,8 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
               </div>
             ))
           )}
-        </div>
+          </div>
+        </TooltipProvider>
       </ScrollArea>
 
       {/* Footer da Sidebar */}

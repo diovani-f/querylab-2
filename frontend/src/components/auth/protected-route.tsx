@@ -32,7 +32,6 @@ export function ProtectedRoute({
   useEffect(() => {
     // Redirecionar apenas se estiver hidratado, não carregando e não autenticado
     if (isHydrated && !isLoading && requireAuth && !isAuthenticated && !token) {
-      console.log('🔒 Redirecionando para login - usuário não autenticado')
       router.push(redirectTo)
     }
   }, [isHydrated, isAuthenticated, isLoading, requireAuth, redirectTo, router, token])
@@ -61,11 +60,6 @@ export function ProtectedRoute({
         </div>
       </div>
     )
-  }
-
-  // Log para debug
-  if (isAuthenticated && user) {
-    console.log('✅ Usuário autenticado:', user.nome, `(${user.email})`)
   }
 
   // Se não requer autenticação ou está autenticado, renderizar children

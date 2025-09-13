@@ -3,21 +3,19 @@
 import ReactMarkdown from 'react-markdown'
 import { Message } from "@/types"
 import { cn } from "@/lib/utils"
-import { User, Bot, AlertCircle, Info, Table, CheckCircle, Star, Code, Eye, EyeOff, Play, Loader2, Check, X, Copy, MessageSquare, Zap } from "lucide-react"
+import { User, Bot, AlertCircle, Info, CheckCircle, Star, Code, Eye, Play, Loader2, Check, X, Copy, MessageSquare, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { useState, memo, useCallback, useMemo } from "react"
-import { ChartContainer } from "../charts/chart-container"
+import { useState, memo, useCallback } from "react"
+import { sanitizeError } from "@/lib/error-handler"
 import { QueryResultsTable } from "./query-results-table"
 import { EvaluationModal } from "../evaluation/evaluation-modal"
 import { EvaluationTrigger } from "../evaluation/evaluation-trigger"
@@ -172,8 +170,8 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
           </div>
         )}
 
-        {/* SQL Query */}
-        {messageData.sqlQuery && (
+        {/* SQL Query - só exibe no modo desenvolvedor */}
+        {messageData.sqlQuery && settings.developerMode && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -263,8 +261,8 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
               <span className="text-sm font-medium text-destructive">Erro na Execução</span>
             </div>
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-              <p className="text-sm text-destructive font-mono">
-                {messageData.queryResult.error}
+              <p className="text-sm text-destructive">
+                {sanitizeError(messageData.queryResult.error, 'query_execution').userMessage}
               </p>
             </div>
           </div>
@@ -316,9 +314,11 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
                   </DialogHeader>
                   {/* Explain detalhado */}
                   {messageData.explanation && (
-                    <DialogDescription className="mt-4">
-                      <ReactMarkdown>{messageData.explanation}</ReactMarkdown>
-                    </DialogDescription>
+                    <div className="mt-4">
+                      <div className="max-w-none text-sm leading-relaxed">
+                        <ReactMarkdown>{messageData.explanation}</ReactMarkdown>
+                      </div>
+                    </div>
                   )}
                 </DialogContent>
               </Dialog>
@@ -341,65 +341,114 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
                   </TooltipTrigger>
                   <TooltipContent>Detalhes Técnicos</TooltipContent>
                 </Tooltip>
-                    <DialogContent className="max-w-7xl w-[95vw] max-h-[90vh] flex flex-col">
-                      <DialogHeader className="flex-shrink-0">
-                        <DialogTitle>Detalhes Técnicos</DialogTitle>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">SQL:</span>
-                            <code className="bg-muted px-2 py-1 rounded text-xs max-w-md truncate">
-                              {messageData.sqlQuery}
-                            </code>
+                    <DialogContent className="max-w-7xl w-[95vw] max-h-[90vh] overflow-y-auto p-6">
+                      <DialogHeader className="mb-6">
+                        <DialogTitle className="text-xl font-semibold">Detalhes Técnicos</DialogTitle>
+
+                        {/* Informações da Query */}
+                        <div className="space-y-4 mt-4">
+                          {/* SQL Query */}
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Code className="h-4 w-4" />
+                              <span className="font-medium text-sm">Consulta SQL</span>
+                            </div>
+                            <div className="bg-muted/50 rounded-lg p-3 border">
+                              <pre className="text-xs font-mono whitespace-pre-wrap break-all overflow-auto max-h-32">
+                                {messageData.sqlQuery}
+                              </pre>
+                            </div>
                           </div>
-                          {messageData.queryResult?.executionTime && (
-                            <Badge variant="secondary">
-                              {messageData.queryResult.executionTime}ms
-                            </Badge>
-                          )}
-                          {messageData.queryResult?.rowCount && (
-                            <Badge variant="outline">
-                              {messageData.queryResult.rowCount} linha{messageData.queryResult.rowCount !== 1 ? 's' : ''}
-                            </Badge>
+
+                          {/* Métricas */}
+                          <div className="flex flex-wrap items-center gap-3">
+                            {messageData.queryResult?.executionTime && (
+                              <Badge variant="secondary" className="gap-1">
+                                <span>⏱️</span>
+                                {messageData.queryResult.executionTime}ms
+                              </Badge>
+                            )}
+                            {messageData.queryResult?.rowCount !== undefined && (
+                              <Badge variant="outline" className="gap-1">
+                                <span>📊</span>
+                                {messageData.queryResult.rowCount} linha{messageData.queryResult.rowCount !== 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                            {messageData.queryResult?.success !== false && (
+                              <Badge variant="default" className="gap-1 bg-green-600">
+                                <span>✅</span>
+                                Executado com sucesso
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Análise dos Resultados */}
+                          {messageData.reverseTranslation && (
+                            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 rounded-lg p-4">
+                              <div className="flex items-center gap-2 mb-3">
+                                <MessageSquare className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                <span className="text-sm font-medium text-green-800 dark:text-green-200">💡 Análise dos Resultados</span>
+                              </div>
+                              <div className="text-sm text-green-700 dark:text-green-300 leading-relaxed max-w-none">
+                                <ReactMarkdown>{messageData.reverseTranslation}</ReactMarkdown>
+                              </div>
+                            </div>
                           )}
                         </div>
-
-                        {/* Análise dos Resultados */}
-                        {messageData.reverseTranslation && (
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <MessageSquare className="h-4 w-4 text-green-600" />
-                              <span className="text-sm font-medium text-green-800">💡 Análise dos Resultados</span>
-                            </div>
-                            <p className="text-sm text-green-700 leading-relaxed">
-                              {messageData.reverseTranslation}
-                            </p>
-                          </div>
-                        )}
                       </DialogHeader>
 
-                      {/* Conteúdo scrollável */}
-                      <div className="flex-1 overflow-hidden">
-                        {/* Resultados da Query */}
-                        {messageData.queryResult && messageData.queryResult.success !== false && messageData.queryResult.rows && messageData.queryResult.rows.length > 0 && (
-                          <div className="h-full overflow-auto">
-                            <QueryResultsTable
-                              queryResult={messageData.queryResult}
-                              onExport={(format) => {
-                                console.log(`Exportando em formato: ${format}`)
-                                // TODO: Implementar exportação
-                              }}
-                            />
-                          </div>
-                        )}
-                        {messageData.queryResult && messageData.queryResult.success === false && (
-                          <div className="p-4">
-                            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                              <p className="text-sm text-destructive">
-                                Erro na execução: {messageData.queryResult.error}
-                              </p>
+                      {/* Conteúdo */}
+                      <div>
+                          {/* Resultados da Query */}
+                          {messageData.queryResult && messageData.queryResult.success !== false && messageData.queryResult.rows && messageData.queryResult.rows.length > 0 && (
+                            <div>
+                              <div className="mb-4">
+                                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                  <span>📋</span>
+                                  Resultados da Consulta
+                                </h3>
+                              </div>
+                              <div className="border rounded-lg bg-background p-4">
+                                <QueryResultsTable
+                                  queryResult={messageData.queryResult}
+                                  onExport={(format) => {
+                                    console.log(`Exportando em formato: ${format}`)
+                                    // TODO: Implementar exportação
+                                  }}
+                                />
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+
+                          {/* Erro na execução */}
+                          {messageData.queryResult && messageData.queryResult.success === false && (
+                            <div className="flex items-center justify-center py-12">
+                              <div className="max-w-md w-full">
+                                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center">
+                                  <div className="mb-3">
+                                    <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+                                  </div>
+                                  <h3 className="text-sm font-medium text-destructive mb-2">Erro na Execução</h3>
+                                  <p className="text-sm text-destructive/80">
+                                    {sanitizeError(messageData.queryResult.error, 'query_execution').userMessage}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Estado vazio */}
+                          {(!messageData.queryResult || (!messageData.queryResult.rows || messageData.queryResult.rows.length === 0)) && messageData.queryResult?.success !== false && (
+                            <div className="flex items-center justify-center py-12">
+                              <div className="text-center text-muted-foreground">
+                                <div className="mb-3">
+                                  <Info className="h-8 w-8 mx-auto" />
+                                </div>
+                                <p className="text-sm">Nenhum resultado para exibir</p>
+                                <p className="text-xs mt-1">A consulta foi executada mas não retornou dados</p>
+                              </div>
+                            </div>
+                          )}
                       </div>
                     </DialogContent>
               </Dialog>

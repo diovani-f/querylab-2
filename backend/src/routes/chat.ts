@@ -111,7 +111,7 @@ router.patch('/execute', async(req, res) => {
       console.error('[ERRO]: ', message.error || 'Erro ao executar query')
       return res.status(500).json({
         success: false,
-        error: message.error || 'Erro ao executar query'
+        error: 'Erro ao executar consulta. Verifique os dados solicitados.'
       })
     }
 

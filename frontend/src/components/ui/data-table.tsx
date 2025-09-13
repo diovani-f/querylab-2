@@ -160,8 +160,8 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
 
-      <div className="rounded-md border overflow-hidden">
-        <div className="overflow-auto max-h-[60vh] min-h-[200px]">
+      <div className="rounded-md border">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
               {table.getHeaderGroups().map((headerGroup) => (

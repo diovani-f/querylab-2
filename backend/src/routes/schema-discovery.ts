@@ -40,8 +40,7 @@ router.post('/discover/:schemaName', authMiddleware, async (req, res) => {
     } catch (error) {
       return res.status(503).json({
         success: false,
-        error: 'Proxy DB2 não está acessível. Verifique se está rodando.',
-        details: error instanceof Error ? error.message : 'Erro desconhecido'
+        error: 'Serviço de banco de dados temporariamente indisponível. Tente novamente em alguns minutos.'
       })
     }
 
@@ -90,8 +89,7 @@ router.post('/discover/:schemaName', authMiddleware, async (req, res) => {
 
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-      details: error instanceof Error ? error.stack : undefined
+      error: 'Erro interno do sistema. Nossa equipe foi notificada.'
     })
   }
 })

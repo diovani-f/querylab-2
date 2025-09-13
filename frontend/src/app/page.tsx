@@ -23,7 +23,6 @@ export default function Home() {
   // Carregar sessões apenas quando o usuário estiver autenticado
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log('🔄 Usuário autenticado, carregando sessões...')
       loadSessions()
     }
   }, [isAuthenticated, user, loadSessions])

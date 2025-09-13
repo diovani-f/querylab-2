@@ -123,7 +123,6 @@ export class LLMService {
     try {
       // Construir mensagens para o modelo
       const conversationMessages = this.buildConversationMessages(prompt, context?.conversationHistory || [])
-      console.log("🚀 ~ LLMService ~ handlePrompt ~ conversationMessages:", conversationMessages)
 
       // Chamar Groq diretamente com configurações otimizadas
       const completion = await this.groqClient.chat.completions.create({

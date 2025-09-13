@@ -1,4 +1,5 @@
 import { ChatRequest, ChatResponse } from '@/types'
+import { sanitizeError, logError } from './error-handler'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
@@ -18,29 +19,24 @@ class ApiService {
       try {
         let token: string | null = null;
 
-        // Primeiro, tentar obter do Zustand store (mais confiável)
-        try {
-          const { useAuthStore } = require('@/stores/auth-store');
-          const authState = useAuthStore.getState();
-          token = authState.token;
-        } catch (zustandError) {
-          // Fallback para localStorage se Zustand não estiver disponível
-        }
-
-        // Se não conseguiu do Zustand, tentar localStorage
-        if (!token) {
-          const authData = localStorage.getItem('querylab-auth');
-          if (authData) {
+        // Obter token do localStorage
+        const authData = localStorage.getItem('querylab-auth');
+        if (authData) {
+          try {
             const parsed = JSON.parse(authData);
             token = parsed.state?.token;
+          } catch {
+            // Erro ao parsear - continuar sem token
           }
         }
+
+
 
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
       } catch (error) {
-        console.error('Erro ao obter token:', error);
+        // Erro ao obter token - continuar sem autenticação
       }
     }
 
@@ -58,14 +54,19 @@ class ApiService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
-      console.error('API Error:', {
+      const originalError = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
+
+      // Log do erro original para debug
+      logError(originalError, 'api_request', {
         status: response.status,
         statusText: response.statusText,
         url: response.url,
         errorData
       });
-      throw new Error(errorMessage);
+
+      // Sanitizar erro para o usuário
+      const errorInfo = sanitizeError(originalError, 'server');
+      throw new Error(errorInfo.userMessage);
     }
 
     return response.json();

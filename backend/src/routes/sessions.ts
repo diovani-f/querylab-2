@@ -12,7 +12,7 @@ const prisma = new PrismaClient()
 router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { userId } = req.params
-    const authenticatedUserIdStr = req.user?.id?.toString()
+    const authenticatedUserIdStr = req.user?.id
 
     if (authenticatedUserIdStr !== userId && req.user?.role !== 'admin') {
       console.log('🔒 Acesso negado:', {

@@ -13,6 +13,7 @@ import { MessageSearch } from "./message-search"
 import { websocketService } from "@/lib/websocket"
 import { PulseLoader } from "react-spinners"
 import { useUserSettings } from "@/hooks/use-user-settings"
+import { useErrorHandler } from "@/lib/error-handler"
 
 export function ChatInterface() {
   const [inputValue, setInputValue] = useState("")
@@ -20,6 +21,7 @@ export function ChatInterface() {
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { settings } = useUserSettings()
+  const { handleError } = useErrorHandler()
 
   const {
     isProcessing,
@@ -112,12 +114,35 @@ export function ChatInterface() {
     try {
       await sendMessage(userMessage)
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error)
+      const userFriendlyMessage = handleError(error, 'message_send')
       addMessage({
         tipo: 'error',
-        conteudo: 'Erro ao processar sua consulta. Tente novamente.'
+        conteudo: userFriendlyMessage
       })
     }
+  }
+
+  const handleCardClick = async (question: string) => {
+    // Criar nova sessão se não existir
+    if (!currentSession) {
+      await createNewSession()
+    }
+
+    // Definir a pergunta no input e enviar
+    setInputValue(question)
+
+    // Aguardar um pouco para garantir que a sessão foi criada
+    setTimeout(async () => {
+      try {
+        await sendMessage(question)
+        setInputValue("") // Limpar input após enviar
+      } catch (error) {
+        addMessage({
+          tipo: 'error',
+          conteudo: 'Erro ao processar sua consulta. Tente novamente.'
+        })
+      }
+    }, 100)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -169,15 +194,24 @@ export function ChatInterface() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-sm">
-            <div className="p-4 rounded-lg bg-muted/50">
+            <div
+              className="p-4 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors border hover:border-primary/20"
+              onClick={() => handleCardClick("Quantos cursos de graduação existem por região do Brasil?")}
+            >
               <h4 className="font-semibold mb-2">🎓 Dados Educacionais</h4>
               <p className="text-muted-foreground">Explore informações sobre cursos, instituições e ensino superior</p>
             </div>
-            <div className="p-4 rounded-lg bg-muted/50">
+            <div
+              className="p-4 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors border hover:border-primary/20"
+              onClick={() => handleCardClick("Como funciona a geração automática de SQL a partir de linguagem natural?")}
+            >
               <h4 className="font-semibold mb-2">🤖 IA Inteligente</h4>
               <p className="text-muted-foreground">Converta linguagem natural em SQL otimizado automaticamente</p>
             </div>
-            <div className="p-4 rounded-lg bg-muted/50">
+            <div
+              className="p-4 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors border hover:border-primary/20"
+              onClick={() => handleCardClick("Mostre-me as 10 instituições com mais cursos de graduação")}
+            >
               <h4 className="font-semibold mb-2">📊 Resultados Visuais</h4>
               <p className="text-muted-foreground">Visualize dados em tabelas interativas e gráficos</p>
             </div>

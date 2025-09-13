@@ -60,7 +60,6 @@ class WebSocketService {
       throw new Error('WebSocket não conectado')
     }
 
-    console.log('📤 Enviando mensagem via WebSocket:', request)
     this.socket.emit('send-message', request)
   }
 

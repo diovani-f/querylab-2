@@ -117,20 +117,15 @@ EXEMPLOS:
 
 RESPOSTA:`
 
-console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantPrompt:", assistantPrompt)
-      // Usar LLMService para chamar o modelo mais inteligente
+// Usar LLMService para chamar o modelo mais inteligente
       const assistantResponse = await this.llmService.handlePrompt({
         prompt: assistantPrompt,
         model: 'llama-3.3-70b-versatile'
-
       })
-      console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantResponse:", assistantResponse)
 
       if (!assistantResponse.success) {
         throw new Error(`Erro no assistente: ${assistantResponse.error}`)
       }
-
-      console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantResponse:", assistantResponse)
       const response = (assistantResponse.content || '').trim()
 
       if (!response) {
@@ -248,10 +243,10 @@ console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantPro
       // NOVO FLUXO: Usar assistente educacional para todas as mensagens
       return await this.processWithEducationalAssistant(actualSessionId, message, userMessage, session, model)
     } catch (error: any) {
-      console.error("🚀 ~ ChatService ~ processMessage ~ error:", error)
+      console.error("❌ Erro ao processar mensagem:", error.message)
       return {
         success: false,
-        error: `Erro interno: ${error.message}`
+        error: 'Erro ao processar sua mensagem. Tente novamente.'
       }
     }
   }
@@ -378,9 +373,7 @@ console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantPro
 
       if (selectedModel === 'cloudflare-sqlcoder-7b-2' || selectedModel.includes('cloudflare')) {
         // Usar função processSQL do CloudflareAI (reduz schema + gera SQL)
-        console.log('🤖 Usando Cloudflare AI para gerar SQL...')
         const cloudflareResponse = await this.cloudflareAI.processSQL(question, JSON.stringify(fullSchema))
-        console.log('🔍 Resposta Cloudflare:', cloudflareResponse)
 
         if (cloudflareResponse.success) {
           sqlResponse = { success: true, sql: cloudflareResponse.sql }
@@ -437,22 +430,15 @@ SELECT i.nome, COUNT(c.id) as total_cursos FROM inep.instituicoes i JOIN inep.cu
 
 SQL:`
 
-        console.log('🤖 Usando Groq para gerar SQL...')
-        console.log('📝 Prompt enviado:', prompt.substring(0, 200) + '...')
-
         const llmResponse = await this.llmService.handlePrompt({
           prompt,
           model: selectedModel,
           context: { schemaName: 'inep' }
         })
 
-        console.log('🔍 Resposta Groq:', llmResponse)
-
         if (llmResponse.success && llmResponse.content) {
           // Extrair SQL da resposta
-          console.log('📄 Conteúdo bruto da resposta:', llmResponse.content)
           const sql = this.cloudflareAI.extractSQL(llmResponse.content)
-          console.log('🔧 SQL extraído:', sql)
           sqlResponse = { success: true, sql }
         } else {
           sqlResponse = { success: false, error: llmResponse.error || 'Erro ao gerar SQL' }
@@ -564,12 +550,12 @@ Seja conciso mas informativo. Use linguagem natural, não técnica.
 
       const errorMessageData = await this.addMessage(sessionId, {
         type: 'error',
-        content: `Erro interno: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+        content: 'Não foi possível processar sua consulta. Tente reformular a pergunta ou verificar se os dados solicitados estão disponíveis.'
       })
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        error: 'Erro ao processar consulta',
         userMessage,
         assistantMessage: mapMessage(errorMessageData)
       }

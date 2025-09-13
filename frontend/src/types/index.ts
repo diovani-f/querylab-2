@@ -50,7 +50,7 @@ export interface DatabaseConnection {
 }
 
 export interface User {
-  id: number | string
+  id: string
   nome: string
   email: string
   role: 'admin' | 'user'
@@ -89,7 +89,7 @@ export interface ChatRequest {
   sessionId: string
   message: string
   model?: string
-  userId?: number | string
+  userId?: string
 }
 
 export interface AppState {

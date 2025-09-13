@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware'
 import { AppState, ChatSession, Message, LLMModel, DatabaseConnection, QueryEvaluation } from '@/types'
 import { apiService } from '@/lib/api'
 import { websocketService } from '@/lib/websocket'
+import { sanitizeError, logError } from '@/lib/error-handler'
 
 // Função utilitária para normalizar datas
 const normalizeMessage = (message: any): Message => ({
@@ -253,17 +254,13 @@ export const useAppStore = create<AppStore>()(
             return
           }
 
-          console.log('🔄 Carregando sessões do usuário:', user.id, typeof user.id)
-
           // Buscar sessões do usuário na API (sem mensagens)
           const response = await apiService.get(`/sessions/user/${user.id}`)
 
           if (response.success && response.sessions) {
             const normalizedSessions = response.sessions.map(normalizeSessionSummary)
             set({ sessions: normalizedSessions })
-            console.log('✅ Sessões carregadas:', normalizedSessions.length, 'sessões')
           } else {
-            console.log('ℹ️ Nenhuma sessão encontrada para o usuário')
             set({ sessions: [] })
           }
         } catch (error) {
@@ -338,9 +335,11 @@ export const useAppStore = create<AppStore>()(
           console.error('❌ Erro ao carregar mensagens:', error)
 
           // Adicionar mensagem de erro no chat
+          const errorInfo = sanitizeError(error, 'chat')
+          logError(error, 'loadMessages', { sessionId })
           get().addMessage({
             tipo: 'error',
-            conteudo: 'Erro ao carregar mensagens da sessão. Tente novamente.'
+            conteudo: errorInfo.userMessage
           })
         } finally {
           set({ isLoadingMessages: false })
@@ -355,7 +354,6 @@ export const useAppStore = create<AppStore>()(
               availableModels: response.models,
               selectedModel: response.models.find((m: LLMModel) => m.isDefault) || response.models[0]
             }))
-            console.log(`✅ ${response.models.length} modelos LLM carregados`)
           }
         } catch (error) {
           console.error('❌ Erro ao carregar modelos:', error)
@@ -447,16 +445,8 @@ export const useAppStore = create<AppStore>()(
           const { useAuthStore } = await import('./auth-store')
           const user = useAuthStore.getState().user
 
-          // Garantir que o userId seja um número válido
-          let userId = user?.id
-          if (userId && typeof userId === 'string') {
-            // Se for uma string hexadecimal como "82ec", converter para número
-            if (/^[0-9a-fA-F]+$/.test(userId)) {
-              userId = parseInt(userId, 16)
-            } else {
-              userId = parseInt(userId, 10)
-            }
-          }
+          // Usar o userId diretamente (já é string)
+          const userId = user?.id
 
           // 3. TERCEIRO: Enviar via WebSocket para processar resposta
           websocketService.sendMessage({
@@ -469,12 +459,13 @@ export const useAppStore = create<AppStore>()(
           console.error('Erro ao enviar mensagem:', error)
 
           // Adicionar mensagem de erro mais amigável
+          const errorInfo = sanitizeError(error, 'message_send')
+          logError(error, 'sendMessage', { sessionId: state.currentSession?.id })
+
           const errorMessage: Message = {
             id: crypto.randomUUID(),
             tipo: 'error',
-            conteudo: error instanceof Error
-              ? `Erro ao processar mensagem: ${error.message}`
-              : 'Erro inesperado ao processar sua mensagem. Tente novamente.',
+            conteudo: errorInfo.userMessage,
             timestamp: new Date()
           }
 
@@ -499,17 +490,14 @@ export const useAppStore = create<AppStore>()(
           })
 
           // Não fazer throw para não quebrar a UI
-          console.warn('Mensagem de erro adicionada ao chat')
         }
       },
 
       initializeWebSocket: () => {
-        console.log('🔌 Inicializando WebSocket...')
         websocketService.connect()
 
         // Setup listeners
         websocketService.onMessageReceived((message: Message) => {
-          console.log('📨 Mensagem recebida via WebSocket:', message)
           const normalizedMessage = normalizeMessage(message)
 
           // Se for mensagem do usuário, substituir mensagem temporária se existir
@@ -552,12 +540,14 @@ export const useAppStore = create<AppStore>()(
 
         websocketService.onError((error: string) => {
           set({ isProcessing: false });
-          console.error('❌ WebSocket error:', error)
+          const errorInfo = sanitizeError(error, 'network')
+          logError(error, 'websocket')
+
           // Adiciona mensagem de erro na lista de mensagens do chat
           const addMessage = get().addMessage;
           addMessage({
             tipo: 'error',
-            conteudo: typeof error === 'string' ? error : 'Erro de conexão com o WebSocket'
+            conteudo: errorInfo.userMessage
           });
         })
 
@@ -589,21 +579,21 @@ export const useAppStore = create<AppStore>()(
           })
         })
 
-        websocketService.onQueryExecuting((status: string) => {
-          console.log('⚡ Query sendo executada:', status)
-          // Pode adicionar indicador de execução se necessário
+        websocketService.onQueryExecuting(() => {
+          // Query sendo executada - pode adicionar indicador se necessário
         })
 
         websocketService.onQueryError((error: string) => {
-          console.error('❌ Erro na execução da query:', error)
+          const errorInfo = sanitizeError(error, 'query_execution')
+          logError(error, 'queryExecution')
+
           get().addMessage({
             tipo: 'error',
-            conteudo: `Erro na execução: ${error}`
+            conteudo: errorInfo.userMessage
           })
         })
 
         websocketService.onEvaluationUpdated((data: { messageId: string, evaluation: any }) => {
-          console.log('📊 Avaliação atualizada via WebSocket:', data)
           get().updateMessageEvaluation(data.messageId, data.evaluation)
         })
 

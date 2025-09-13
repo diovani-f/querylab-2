@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { User, UserLogin, UserRegistration, AuthResponse } from '@/types'
+import { sanitizeError, logError } from '@/lib/error-handler'
 
 interface AuthState {
   user: User | null
@@ -83,8 +84,8 @@ export const useAuthStore = create<AuthStore>()(
 
               // Aguardar a persistência antes de carregar histórico
               setTimeout(() => {
-                get().loadUserHistory().catch(error => {
-                  console.warn('Falha ao carregar histórico:', error.message)
+                get().loadUserHistory().catch(() => {
+                  // Falha ao carregar histórico - não crítico
                 })
               }, 1000)
             } else {
@@ -96,14 +97,16 @@ export const useAuthStore = create<AuthStore>()(
 
             return data
           } catch (error) {
-            const errorMessage = 'Erro de conexão com o servidor'
+            const errorInfo = sanitizeError(error, 'auth')
+            logError(error, 'login')
+
             set({
               isLoading: false,
-              error: errorMessage,
+              error: errorInfo.userMessage,
             })
             return {
               success: false,
-              error: errorMessage,
+              error: errorInfo.userMessage,
             }
           }
         },
@@ -133,8 +136,8 @@ export const useAuthStore = create<AuthStore>()(
 
               // Carregar histórico do usuário após registro (não bloquear se falhar)
               setTimeout(() => {
-                get().loadUserHistory().catch(error => {
-                  console.warn('⚠️ Falha ao carregar histórico (não crítico):', error.message)
+                get().loadUserHistory().catch(() => {
+                  // Falha ao carregar histórico - não crítico
                 })
               }, 500)
             } else {
@@ -146,14 +149,16 @@ export const useAuthStore = create<AuthStore>()(
 
             return data
           } catch (error) {
-            const errorMessage = 'Erro de conexão com o servidor'
+            const errorInfo = sanitizeError(error, 'auth')
+            logError(error, 'register')
+
             set({
               isLoading: false,
-              error: errorMessage,
+              error: errorInfo.userMessage,
             })
             return {
               success: false,
-              error: errorMessage,
+              error: errorInfo.userMessage,
             }
           }
         },
@@ -172,7 +177,7 @@ export const useAuthStore = create<AuthStore>()(
               })
             }
           } catch (error) {
-            console.error('Erro ao fazer logout no servidor:', error)
+            // Erro ao fazer logout no servidor - continuar com logout local
           } finally {
             // Limpar estado do Zustand
             set({
@@ -228,8 +233,8 @@ export const useAuthStore = create<AuthStore>()(
                 })
 
                 // Carregar histórico do usuário após autenticação (não bloquear se falhar)
-                get().loadUserHistory().catch(error => {
-                  console.warn('Falha ao carregar histórico:', error.message)
+                get().loadUserHistory().catch(() => {
+                  // Falha ao carregar histórico - não crítico
                 })
               } else {
                 // Token inválido - limpar estado
@@ -247,7 +252,6 @@ export const useAuthStore = create<AuthStore>()(
                 }
               }
             } else {
-              console.log('❌ Token inválido ou expirado - status:', response.status)
               // Token inválido ou expirado - limpar estado e redirecionar
               set({
                 user: null,
@@ -263,7 +267,7 @@ export const useAuthStore = create<AuthStore>()(
               }
             }
           } catch (error) {
-            console.error('❌ Erro ao verificar autenticação:', error)
+            logError(error, 'checkAuth')
             set({
               user: null,
               token: null,
@@ -302,7 +306,6 @@ export const useAuthStore = create<AuthStore>()(
 
             // Verificar se é erro de autenticação
             if (response.status === 401 || response.status === 403) {
-              console.log('🔒 Token inválido ao atualizar perfil - redirecionando para login')
               set({
                 user: null,
                 token: null,
@@ -356,7 +359,6 @@ export const useAuthStore = create<AuthStore>()(
 
             // Verificar se é erro de autenticação
             if (response.status === 401 || response.status === 403) {
-              console.log('🔒 Token inválido ao alterar senha - redirecionando para login')
               set({
                 user: null,
                 token: null,
@@ -390,19 +392,15 @@ export const useAuthStore = create<AuthStore>()(
           const { user, token } = get()
 
           if (!user || !token) {
-            console.log('⚠️ Usuário ou token não disponível para carregar histórico')
             return
           }
-
-          console.log('🔄 Carregando dados do usuário:', user.id, 'API:', API_BASE_URL)
 
           // Carregar sessões do usuário usando o método do app-store
           try {
             const { useAppStore } = await import('./app-store')
             await useAppStore.getState().loadSessions()
-            console.log('✅ Sessões carregadas via app-store')
           } catch (sessionsError) {
-            console.warn('⚠️ Falha ao carregar sessões:', sessionsError instanceof Error ? sessionsError.message : String(sessionsError))
+            // Falha ao carregar sessões - não crítico
           }
 
           // Carregar histórico de consultas (não falhar se der erro)
@@ -414,17 +412,11 @@ export const useAuthStore = create<AuthStore>()(
             })
 
             if (historyResponse.ok) {
-              const historyData = await historyResponse.json()
-              if (historyData.success && historyData.history && Array.isArray(historyData.history)) {
-                console.log('✅ Histórico carregado:', historyData.history.length, 'consultas')
-              } else {
-                console.log('ℹ️ Nenhum histórico encontrado ou formato inválido')
-              }
-            } else {
-              console.log('⚠️ Erro ao carregar histórico:', historyResponse.status)
+              await historyResponse.json()
+              // Histórico carregado com sucesso
             }
           } catch (historyError) {
-            console.warn('⚠️ Falha ao carregar histórico:', historyError instanceof Error ? historyError.message : String(historyError))
+            // Falha ao carregar histórico - não crítico
           }
 
           // Carregar favoritos (não falhar se der erro)
@@ -436,17 +428,11 @@ export const useAuthStore = create<AuthStore>()(
             })
 
             if (favoritesResponse.ok) {
-              const favoritesData = await favoritesResponse.json()
-              if (favoritesData.success && favoritesData.favorites && Array.isArray(favoritesData.favorites)) {
-                console.log('✅ Favoritos carregados:', favoritesData.favorites.length, 'itens')
-              } else {
-                console.log('ℹ️ Nenhum favorito encontrado ou formato inválido')
-              }
-            } else {
-              console.log('⚠️ Erro ao carregar favoritos:', favoritesResponse.status)
+              await favoritesResponse.json()
+              // Favoritos carregados com sucesso
             }
           } catch (favoritesError) {
-            console.warn('⚠️ Falha ao carregar favoritos:', favoritesError instanceof Error ? favoritesError.message : String(favoritesError))
+            // Falha ao carregar favoritos - não crítico
           }
         },
 
@@ -463,12 +449,7 @@ export const useAuthStore = create<AuthStore>()(
           // Não persistir isLoading, isCheckingAuth e error
         }),
         onRehydrateStorage: () => (state) => {
-          console.log('🔄 Zustand rehydrated:', {
-            hasToken: !!state?.token,
-            isAuthenticated: state?.isAuthenticated,
-            hasUser: !!state?.user
-          })
-          // Não verificar automaticamente aqui para evitar loop
+          // Zustand rehydrated - não verificar automaticamente aqui para evitar loop
           // A verificação será feita pelos componentes quando necessário
           if (state) {
             state.setLoading(false)
