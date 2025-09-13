@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/stores/app-store"
-import { Send, MessageSquare } from "lucide-react"
+import { Send, MessageSquare, ArrowLeft } from "lucide-react"
 import { MessageBubble } from "./message-bubble"
 import { TypingIndicator, SQLExecutionIndicator } from "./typing-indicator"
 import { MessageSearch } from "./message-search"
@@ -26,6 +26,7 @@ export function ChatInterface() {
   const {
     isProcessing,
     currentSession,
+    setCurrentSession,
     addMessage,
     createNewSession,
     sendMessage,
@@ -260,9 +261,22 @@ export function ChatInterface() {
       {currentSession && currentSession.mensagens.length > 0 && (
         <div className="border-b p-2 sm:p-4 pb-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">
-              {currentSession.mensagens.length} mensagem{currentSession.mensagens.length !== 1 ? 's' : ''}
-            </span>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCurrentSession(null)
+                }}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Voltar</span>
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {currentSession.mensagens.length} {currentSession.mensagens.length !== 1 ? 'mensagens' : 'mensagem'}
+              </span>
+            </div>
             <MessageSearch
               messages={currentSession.mensagens}
               onMessageSelect={handleMessageSelect}

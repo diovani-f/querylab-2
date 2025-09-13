@@ -189,7 +189,7 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
               <div
                 key={session.id}
                 className={cn(
-                  "group flex items-center justify-between rounded-lg p-3 cursor-pointer transition-all duration-300",
+                  "group flex items-center gap-2 rounded-lg p-3 cursor-pointer transition-all duration-300",
                   currentSession?.id === session.id && "bg-accent",
                   isDeleting && sessionToDelete === session.id
                     ? "opacity-60 cursor-not-allowed bg-muted scale-95 transform"
@@ -197,14 +197,16 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
                 )}
                 onClick={() => handleSelectSession(session.id)}
               >
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 overflow-hidden">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <h3 className="text-sm font-medium truncate cursor-help">
-                        {session.titulo}
-                      </h3>
+                      <div className="w-full">
+                        <h3 className="text-sm font-medium truncate cursor-help max-w-[250px]">
+                          {session.titulo}
+                        </h3>
+                      </div>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs">
+                    <TooltipContent side="right" className="max-w-xs z-50">
                       <p className="break-words">{session.titulo}</p>
                     </TooltipContent>
                   </Tooltip>
@@ -215,15 +217,17 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
                     {new Date(session.updatedAt).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => handleDeleteSession(session.id, e)}
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+                <div className="flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => handleDeleteSession(session.id, e)}
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             ))
           )}
