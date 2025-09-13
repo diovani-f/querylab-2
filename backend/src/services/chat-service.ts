@@ -282,10 +282,31 @@ RESPOSTA:`
       const dbResponse = await this.queryService.executeQuery(mensagem.sqlQuery);
 
       if (!dbResponse.success) {
-        // Criar mensagem de erro
+        // Criar mensagem de erro simples para o bubble
+        const errorContent = `Não foi possível executar a consulta SQL. Verifique os detalhes técnicos para mais informações sobre o erro.`
+
         const errorMessageData = await this.addMessage(mensagem.sessaoId, {
-          type: 'error',
-          content: `Erro ao processar consulta: ${dbResponse.error}`
+          type: 'assistant',
+          content: errorContent
+        }, {
+          sqlQuery: mensagem.sqlQuery,
+          queryResult: dbResponse,
+          hasExplanation: false,
+          explanation: `❌ **Erro na execução da consulta SQL**
+
+**Detalhes do erro:**
+${dbResponse.error}
+
+**SQL que causou o erro:**
+\`\`\`sql
+${mensagem.sqlQuery}
+\`\`\`
+
+**Sugestões para correção:**
+- Verifique se as tabelas e colunas mencionadas existem no banco de dados
+- Confirme se a sintaxe SQL está correta
+- Tente reformular sua pergunta de forma mais específica
+- Consulte a documentação do schema disponível`
         })
 
         return {
@@ -474,9 +495,31 @@ SQL:`
       const queryResult = await this.queryService.executeQuery(sanitizedSQL)
 
       if (!queryResult.success) {
+        // Criar mensagem de erro simples para o bubble
+        const errorContent = `Não foi possível executar a consulta SQL. Verifique os detalhes técnicos para mais informações sobre o erro.`
+
         const errorMessageData = await this.addMessage(sessionId, {
-          type: 'error',
-          content: `Erro ao executar consulta: ${queryResult.error}`
+          type: 'assistant',
+          content: errorContent
+        }, {
+          sqlQuery: sanitizedSQL,
+          queryResult,
+          hasExplanation: false,
+          explanation: `❌ **Erro na execução da consulta SQL**
+
+**Detalhes do erro:**
+${queryResult.error}
+
+**SQL que causou o erro:**
+\`\`\`sql
+${sanitizedSQL}
+\`\`\`
+
+**Sugestões para correção:**
+- Verifique se as tabelas e colunas mencionadas existem no banco de dados
+- Confirme se a sintaxe SQL está correta
+- Tente reformular sua pergunta de forma mais específica
+- Consulte a documentação do schema disponível`
         })
 
         return {
@@ -523,8 +566,9 @@ Seja conciso mas informativo. Use linguagem natural, não técnica.
       }
 
       // Criar mensagem de sucesso com dados, SQL e explicação
+      // \n\n**Dados encontrados:**\n${this.formatQueryResult(queryResult)}
       const content = queryResult.success
-        ? `${explanation}\n\n**Dados encontrados:**\n${this.formatQueryResult(queryResult)}`
+        ? `${explanation}`
         : `Erro na execução da consulta: ${queryResult.error}`
 
       const assistantMessageData = await this.addMessage(sessionId, {

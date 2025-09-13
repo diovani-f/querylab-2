@@ -19,28 +19,28 @@ const ERROR_MESSAGES = {
     timeout: 'A operação demorou mais que o esperado. Tente novamente.',
     offline: 'Você parece estar offline. Verifique sua conexão.',
   },
-  
+
   // Erros de autenticação
   auth: {
     default: 'Sua sessão expirou. Faça login novamente.',
     invalid: 'Credenciais inválidas. Verifique seus dados.',
     forbidden: 'Você não tem permissão para esta ação.',
   },
-  
+
   // Erros de validação
   validation: {
     default: 'Dados inválidos. Verifique as informações e tente novamente.',
     required: 'Alguns campos obrigatórios não foram preenchidos.',
     format: 'Formato de dados inválido.',
   },
-  
+
   // Erros do servidor
   server: {
     default: 'Erro interno do sistema. Nossa equipe foi notificada.',
     maintenance: 'Sistema em manutenção. Tente novamente em alguns minutos.',
     overload: 'Sistema temporariamente sobrecarregado. Tente novamente.',
   },
-  
+
   // Erros específicos da aplicação
   chat: {
     default: 'Erro ao processar sua consulta. Tente reformular a pergunta.',
@@ -61,53 +61,53 @@ export function sanitizeError(error: unknown, context?: string): ErrorInfo {
 
   if (error instanceof Error) {
     logMessage = error.message
-    
+
     // Erros de rede
-    if (error.message.includes('fetch') || 
+    if (error.message.includes('fetch') ||
         error.message.includes('network') ||
         error.message.includes('NetworkError')) {
       type = 'network'
       userMessage = ERROR_MESSAGES.network.default
     }
-    
+
     // Erros de timeout
-    else if (error.message.includes('timeout') || 
+    else if (error.message.includes('timeout') ||
              error.message.includes('aborted')) {
       type = 'network'
       userMessage = ERROR_MESSAGES.network.timeout
     }
-    
+
     // Erros de autenticação
-    else if (error.message.includes('401') || 
+    else if (error.message.includes('401') ||
              error.message.includes('Token inválido') ||
              error.message.includes('unauthorized')) {
       type = 'auth'
       userMessage = ERROR_MESSAGES.auth.default
     }
-    
+
     // Erros de permissão
-    else if (error.message.includes('403') || 
+    else if (error.message.includes('403') ||
              error.message.includes('forbidden')) {
       type = 'auth'
       userMessage = ERROR_MESSAGES.auth.forbidden
     }
-    
+
     // Erros de validação
-    else if (error.message.includes('validation') || 
+    else if (error.message.includes('validation') ||
              error.message.includes('invalid') ||
              error.message.includes('required')) {
       type = 'validation'
       userMessage = ERROR_MESSAGES.validation.default
     }
-    
+
     // Erros do servidor
-    else if (error.message.includes('500') || 
+    else if (error.message.includes('500') ||
              error.message.includes('Internal Server Error') ||
              error.message.includes('server error')) {
       type = 'server'
       userMessage = ERROR_MESSAGES.server.default
     }
-    
+
     // Erros específicos do contexto
     else if (context) {
       switch (context) {
@@ -132,7 +132,7 @@ export function sanitizeError(error: unknown, context?: string): ErrorInfo {
       type = 'server'
     }
   }
-  
+
   // Se for string, tratar como erro genérico
   else if (typeof error === 'string') {
     logMessage = error
@@ -153,19 +153,19 @@ export function sanitizeError(error: unknown, context?: string): ErrorInfo {
 export function isCriticalError(error: unknown): boolean {
   if (error instanceof Error) {
     // Erros de autenticação não são críticos (são esperados)
-    if (error.message.includes('401') || 
+    if (error.message.includes('401') ||
         error.message.includes('403') ||
         error.message.includes('Token inválido')) {
       return false
     }
-    
+
     // Erros de validação não são críticos
-    if (error.message.includes('validation') || 
+    if (error.message.includes('validation') ||
         error.message.includes('required')) {
       return false
     }
   }
-  
+
   return true
 }
 
@@ -174,7 +174,7 @@ export function isCriticalError(error: unknown): boolean {
  */
 export function logError(error: unknown, context?: string, additionalInfo?: Record<string, any>) {
   const errorInfo = sanitizeError(error, context)
-  
+
   if (isCriticalError(error)) {
     console.error(`[${errorInfo.type.toUpperCase()}] ${context || 'Unknown context'}:`, {
       message: errorInfo.logMessage,
