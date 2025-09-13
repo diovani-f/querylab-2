@@ -9,6 +9,7 @@ import { useAppStore } from "@/stores/app-store"
 import { Send, MessageSquare } from "lucide-react"
 import { MessageBubble } from "./message-bubble"
 import { TypingIndicator, SQLExecutionIndicator } from "./typing-indicator"
+import { MessageSearch } from "./message-search"
 import { websocketService } from "@/lib/websocket"
 import { PulseLoader } from "react-spinners"
 import { useUserSettings } from "@/hooks/use-user-settings"
@@ -33,11 +34,31 @@ export function ChatInterface() {
   } = useAppStore()
 
   // Função para scroll suave para o final
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'end'
-    })
+  const scrollToBottom = (force = false) => {
+    if (!messagesEndRef.current) return
+
+    // Se force=true, sempre fazer scroll
+    if (force) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end'
+      })
+      return
+    }
+
+    // Verificar se o usuário está próximo do final antes de fazer scroll automático
+    const scrollArea = scrollAreaRef.current
+    if (scrollArea) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollArea
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+
+      if (isNearBottom) {
+        messagesEndRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end'
+        })
+      }
+    }
   }
 
   // Garantir hidratação no cliente
@@ -56,7 +77,7 @@ export function ChatInterface() {
   // Scroll para o final quando entrar em loading (nova mensagem sendo processada)
   useEffect(() => {
     if (isProcessing) {
-      setTimeout(scrollToBottom, 100)
+      setTimeout(() => scrollToBottom(true), 100) // Forçar scroll quando processando
     }
   }, [isProcessing])
 
@@ -104,6 +125,17 @@ export function ChatInterface() {
       e.preventDefault()
       handleSendMessage()
     }
+    // Atalho Ctrl+K para limpar input
+    if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      setInputValue("")
+    }
+    // Atalho Ctrl+/ para focar no input
+    if (e.key === '/' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      const textarea = e.target as HTMLTextAreaElement
+      textarea.focus()
+    }
   }
 
   // Função para ajustar altura do textarea automaticamente
@@ -123,35 +155,88 @@ export function ChatInterface() {
 
   if (!currentSession) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Bem-vindo ao QueryLab</h3>
-          <p className="text-muted-foreground mb-4 max-w-md">
-            Faça consultas em linguagem natural e converta-as automaticamente para SQL.
-            Comece uma nova conversa para começar.
-          </p>
+      <div className="flex h-full items-center justify-center p-4">
+        <div className="text-center max-w-2xl">
+          <div className="mb-6">
+            <MessageSquare className="h-20 w-20 text-primary mx-auto mb-4" />
+            <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+              Bem-vindo ao QueryLab
+            </h3>
+            <p className="text-muted-foreground mb-6 text-lg leading-relaxed">
+              Transforme suas perguntas em consultas SQL inteligentes.
+              Nossa IA especializada em dados educacionais do INEP está pronta para ajudar.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-sm">
+            <div className="p-4 rounded-lg bg-muted/50">
+              <h4 className="font-semibold mb-2">🎓 Dados Educacionais</h4>
+              <p className="text-muted-foreground">Explore informações sobre cursos, instituições e ensino superior</p>
+            </div>
+            <div className="p-4 rounded-lg bg-muted/50">
+              <h4 className="font-semibold mb-2">🤖 IA Inteligente</h4>
+              <p className="text-muted-foreground">Converta linguagem natural em SQL otimizado automaticamente</p>
+            </div>
+            <div className="p-4 rounded-lg bg-muted/50">
+              <h4 className="font-semibold mb-2">📊 Resultados Visuais</h4>
+              <p className="text-muted-foreground">Visualize dados em tabelas interativas e gráficos</p>
+            </div>
+          </div>
+
           <Button
             onClick={() => createNewSession()}
             disabled={isCreatingSession}
-            className="min-w-[160px]"
+            size="lg"
+            className="min-w-[200px] h-12"
           >
             {isCreatingSession ? (
               <div className="flex items-center gap-2">
                 <PulseLoader color="#ffffff" size={6} />
-                <span>Criando...</span>
+                <span>Criando sessão...</span>
               </div>
             ) : (
-              'Iniciar Nova Sessão'
+              'Começar Nova Consulta'
             )}
           </Button>
+
+          <p className="text-xs text-muted-foreground mt-4">
+            Dica: Experimente perguntas como "quantos cursos de pedagogia existem?" ou "mostre universidades do Rio de Janeiro"
+          </p>
         </div>
       </div>
     )
   }
 
+  const handleMessageSelect = (messageId: string) => {
+    // Scroll para a mensagem selecionada
+    const messageElement = document.getElementById(`message-${messageId}`)
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Destacar temporariamente a mensagem
+      messageElement.classList.add('ring-2', 'ring-primary', 'ring-opacity-50')
+      setTimeout(() => {
+        messageElement.classList.remove('ring-2', 'ring-primary', 'ring-opacity-50')
+      }, 2000)
+    }
+  }
+
   return (
     <div className="flex h-full flex-col">
+      {/* Header da área de mensagens com busca */}
+      {currentSession && currentSession.mensagens.length > 0 && (
+        <div className="border-b p-2 sm:p-4 pb-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              {currentSession.mensagens.length} mensagem{currentSession.mensagens.length !== 1 ? 's' : ''}
+            </span>
+            <MessageSearch
+              messages={currentSession.mensagens}
+              onMessageSelect={handleMessageSelect}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Área de Mensagens */}
       <ScrollArea className="flex-1 p-2 sm:p-4" ref={scrollAreaRef}>
         <div className="space-y-6 sm:space-y-8 w-full">
@@ -170,11 +255,12 @@ export function ChatInterface() {
             </div>
           ) : (
             (currentSession?.mensagens || []).map((message) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                sessionId={currentSession?.id}
-              />
+              <div key={message.id} id={`message-${message.id}`} className="transition-all duration-300">
+                <MessageBubble
+                  message={message}
+                  sessionId={currentSession?.id}
+                />
+              </div>
             ))
           )}
 
@@ -198,7 +284,13 @@ export function ChatInterface() {
                 adjustTextareaHeight(e.target)
               }}
               onKeyDown={handleKeyPress}
-              placeholder={isCreatingSession ? "Criando sessão..." : "Digite sua consulta em linguagem natural..."}
+              placeholder={
+                isCreatingSession
+                  ? "Criando sessão..."
+                  : isProcessing
+                    ? "Aguarde a resposta..."
+                    : "Digite sua consulta em linguagem natural... (Enter para enviar, Ctrl+K para limpar)"
+              }
               className="flex-1 min-h-[44px] max-h-[200px] resize-none"
               disabled={isProcessing || isCreatingSession}
               rows={1}

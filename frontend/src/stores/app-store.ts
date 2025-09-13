@@ -467,11 +467,25 @@ export const useAppStore = create<AppStore>()(
           })
         } catch (error) {
           console.error('Erro ao enviar mensagem:', error)
-          // Remover mensagem temporária em caso de erro
+
+          // Adicionar mensagem de erro mais amigável
+          const errorMessage: Message = {
+            id: crypto.randomUUID(),
+            tipo: 'error',
+            conteudo: error instanceof Error
+              ? `Erro ao processar mensagem: ${error.message}`
+              : 'Erro inesperado ao processar sua mensagem. Tente novamente.',
+            timestamp: new Date()
+          }
+
+          // Remover mensagem temporária e adicionar erro
           set((state) => {
             if (!state.currentSession) return state
 
-            const updatedMessages = state.currentSession.mensagens.filter(m => m.id !== userMessage.id)
+            const updatedMessages = state.currentSession.mensagens
+              .filter(m => m.id !== userMessage.id)
+              .concat(errorMessage)
+
             const updatedSession = {
               ...state.currentSession,
               mensagens: updatedMessages
@@ -483,7 +497,9 @@ export const useAppStore = create<AppStore>()(
               isProcessing: false
             }
           })
-          throw error
+
+          // Não fazer throw para não quebrar a UI
+          console.warn('Mensagem de erro adicionada ao chat')
         }
       },
 

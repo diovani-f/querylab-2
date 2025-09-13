@@ -1,17 +1,12 @@
 import Groq from 'groq-sdk'
-import Replicate from 'replicate'
 import { LLMRequest, LLMResponse, QueryResult } from '../types'
-import { SchemaDiscoveryService } from './schema-discovery-service'
 import { PrismaClient, LLMModel } from '@prisma/client'
-import { CloudflareAIService } from './cloudflare-ai-service'
 
 export class LLMService {
   private prisma: PrismaClient
   private static instance: LLMService
   private groqClient: Groq
-  private replicateClient: Replicate
   private availableModels: LLMModel[] = []
-  private schemaService: SchemaDiscoveryService
 
   private constructor() {
     this.prisma = new PrismaClient()
@@ -22,24 +17,10 @@ export class LLMService {
       throw new Error('GROQ_API_KEY é obrigatória! Verifique o arquivo .env')
     }
 
-    // Verificar se a API key do Replicate está disponível
-    const replicateApiKey = process.env.REPLICATE_API_TOKEN
-    if (!replicateApiKey) {
-      throw new Error('REPLICATE_API_TOKEN é obrigatória! Verifique o arquivo .env')
-    }
-
     // Inicializar cliente Groq
     this.groqClient = new Groq({
       apiKey: groqApiKey
     })
-
-    // Inicializar cliente Replicate
-    this.replicateClient = new Replicate({
-      auth: replicateApiKey
-    })
-
-    // Inicializar serviço de schema discovery
-    this.schemaService = SchemaDiscoveryService.getInstance()
   }
 
   static getInstance(): LLMService {
@@ -58,7 +39,7 @@ export class LLMService {
   }
 
   getAvailableModels(): LLMModel[] {
-    // Organizar modelos: primeiro Groq (alfabético), depois Replicate (alfabético), depois outros
+    // Organizar modelos: primeiro Groq (alfabético), depois outros providers
     const sortedModels = [...this.availableModels].sort((a, b) => {
       // Definir ordem de prioridade dos providers
       const providerOrder: Record<string, number> = {
@@ -66,8 +47,7 @@ export class LLMService {
         'cloudflare': 2,
         'openai': 3,
         'anthropic': 4,
-        'local': 5,
-        'replicate': 6
+        'local': 5
       }
 
       const aOrder = providerOrder[a.provider] || 999
@@ -106,6 +86,36 @@ export class LLMService {
   }
 
   /**
+   * Retorna temperatura otimizada baseada no modelo e tipo de tarefa
+   */
+  private getOptimalTemperature(model: string): number {
+    // Para modelos maiores, usar temperatura mais baixa para consistência
+    if (model.includes('70b') || model.includes('versatile')) {
+      return 0.1 // Mais determinístico para modelos inteligentes
+    }
+    // Para modelos menores, usar temperatura ligeiramente maior
+    if (model.includes('8b') || model.includes('instant')) {
+      return 0.3 // Mais criatividade para compensar menor capacidade
+    }
+    return 0.2 // Padrão balanceado
+  }
+
+  /**
+   * Retorna max_tokens otimizado baseado no modelo
+   */
+  private getOptimalMaxTokens(model: string): number {
+    // Para modelos maiores, permitir mais tokens
+    if (model.includes('70b') || model.includes('versatile')) {
+      return 1500 // Respostas mais elaboradas
+    }
+    // Para modelos menores, limitar tokens
+    if (model.includes('8b') || model.includes('instant')) {
+      return 800 // Respostas mais concisas
+    }
+    return 1000 // Padrão
+  }
+
+  /**
    * Método simples para chamar o Groq e retornar a resposta direta
    */
   async handlePrompt(request: LLMRequest): Promise<LLMResponse> {
@@ -115,13 +125,13 @@ export class LLMService {
       const conversationMessages = this.buildConversationMessages(prompt, context?.conversationHistory || [])
       console.log("🚀 ~ LLMService ~ handlePrompt ~ conversationMessages:", conversationMessages)
 
-      // Chamar Groq diretamente
+      // Chamar Groq diretamente com configurações otimizadas
       const completion = await this.groqClient.chat.completions.create({
         messages: conversationMessages,
         model,
-        temperature: 0.1,
-        max_tokens: 1000,
-        top_p: 1,
+        temperature: this.getOptimalTemperature(model),
+        max_tokens: this.getOptimalMaxTokens(model),
+        top_p: 0.9, // Melhor para consistência
         stream: false
       })
 
@@ -171,9 +181,9 @@ export class LLMService {
     try {
       const completion = await this.groqClient.chat.completions.create({
         messages: [{ role: 'user', content: explanationPrompt }],
-        model: 'llama-3.1-8b-instant',
-        temperature: 0.2,
-        max_tokens: 200
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.1, // Baixa para explicações consistentes
+        max_tokens: 400 // Aumentado para explicações mais completas
       })
       const explanation = completion.choices[0]?.message?.content?.trim()
       return explanation || ''
@@ -228,8 +238,8 @@ Explicação detalhada dos resultados:`
       const response = await this.groqClient.chat.completions.create({
         messages: [{ role: 'user', content: explanationPrompt }],
         model: 'llama-3.3-70b-versatile',
-        temperature: 0.7,
-        max_tokens: 1000
+        temperature: 0.4, // Reduzida para mais consistência
+        max_tokens: 1200 // Aumentado para análises mais detalhadas
       })
 
       const explanation = response.choices[0]?.message?.content?.trim()
@@ -304,9 +314,9 @@ Resumo analítico:`
     try {
       const completion = await this.groqClient.chat.completions.create({
         messages: [{ role: 'user', content: reverseTranslationPrompt }],
-        model: 'llama-3.1-8b-instant',
+        model: 'llama-3.3-70b-versatile',
         temperature: 0.3,
-        max_tokens: 300
+        max_tokens: 400
       })
 
       const reverseTranslation = completion.choices[0]?.message?.content?.trim()
@@ -510,9 +520,9 @@ Título:`
             content: titlePrompt
           }
         ],
-        model: 'llama-3.1-8b-instant', // Modelo rápido
+        model: 'llama-3.1-8b-instant', // Modelo rápido para títulos
         temperature: 0.3,
-        max_tokens: 50
+        max_tokens: 80
       })
 
       const generatedTitle = completion.choices[0]?.message?.content?.trim()

@@ -74,7 +74,7 @@ export class ChatService {
   }
 
   /**
-   * Assistente que usa Groq rápido para identificar e processar consultas educacionais
+   * Assistente que usa Groq inteligente (Llama 3.3 70B) para identificar e processar consultas educacionais
    */
   private async processWithEducationalAssistant(
     sessionId: string,
@@ -90,44 +90,38 @@ export class ChatService {
     error?: string
   }> {
     try {
-      // Usar Groq rápido como assistente educacional e resposta direta
+      // Usar modelo inteligente como assistente educacional
       const assistantPrompt = `
-Você é um assistente especializado em consultas SQL educacionais. Sua função é classificar a mensagem do usuário e responder adequadamente.
+Você é um assistente especializado em dados educacionais do INEP (Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira).
 
-MENSAGEM DO USUÁRIO: "${message}"
+MENSAGEM: "${message}"
 
-INSTRUÇÕES IMPORTANTES:
-- Para consultas de dados: responda APENAS com "SQL_QUERY"
-- Para perguntas sobre estrutura: responda APENAS com "SCHEMA_INFO"
-- Para saudações/conversas: responda de forma amigável como assistente educacional
-- NÃO se identifique como "roteador" - você é um assistente para consultas SQL educacionais
+INSTRUÇÕES:
+Analise a mensagem e responda de acordo com uma das categorias:
 
-CATEGORIAS:
+1. CONSULTA DE DADOS - Se o usuário quer dados específicos (quantos, mostre, liste, dados de, cursos, instituições, estudantes, etc.):
+   Responda APENAS: SQL_QUERY
 
-1. Se for uma PERGUNTA que precisa de dados do banco (como "quantos", "mostre", "liste", "dados de", "cursos de", "instituições"), responda APENAS:
-SQL_QUERY
+2. INFORMAÇÕES DO BANCO - Se pergunta sobre estrutura, tabelas disponíveis, que dados existem:
+   Responda APENAS: SCHEMA_INFO
 
-2. Se for uma PERGUNTA sobre estrutura/schema do banco (como "quais tabelas", "que dados existem", "estrutura do banco"), responda APENAS:
-SCHEMA_INFO
-
-3. Se for SAUDAÇÃO ou CONVERSA geral (como "oi", "olá", "como funciona", "o que você faz"), responda normalmente de forma amigável como um assistente educacional.
+3. CONVERSA GERAL - Para saudações, explicações, dúvidas sobre o sistema:
+   Responda naturalmente como assistente educacional especializado em dados do INEP.
 
 EXEMPLOS:
-- "oi" → Olá! Sou seu assistente para consultas em dados educacionais. Posso ajudar você a explorar informações do INEP através de consultas SQL. Como posso ajudar?
-- "quantos cursos de pedagogia existem" → SQL_QUERY
-- "mostre dados de 2023" → SQL_QUERY
-- "liste as universidades" → SQL_QUERY
+- "quantos cursos de pedagogia" → SQL_QUERY
+- "universidades do Rio de Janeiro" → SQL_QUERY
 - "quais tabelas existem" → SCHEMA_INFO
-- "que dados temos disponíveis" → SCHEMA_INFO
-- "como funciona o SQL" → SQL é uma linguagem para consultar bancos de dados. Posso ajudar você a criar consultas para explorar dados educacionais do INEP!
+- "que dados vocês têm" → SCHEMA_INFO
+- "oi, como funciona" → Olá! Sou especialista em dados educacionais do INEP. Posso ajudar você a explorar informações sobre educação superior, cursos, instituições e muito mais através de consultas inteligentes. O que gostaria de descobrir?
 
 RESPOSTA:`
 
 console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantPrompt:", assistantPrompt)
-      // Usar LLMService para chamar o modelo rápido
+      // Usar LLMService para chamar o modelo mais inteligente
       const assistantResponse = await this.llmService.handlePrompt({
         prompt: assistantPrompt,
-        model: 'llama-3.1-8b-instant'
+        model: 'llama-3.3-70b-versatile'
 
       })
       console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantResponse:", assistantResponse)
@@ -167,16 +161,31 @@ console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantPro
     } catch (error) {
       console.error('❌ Erro no assistente educacional:', error)
 
+      // Fallback: tentar responder de forma básica baseado em palavras-chave
+      let fallbackResponse = 'Desculpe, houve um problema temporário. '
+
+      if (message.toLowerCase().includes('quantos') ||
+          message.toLowerCase().includes('mostre') ||
+          message.toLowerCase().includes('liste')) {
+        fallbackResponse += 'Parece que você quer consultar dados. Tente reformular sua pergunta de forma mais específica.'
+      } else if (message.toLowerCase().includes('tabela') ||
+                 message.toLowerCase().includes('schema') ||
+                 message.toLowerCase().includes('dados disponíveis')) {
+        fallbackResponse += 'Você quer saber sobre nossa estrutura de dados. Tente perguntar "que dados vocês têm disponíveis?"'
+      } else {
+        fallbackResponse += 'Sou um assistente para dados educacionais do INEP. Posso ajudar com consultas sobre cursos, instituições e dados educacionais.'
+      }
+
       const errorMessageData = await this.addMessage(sessionId, {
-        type: 'error',
-        content: `Erro interno: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+        type: 'assistant',
+        content: fallbackResponse
       })
 
       return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        success: true, // Mudamos para success: true pois temos um fallback
         userMessage,
-        assistantMessage: mapMessage(errorMessageData)
+        assistantMessage: mapMessage(errorMessageData),
+        session
       }
     }
   }
@@ -330,6 +339,8 @@ console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantPro
 
   /**
    * Processa consultas que requerem geração e execução de SQL
+   * FUNÇÃO PRINCIPAL: Gerencia todo o fluxo completo de SQL (geração + execução + explicação)
+   * Usa CloudflareAIService.processSQL() apenas como auxiliar para geração
    */
   private async processSQLQuery(
     sessionId: string,
@@ -362,66 +373,72 @@ console.log("🚀 ~ ChatService ~ processWithEducationalAssistant ~ assistantPro
         }
       }
 
-      // Reduzir schema baseado na pergunta usando Cloudflare AI
-      const schemaReduction = await this.cloudflareAI.reduceSchema(question, JSON.stringify(fullSchema))
-
-      if (!schemaReduction.success) {
-        const errorMessageData = await this.addMessage(sessionId, {
-          type: 'error',
-          content: `Erro ao reduzir schema: ${schemaReduction.error}`
-        })
-
-        return {
-          success: false,
-          error: schemaReduction.error,
-          userMessage,
-          assistantMessage: mapMessage(errorMessageData)
-        }
-      }
-
       // Gerar SQL usando o modelo selecionado pelo usuário
       let sqlResponse: { success: boolean; sql?: string; error?: string }
 
       if (selectedModel === 'cloudflare-sqlcoder-7b-2' || selectedModel.includes('cloudflare')) {
-        // Usar Cloudflare AI SQLCoder
-        const prompt = `
-### Task
-Generate a SQL query to answer this question: ${question}
+        // Usar função processSQL do CloudflareAI (reduz schema + gera SQL)
+        console.log('🤖 Usando Cloudflare AI para gerar SQL...')
+        const cloudflareResponse = await this.cloudflareAI.processSQL(question, JSON.stringify(fullSchema))
+        console.log('🔍 Resposta Cloudflare:', cloudflareResponse)
 
-### Database Schema
-${schemaReduction.reducedSchema}
-
-### Important Rules
-- ALWAYS add LIMIT 100 to SELECT * queries to prevent database overload
-- Use LIMIT 50 for complex queries with JOINs
-- Optimize for performance and safety
-
-### SQL Query
-`
-        sqlResponse = await this.cloudflareAI.generateSQL({ prompt })
+        if (cloudflareResponse.success) {
+          sqlResponse = { success: true, sql: cloudflareResponse.sql }
+        } else {
+          sqlResponse = { success: false, error: cloudflareResponse.error }
+        }
       } else {
+        // Para outros modelos (Groq, etc.), precisamos reduzir schema primeiro
+        const schemaReduction = await this.cloudflareAI.reduceSchema(question, JSON.stringify(fullSchema))
+
+        if (!schemaReduction.success) {
+          const errorMessageData = await this.addMessage(sessionId, {
+            type: 'error',
+            content: `Erro ao reduzir schema: ${schemaReduction.error}`
+          })
+
+          return {
+            success: false,
+            error: schemaReduction.error,
+            userMessage,
+            assistantMessage: mapMessage(errorMessageData)
+          }
+        }
+
+        console.log('📊 Schema reduzido:', schemaReduction.reducedSchema?.substring(0, 300) + '...')
+
         // Usar LLMService para outros modelos (Groq, etc.)
         const prompt = `
-Você é um especialista em SQL. Gere uma consulta SQL para responder a pergunta do usuário.
+Você é um especialista em SQL e dados educacionais do INEP. Gere uma consulta SQL otimizada para responder a pergunta sobre dados educacionais.
 
 PERGUNTA: ${question}
 
-SCHEMA DO BANCO:
+SCHEMA DO BANCO (INEP):
 ${schemaReduction.reducedSchema}
 
-INSTRUÇÕES OBRIGATÓRIAS:
-- Retorne APENAS o código SQL, sem explicações
-- Use nomes de tabelas e colunas exatos do schema
-- SEMPRE adicione LIMIT 100 em consultas SELECT * para proteger o banco
-- Use LIMIT 50 para consultas complexas com JOINs
-- Otimize a consulta para performance e segurança
-- Use JOINs quando necessário
+REGRAS OBRIGATÓRIAS:
+- Retorne APENAS o código SQL limpo, sem explicações ou formatação markdown
+- NÃO adicione ponto e vírgula (;) no final - será adicionado automaticamente
+- SEMPRE prefixe nomes de tabelas com "inep." (ex: inep.censo_cursos, inep.censo_modalidades_ensino)
+- Use nomes exatos de tabelas e colunas do schema fornecido
+- SEMPRE adicione LIMIT 100 para SELECT * (proteção do banco)
+- Use LIMIT 50 para consultas com múltiplos JOINs
+- Priorize performance: use índices quando disponíveis
+- Para dados educacionais, considere filtros por ano quando relevante
 
-EXEMPLO:
-SELECT * FROM tabela LIMIT 100;
-SELECT t1.*, t2.nome FROM tabela1 t1 JOIN tabela2 t2 ON t1.id = t2.id LIMIT 50;
+CONTEXTO EDUCACIONAL:
+- Dados do ensino superior brasileiro
+- Informações sobre cursos, instituições, estudantes
+- Dados históricos por ano acadêmico
+
+EXEMPLOS:
+SELECT * FROM inep.censo_cursos WHERE area_conhecimento = 'Educação' LIMIT 100;
+SELECT i.nome, COUNT(c.id) as total_cursos FROM inep.instituicoes i JOIN inep.cursos c ON i.id = c.instituicao_id GROUP BY i.nome LIMIT 50;
 
 SQL:`
+
+        console.log('🤖 Usando Groq para gerar SQL...')
+        console.log('📝 Prompt enviado:', prompt.substring(0, 200) + '...')
 
         const llmResponse = await this.llmService.handlePrompt({
           prompt,
@@ -429,9 +446,13 @@ SQL:`
           context: { schemaName: 'inep' }
         })
 
+        console.log('🔍 Resposta Groq:', llmResponse)
+
         if (llmResponse.success && llmResponse.content) {
           // Extrair SQL da resposta
+          console.log('📄 Conteúdo bruto da resposta:', llmResponse.content)
           const sql = this.cloudflareAI.extractSQL(llmResponse.content)
+          console.log('🔧 SQL extraído:', sql)
           sqlResponse = { success: true, sql }
         } else {
           sqlResponse = { success: false, error: llmResponse.error || 'Erro ao gerar SQL' }
@@ -457,6 +478,12 @@ SQL:`
       console.log('🔧 SQL original:', sqlResponse.sql)
       console.log('✅ SQL sanitizado:', sanitizedSQL)
 
+      // Validar sintaxe básica do SQL
+      if (sanitizedSQL.includes('; LIMIT')) {
+        console.error('⚠️ ERRO DE SINTAXE DETECTADO: Ponto e vírgula antes do LIMIT')
+        console.error('SQL problemático:', sanitizedSQL)
+      }
+
       // Executar SQL
       const queryResult = await this.queryService.executeQuery(sanitizedSQL)
 
@@ -477,12 +504,16 @@ SQL:`
       // Gerar explicação automática do resultado usando Groq rápido
       let explanation = ''
       try {
+        // Preparar dados para o prompt de explicação
+        const resultSummary = this.prepareResultSummary(queryResult)
+        console.log('🔍 Resumo dos resultados para explicação:', resultSummary)
+
         const explanationPrompt = `
 Você é um assistente especializado em explicar resultados de consultas SQL de forma clara e amigável.
 
 PERGUNTA ORIGINAL: ${question}
 SQL EXECUTADO: ${sqlResponse.sql}
-RESULTADO: ${queryResult.success ? `${queryResult.data?.length || 0} registros encontrados` : `Erro: ${queryResult.error}`}
+RESULTADO: ${resultSummary}
 
 Explique de forma natural e amigável:
 1. O que a consulta fez
@@ -552,16 +583,25 @@ Seja conciso mas informativo. Use linguagem natural, não técnica.
     if (!sql) return sql
 
     // Remover espaços extras e quebras de linha
-    const cleanSQL = sql.trim().replace(/\s+/g, ' ')
+    let cleanSQL = sql.trim().replace(/\s+/g, ' ')
 
     // Verificar se é uma consulta SELECT
     if (!cleanSQL.toLowerCase().startsWith('select')) {
       return cleanSQL
     }
 
-    // Verificar se já tem LIMIT
-    if (cleanSQL.toLowerCase().includes('limit')) {
-      return cleanSQL
+    // Remover ponto e vírgula do final se existir
+    if (cleanSQL.endsWith(';')) {
+      cleanSQL = cleanSQL.slice(0, -1).trim()
+    }
+
+    // Adicionar prefixo inep. às tabelas se não existir
+    cleanSQL = this.addSchemaPrefix(cleanSQL)
+
+    // Verificar se já tem LIMIT (mais rigoroso)
+    const limitRegex = /\blimit\s+\d+\b/i
+    if (limitRegex.test(cleanSQL)) {
+      return cleanSQL + ';' // Adicionar ponto e vírgula de volta
     }
 
     // Adicionar LIMIT baseado no tipo de consulta
@@ -580,40 +620,127 @@ Seja conciso mas informativo. Use linguagem natural, não técnica.
       const orderByIndex = cleanSQL.toLowerCase().lastIndexOf('order by')
       const beforeOrderBy = cleanSQL.substring(0, orderByIndex).trim()
       const orderByPart = cleanSQL.substring(orderByIndex)
-      return `${beforeOrderBy} LIMIT ${limitValue} ${orderByPart}`
+      return `${beforeOrderBy} LIMIT ${limitValue} ${orderByPart};`
     } else {
-      return `${cleanSQL} LIMIT ${limitValue}`
+      return `${cleanSQL} LIMIT ${limitValue};`
     }
+  }
+
+  /**
+   * Adiciona prefixo inep. às tabelas se não existir
+   */
+  private addSchemaPrefix(sql: string): string {
+    // Lista expandida de tabelas conhecidas do schema INEP
+    const inepTables = [
+      // Tabelas principais do censo
+      'censo_cursos', 'censo_modalidades_ensino', 'censo_instituicoes', 'censo_niveis_academicos',
+      'censo_graus_academicos', 'censo_organizacoes_academicas', 'censo_cine_area_geral',
+      'censo_cine_area_especifica', 'censo_cine_rotulo', 'censo_curso_vagas_bruto',
+
+      // Tabelas de dados dimensionais
+      'dm_aluno', 'dm_curso', 'dm_ies',
+
+      // Tabelas de dados e indicadores
+      'dados_igc', 'dados_percepcao_enade', 'dados_percepcao_enade_questoes', 'dados_enade',
+      'dados_cpc_brutos', 'igc_fatos',
+
+      // Tabelas CAPES
+      'capes_cursos_bruto', 'capes_programas_bruto',
+
+      // Tabelas EMEC
+      'emec_instituicoes',
+
+      // Tabelas ENADE e microdados
+      'microdados_enade_arq3', 'microdados_enade_arq5', 'microdados_enade_arq22', 'microdados_enade_arq29',
+      'microdados_enade_respostas', 'microdados_enade_questoes', 'enade_dic_aux',
+
+      // Tabelas geográficas e demográficas
+      'regioes_ibge', 'mesoregioes_ibge', 'municipios_ibge', 'ufs_ibge',
+      'ibge_demografia_por_idade_bruto', 'pibs_per_capita', 'variaveis_pib_municipios_ibge',
+
+      // Outras tabelas importantes
+      'idhms', 'ind_fluxo_ies_tda'
+    ]
+
+    let processedSQL = sql
+
+    // Para cada tabela conhecida, verificar se precisa adicionar prefixo
+    inepTables.forEach(tableName => {
+      // Regex para encontrar referências à tabela sem prefixo
+      // Usar negative lookbehind para não substituir se já tem prefixo
+      const tableRegex = new RegExp(`\\b(?<!inep\\.)${tableName}\\b`, 'gi')
+
+      // Substituir por versão com prefixo
+      processedSQL = processedSQL.replace(tableRegex, `inep.${tableName}`)
+    })
+
+    return processedSQL
+  }
+
+  /**
+   * Prepara um resumo dos resultados para o prompt de explicação
+   */
+  private prepareResultSummary(result: QueryResult): string {
+    if (!result.success) {
+      return `Erro: ${result.error}`
+    }
+
+    if (!result.rows || !result.columns || result.rows.length === 0) {
+      return 'Nenhum registro encontrado'
+    }
+
+    const rowCount = result.rowCount || result.rows.length
+    const columns = result.columns
+
+    // Mostrar algumas amostras dos dados para o modelo entender o contexto
+    const sampleRows = result.rows.slice(0, 3) // Primeiras 3 linhas
+    let summary = `${rowCount} registros encontrados\n`
+    summary += `Colunas: ${columns.join(', ')}\n`
+    summary += `Amostra dos dados:\n`
+
+    sampleRows.forEach((row, index) => {
+      summary += `Registro ${index + 1}: `
+      columns.forEach((col, colIndex) => {
+        summary += `${col}=${row[colIndex]} `
+      })
+      summary += '\n'
+    })
+
+    if (rowCount > 3) {
+      summary += `... e mais ${rowCount - 3} registros`
+    }
+
+    return summary
   }
 
   /**
    * Formata o resultado da query para exibição
    */
   private formatQueryResult(result: QueryResult): string {
-    if (!result.success || !result.data) {
-      return 'Nenhum dado encontrado.'
+    if (!result.success) {
+      return 'Erro na execução da consulta.'
     }
 
-    const data = Array.isArray(result.data) ? result.data : [result.data]
-
-    if (data.length === 0) {
+    if (!result.rows || !result.columns || result.rows.length === 0) {
       return 'Nenhum registro encontrado.'
     }
 
+    const { columns, rows } = result
+    const totalRows = result.rowCount || rows.length
+
     // Limitar a 10 registros para não sobrecarregar a resposta
-    const limitedData = data.slice(0, 10)
+    const limitedRows = rows.slice(0, 10)
 
     // Criar tabela simples
-    const headers = Object.keys(limitedData[0])
-    let table = headers.join(' | ') + '\n'
-    table += headers.map(() => '---').join(' | ') + '\n'
+    let table = columns.join(' | ') + '\n'
+    table += columns.map(() => '---').join(' | ') + '\n'
 
-    limitedData.forEach(row => {
-      table += headers.map(header => String(row[header] || '')).join(' | ') + '\n'
+    limitedRows.forEach(row => {
+      table += row.map(cell => String(cell || '')).join(' | ') + '\n'
     })
 
-    if (data.length > 10) {
-      table += `\n... e mais ${data.length - 10} registros.`
+    if (totalRows > 10) {
+      table += `\n... e mais ${totalRows - 10} registros.`
     }
 
     return table
@@ -707,34 +834,34 @@ Seja conciso mas informativo. Use linguagem natural, não técnica.
     }).join('\n')
 
     // Criar prompt para o LLM
-    const prompt = `Você é um assistente especializado em dados educacionais do INEP. O usuário perguntou: "${question}"
+    const prompt = `Você é um especialista em dados educacionais do INEP. O usuário perguntou: "${question}"
 
-INFORMAÇÕES DO BANCO DE DADOS:
+📊 **BANCO DE DADOS EDUCACIONAIS INEP**
 - Total de tabelas: ${totalTables}
-- Schema: inep
-- Tipo: Dados educacionais do Brasil (INEP)
+- Fonte: Instituto Nacional de Estudos e Pesquisas Educacionais
+- Cobertura: Ensino superior brasileiro
 
-PRINCIPAIS TABELAS DISPONÍVEIS:
+🗂️ **PRINCIPAIS TABELAS:**
 ${tablesInfo}
 
-RELACIONAMENTOS:
-${schema.relationships?.map((rel: any) => `- ${rel.fromTable}.${rel.fromColumn} → ${rel.toTable}`).join('\n') || 'Relacionamentos automáticos detectados'}
+🔗 **RELACIONAMENTOS:**
+${schema.relationships?.map((rel: any) => `- ${rel.fromTable}.${rel.fromColumn} → ${rel.toTable}`).join('\n') || 'Relacionamentos entre tabelas detectados automaticamente'}
 
-INSTRUÇÕES:
-1. Responda de forma amigável e informativa sobre o schema
-2. Destaque as principais tabelas e seus propósitos
-3. Explique que tipos de dados educacionais estão disponíveis
-4. Sugira exemplos de perguntas que o usuário pode fazer
-5. Use emojis e formatação markdown para deixar a resposta mais atrativa
-6. Mantenha o foco nos dados educacionais do INEP
-7. Seja conciso mas informativo (máximo 300 palavras)
+**INSTRUÇÕES:**
+Responda de forma clara e útil sobre nossos dados educacionais. Destaque:
+- Que tipos de informações educacionais temos disponíveis
+- Como as tabelas se relacionam
+- Exemplos práticos de perguntas que podem ser feitas
+- Use emojis e markdown para clareza
+- Seja informativo mas conciso (máximo 250 palavras)
+- Foque no potencial analítico dos dados do INEP
 
-Resposta:`
+**Resposta:**`
 
     try {
       const llmResponse = await this.llmService.handlePrompt({
         prompt,
-        model: 'llama-3.1-8b-instant'
+        model: 'llama-3.3-70b-versatile'
       })
 
       if (llmResponse.success && llmResponse.content) {

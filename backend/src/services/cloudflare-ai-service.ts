@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { LLMService } from './llm-service'
 
 export interface CloudflareAIRequest {
   prompt: string
@@ -19,11 +20,13 @@ export class CloudflareAIService {
   private apiToken: string
   private accountId: string
   private baseUrl: string
+  private llmService: LLMService
 
   private constructor() {
     this.apiToken = process.env.CLOUDFLARE_API_TOKEN!
     this.accountId = process.env.CLOUDFLARE_ACCOUNT_ID!
     this.baseUrl = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run`
+    this.llmService = LLMService.getInstance()
 
     if (!this.apiToken) {
       throw new Error('CLOUDFLARE_API_TOKEN é obrigatória! Verifique o arquivo .env')
@@ -51,42 +54,38 @@ export class CloudflareAIService {
   }> {
     try {
       const prompt = `
-Você é um especialista em bancos de dados. Analise a pergunta do usuário e o schema completo fornecido.
-Retorne APENAS as tabelas e colunas que são relevantes para responder a pergunta.
+Você é um especialista em bancos de dados educacionais do INEP. Analise a pergunta sobre dados educacionais e identifique apenas as tabelas e colunas relevantes do schema.
 
 PERGUNTA: ${question}
 
-SCHEMA COMPLETO:
+SCHEMA COMPLETO (DADOS EDUCACIONAIS):
 ${fullSchema}
 
 INSTRUÇÕES:
-- Retorne apenas as tabelas e colunas necessárias
-- Mantenha o formato original do schema
-- Inclua chaves primárias e estrangeiras relevantes
-- Seja conciso mas não omita informações importantes
+- Retorne APENAS as tabelas e colunas necessárias para responder a pergunta
+- Mantenha o formato JSON original do schema
+- SEMPRE inclua chaves primárias e estrangeiras das tabelas selecionadas
+- Para dados educacionais, considere relacionamentos entre instituições, cursos, estudantes
+- Seja preciso: inclua apenas o essencial, mas não omita dependências importantes
+- Se a pergunta menciona anos/períodos, inclua colunas de data relevantes
 
 SCHEMA REDUZIDO:
 `
 
-      // Usar um modelo rápido do Groq para reduzir o schema
-      const Groq = require('groq-sdk')
-      const groqClient = new Groq({
-        apiKey: process.env.GROQ_API_KEY
+      // Usar LLMService centralizado para reduzir o schema
+      const llmResponse = await this.llmService.handlePrompt({
+        prompt,
+        model: 'llama-3.3-70b-versatile'
       })
 
-      const completion = await groqClient.chat.completions.create({
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        model: 'llama-3.1-8b-instant', // Modelo rápido
-        temperature: 0.1,
-        max_tokens: 2000
-      })
+      if (!llmResponse.success) {
+        return {
+          success: false,
+          error: `Erro do LLM: ${llmResponse.error}`
+        }
+      }
 
-      const reducedSchema = completion.choices[0]?.message?.content?.trim()
+      const reducedSchema = llmResponse.content?.trim()
 
       if (!reducedSchema) {
         return {
@@ -102,9 +101,12 @@ SCHEMA REDUZIDO:
 
     } catch (error) {
       console.error('❌ Erro ao reduzir schema:', error)
+
+      // Fallback: retornar schema original se a redução falhar
+      console.log('⚠️ Usando schema completo como fallback')
       return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
+        success: true,
+        reducedSchema: fullSchema // Usar schema completo como fallback
       }
     }
   }
@@ -161,6 +163,10 @@ SCHEMA REDUZIDO:
 
   /**
    * Processa uma pergunta SQL completa: reduz schema + gera SQL
+   * NOTA: Esta é uma função auxiliar que APENAS gera SQL.
+   * A função principal completa está em ChatService.processSQLQuery()
+   *
+   * USADA POR: ChatService.processSQLQuery() quando selectedModel é 'cloudflare-sqlcoder-7b-2'
    */
   async processSQL(question: string, fullSchema: string): Promise<{
     success: boolean
@@ -192,6 +198,8 @@ Generate a SQL query to answer this question: ${question}
 ${schemaReduction.reducedSchema}
 
 ### Important Rules
+- Return ONLY clean SQL code without semicolon at the end
+- ALWAYS prefix table names with "inep." (e.g., inep.censo_cursos, inep.censo_modalidades_ensino)
 - ALWAYS add LIMIT 100 to SELECT * queries to prevent database overload
 - Use LIMIT 50 for complex queries with JOINs
 - Optimize for performance and safety
@@ -233,19 +241,34 @@ ${schemaReduction.reducedSchema}
    * Extrai SQL da resposta do modelo (método público)
    */
   public extractSQL(response: string): string {
+    console.log('🔍 Extraindo SQL da resposta:', response)
+
     // Procurar por blocos SQL
     const sqlBlockMatch = response.match(/```sql\s*([\s\S]*?)\s*```/i)
     if (sqlBlockMatch) {
-      return sqlBlockMatch[1].trim()
+      const extracted = sqlBlockMatch[1].trim()
+      console.log('✅ SQL extraído de bloco:', extracted)
+      return extracted
     }
 
-    // Procurar por SELECT, INSERT, UPDATE, DELETE no início de linhas
-    const sqlMatch = response.match(/^\s*(SELECT|INSERT|UPDATE|DELETE|WITH)[\s\S]*?;?\s*$/im)
+    // Procurar por SELECT, INSERT, UPDATE, DELETE no início de linhas (multiline)
+    const sqlMatch = response.match(/^\s*(SELECT|INSERT|UPDATE|DELETE|WITH)[\s\S]*$/im)
     if (sqlMatch) {
-      return sqlMatch[0].trim()
+      const extracted = sqlMatch[0].trim()
+      console.log('✅ SQL extraído por regex:', extracted)
+      return extracted
+    }
+
+    // Procurar por SQL em qualquer lugar da resposta (mais flexível)
+    const flexibleSqlMatch = response.match(/(SELECT|INSERT|UPDATE|DELETE|WITH)[\s\S]*?(?=\n\n|\n[A-Z]|$)/i)
+    if (flexibleSqlMatch) {
+      const extracted = flexibleSqlMatch[0].trim()
+      console.log('✅ SQL extraído flexível:', extracted)
+      return extracted
     }
 
     // Fallback: retornar a resposta limpa
+    console.log('⚠️ Usando fallback - resposta completa:', response.trim())
     return response.trim()
   }
 }

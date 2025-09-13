@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { useState } from "react"
+import { useState, memo, useCallback, useMemo } from "react"
 import { ChartContainer } from "../charts/chart-container"
 import { QueryResultsTable } from "./query-results-table"
 import { EvaluationModal } from "../evaluation/evaluation-modal"
@@ -29,7 +29,7 @@ interface MessageBubbleProps {
   message: Message
   sessionId?: string
 }
-export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({ message, sessionId }: MessageBubbleProps) {
   const { addMessage } = useAppStore()
   const { settings } = useUserSettings()
   const [showTechnicalModal, setShowTechnicalModal] = useState(false)
@@ -39,7 +39,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
   const [executionStatus, setExecutionStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [isCopied, setIsCopied] = useState(false)
 
-  const getIcon = (type: Message['tipo']) => {
+  const getIcon = useCallback((type: Message['tipo']) => {
     switch (type) {
       case 'user':
         return <User className="h-4 w-4" />
@@ -52,7 +52,7 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
       default:
         return <Bot className="h-4 w-4" />
     }
-  }
+  }, [])
 
   const getBubbleStyles = (type: Message['tipo']) => {
     switch (type) {
@@ -426,4 +426,4 @@ export function MessageBubble({ message, sessionId }: MessageBubbleProps) {
       )}
     </div>
   )
-}
+})
