@@ -376,9 +376,37 @@ ${mensagem.sqlQuery}
       const fullSchema = await this.schemaService.getSchemaForLLM('inep')
 
       if (!fullSchema) {
+        // Criar mensagem de erro como assistant para mostrar botões flutuantes
+        const errorContent = `Schema do banco de dados não encontrado. É necessário executar a descoberta do schema primeiro.`
+
         const errorMessageData = await this.addMessage(sessionId, {
-          type: 'error',
-          content: 'Schema do banco não encontrado. Execute a descoberta do schema primeiro.'
+          type: 'assistant',
+          content: errorContent
+        }, {
+          sqlQuery: null,
+          queryResult: {
+            success: false,
+            error: 'Schema do banco não encontrado',
+            columns: null,
+            rows: null,
+            rowCount: null,
+            executionTime: null
+          },
+          hasExplanation: true,
+          explanation: `❌ **Schema do banco não encontrado**
+
+**Problema:**
+O sistema não conseguiu encontrar informações sobre a estrutura do banco de dados.
+
+**Solução:**
+1. Execute a descoberta do schema primeiro
+2. Verifique se o banco de dados está configurado corretamente
+3. Confirme se as credenciais de acesso estão válidas
+
+**Como proceder:**
+- Acesse as configurações do sistema
+- Execute a função de descoberta do schema
+- Aguarde a conclusão do processo antes de fazer consultas`
         })
 
         return {
@@ -406,9 +434,35 @@ ${mensagem.sqlQuery}
         const schemaReduction = await this.cloudflareAI.reduceSchema(question, JSON.stringify(fullSchema))
 
         if (!schemaReduction.success) {
+          // Criar mensagem de erro como assistant para mostrar botões flutuantes
+          const errorContent = `Não foi possível processar o schema do banco de dados. Verifique os detalhes técnicos para mais informações.`
+
           const errorMessageData = await this.addMessage(sessionId, {
-            type: 'error',
-            content: `Erro ao reduzir schema: ${schemaReduction.error}`
+            type: 'assistant',
+            content: errorContent
+          }, {
+            sqlQuery: null,
+            queryResult: {
+              success: false,
+              error: schemaReduction.error,
+              columns: null,
+              rows: null,
+              rowCount: null,
+              executionTime: null
+            },
+            hasExplanation: true,
+            explanation: `❌ **Erro no processamento do schema**
+
+**Detalhes do erro:**
+${schemaReduction.error}
+
+**Pergunta original:**
+${question}
+
+**Sugestões para correção:**
+- Verifique se o banco de dados está acessível
+- Confirme se o schema foi descoberto corretamente
+- Tente uma pergunta mais simples primeiro`
           })
 
           return {
@@ -467,9 +521,36 @@ SQL:`
       }
 
       if (!sqlResponse.success) {
+        // Criar mensagem de erro como assistant para mostrar botões flutuantes
+        const errorContent = `Não foi possível gerar a consulta SQL. Verifique os detalhes técnicos para mais informações sobre o erro.`
+
         const errorMessageData = await this.addMessage(sessionId, {
-          type: 'error',
-          content: `Erro ao gerar SQL: ${sqlResponse.error}`
+          type: 'assistant',
+          content: errorContent
+        }, {
+          sqlQuery: null,
+          queryResult: {
+            success: false,
+            error: sqlResponse.error,
+            columns: null,
+            rows: null,
+            rowCount: null,
+            executionTime: null
+          },
+          hasExplanation: true,
+          explanation: `❌ **Erro na geração da consulta SQL**
+
+**Detalhes do erro:**
+${sqlResponse.error}
+
+**Pergunta original:**
+${question}
+
+**Sugestões para correção:**
+- Tente reformular sua pergunta de forma mais específica
+- Verifique se os dados solicitados estão disponíveis no banco
+- Confirme se os nomes das tabelas e colunas estão corretos
+- Consulte a documentação do schema disponível`
         })
 
         return {
@@ -592,9 +673,36 @@ Seja conciso mas informativo. Use linguagem natural, não técnica.
     } catch (error) {
       console.error('❌ Erro ao processar pergunta SQL:', error)
 
+      // Criar mensagem de erro como assistant para mostrar botões flutuantes
+      const errorContent = `Não foi possível processar sua consulta. Verifique os detalhes técnicos para mais informações sobre o erro.`
+
       const errorMessageData = await this.addMessage(sessionId, {
-        type: 'error',
-        content: 'Não foi possível processar sua consulta. Tente reformular a pergunta ou verificar se os dados solicitados estão disponíveis.'
+        type: 'assistant',
+        content: errorContent
+      }, {
+        sqlQuery: null,
+        queryResult: {
+          success: false,
+          error: error instanceof Error ? error.message : 'Erro desconhecido ao processar consulta',
+          columns: null,
+          rows: null,
+          rowCount: null,
+          executionTime: null
+        },
+        hasExplanation: true,
+        explanation: `❌ **Erro no processamento da consulta**
+
+**Detalhes do erro:**
+${error instanceof Error ? error.message : 'Erro desconhecido'}
+
+**Pergunta original:**
+${question}
+
+**Sugestões para correção:**
+- Tente reformular a pergunta de forma mais específica
+- Verifique se os dados solicitados estão disponíveis no banco
+- Confirme se a conexão com o banco está funcionando
+- Tente uma consulta mais simples primeiro`
       })
 
       return {
@@ -796,9 +904,37 @@ Seja conciso mas informativo. Use linguagem natural, não técnica.
       const fullSchema = await this.schemaService.getSchemaForLLM('inep')
 
       if (!fullSchema || !fullSchema.tables || fullSchema.tables.length === 0) {
+        // Criar mensagem de erro como assistant para mostrar botões flutuantes
+        const errorContent = `Schema do banco de dados não encontrado. É necessário executar a descoberta do schema primeiro.`
+
         const errorMessageData = await this.addMessage(sessionId, {
-          type: 'error',
-          content: 'Schema do banco não encontrado. Execute a descoberta do schema primeiro.'
+          type: 'assistant',
+          content: errorContent
+        }, {
+          sqlQuery: null,
+          queryResult: {
+            success: false,
+            error: 'Schema do banco não encontrado',
+            columns: null,
+            rows: null,
+            rowCount: null,
+            executionTime: null
+          },
+          hasExplanation: true,
+          explanation: `❌ **Schema do banco não encontrado**
+
+**Problema:**
+O sistema não conseguiu encontrar informações sobre a estrutura do banco de dados.
+
+**Solução:**
+1. Execute a descoberta do schema primeiro
+2. Verifique se o banco de dados está configurado corretamente
+3. Confirme se as credenciais de acesso estão válidas
+
+**Como proceder:**
+- Acesse as configurações do sistema
+- Execute a função de descoberta do schema
+- Aguarde a conclusão do processo antes de fazer consultas`
         })
 
         return {
@@ -827,9 +963,36 @@ Seja conciso mas informativo. Use linguagem natural, não técnica.
     } catch (error) {
       console.error('❌ Erro ao processar informações do schema:', error)
 
+      // Criar mensagem de erro como assistant para mostrar botões flutuantes
+      const errorContent = `Erro interno ao processar informações do schema. Verifique os detalhes técnicos para mais informações.`
+
       const errorMessageData = await this.addMessage(sessionId, {
-        type: 'error',
-        content: `Erro interno: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+        type: 'assistant',
+        content: errorContent
+      }, {
+        sqlQuery: null,
+        queryResult: {
+          success: false,
+          error: error instanceof Error ? error.message : 'Erro desconhecido',
+          columns: null,
+          rows: null,
+          rowCount: null,
+          executionTime: null
+        },
+        hasExplanation: true,
+        explanation: `❌ **Erro interno no processamento do schema**
+
+**Detalhes do erro:**
+${error instanceof Error ? error.message : 'Erro desconhecido'}
+
+**Pergunta original:**
+${question}
+
+**Sugestões para correção:**
+- Verifique se o banco de dados está acessível
+- Confirme se o schema foi descoberto corretamente
+- Tente recarregar a página e fazer a pergunta novamente
+- Entre em contato com o suporte se o problema persistir`
       })
 
       return {

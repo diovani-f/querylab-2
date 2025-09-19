@@ -284,13 +284,26 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
       </div>
 
       {/* Botões flutuantes abaixo do bubble-message */}
-      {messageData.tipo === 'assistant' && (
+      {(() => {
+        const shouldShowButtons = messageData.tipo === 'assistant' && (messageData.sqlQuery || messageData.queryResult || messageData.explanation);
+        console.log('🔘 Debug botões flutuantes:', {
+          messageId: messageData.id,
+          tipo: messageData.tipo,
+          hasSqlQuery: !!messageData.sqlQuery,
+          hasQueryResult: !!messageData.queryResult,
+          hasExplanation: !!messageData.explanation,
+          queryResultSuccess: messageData.queryResult?.success,
+          shouldShowButtons,
+          messageData: messageData
+        });
+        return shouldShowButtons;
+      })() && (
         <div
           className="flex flex-row gap-2 sm:gap-3 items-center mt-4"
           style={{ position: 'absolute', left: '4px', bottom: '0', transform: 'translateY(25px)', zIndex: 20 }}
         >
           <TooltipProvider>
-            {/* Botão para explain detalhado */}
+            {/* Botão para explain detalhado - aparece sempre que há explanation */}
             {messageData.explanation && (
               <Dialog open={showExplainModal} onOpenChange={setShowExplainModal}>
                 <Tooltip>
@@ -306,11 +319,15 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
                       </Button>
                     </DialogTrigger>
                   </TooltipTrigger>
-                  <TooltipContent>Explain Detalhado</TooltipContent>
+                  <TooltipContent>
+                    {messageData.queryResult?.success === false ? 'Detalhes do Erro' : 'Explain Detalhado'}
+                  </TooltipContent>
                 </Tooltip>
                 <DialogContent className="max-w-2xl w-full">
                   <DialogHeader>
-                    <DialogTitle>Explain Detalhado</DialogTitle>
+                    <DialogTitle>
+                      {messageData.queryResult?.success === false ? 'Detalhes do Erro' : 'Explain Detalhado'}
+                    </DialogTitle>
                   </DialogHeader>
                   {/* Explain detalhado */}
                   {messageData.explanation && (
@@ -323,8 +340,8 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
                 </DialogContent>
               </Dialog>
             )}
-            {/* Botão de detalhes técnicos */}
-            {messageData.queryResult && (
+            {/* Botão de detalhes técnicos - aparece sempre que há queryResult ou sqlQuery */}
+            {(messageData.queryResult || messageData.sqlQuery) && (
               <Dialog open={showTechnicalModal} onOpenChange={setShowTechnicalModal}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -433,23 +450,6 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
                             </div>
                           )}
 
-                          {/* Erro na execução */}
-                          {messageData.queryResult && messageData.queryResult.success === false && (
-                            <div className="flex items-center justify-center py-12">
-                              <div className="max-w-md w-full">
-                                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center">
-                                  <div className="mb-3">
-                                    <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
-                                  </div>
-                                  <h3 className="text-sm font-medium text-destructive mb-2">Erro na Execução</h3>
-                                  <p className="text-sm text-destructive/80">
-                                    {sanitizeError(messageData.queryResult.error, 'query_execution').userMessage}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
                           {/* Estado vazio */}
                           {(!messageData.queryResult || (!messageData.queryResult.rows || messageData.queryResult.rows.length === 0)) && messageData.queryResult?.success !== false && (
                             <div className="flex items-center justify-center py-12">
@@ -466,8 +466,8 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
                     </DialogContent>
               </Dialog>
             )}
-            {/* Modal de Avaliação - apenas para mensagens de assistente com SQL */}
-            {messageData.tipo === 'assistant' && sessionId && messageData.sqlQuery && (
+            {/* Modal de Avaliação - para mensagens de assistente com SQL (incluindo erros) */}
+            {messageData.tipo === 'assistant' && sessionId && (messageData.sqlQuery || messageData.queryResult) && (
               <div>
                 <EvaluationModal
                   message={message}

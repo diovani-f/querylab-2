@@ -11,8 +11,9 @@ export interface ErrorInfo {
 
 /**
  * Mapeia erros técnicos para mensagens amigáveis
+ * TEMPORARIAMENTE COMENTADO - Mostrando erros exatos do backend
  */
-const ERROR_MESSAGES = {
+/* const ERROR_MESSAGES = {
   // Erros de rede/conexão
   network: {
     default: 'Problema de conexão. Verifique sua internet e tente novamente.',
@@ -49,12 +50,47 @@ const ERROR_MESSAGES = {
     session_creation: 'Erro ao criar nova conversa. Tente novamente.',
     message_send: 'Erro ao enviar mensagem. Tente novamente.',
   }
-}
+} */
 
 /**
  * Sanitiza erros e retorna mensagem amigável para o usuário
+ * TEMPORARIAMENTE COMENTADO - Mostrando erro exato do backend
  */
-export function sanitizeError(error: unknown, context?: string): ErrorInfo {
+export function sanitizeError(error: unknown, _context?: string): ErrorInfo {
+  // TEMPORÁRIO: Mostrando erro exato do backend sem sanitização
+  let userMessage = 'Algo deu errado. Tente novamente.'
+  let logMessage = 'Unknown error'
+  let type: ErrorInfo['type'] = 'unknown'
+
+  if (error instanceof Error) {
+    logMessage = error.message
+    // MOSTRANDO ERRO EXATO DO BACKEND
+    userMessage = error.message
+    type = 'server'
+  }
+  // Se for string, mostrar exatamente como vem
+  else if (typeof error === 'string') {
+    logMessage = error
+    // MOSTRANDO ERRO EXATO DO BACKEND
+    userMessage = error
+    type = 'server'
+  }
+  // Se for objeto, tentar extrair mensagem
+  else if (error && typeof error === 'object') {
+    const errorObj = error as Record<string, unknown>
+    logMessage = String(errorObj.message || errorObj.error || JSON.stringify(error))
+    // MOSTRANDO ERRO EXATO DO BACKEND
+    userMessage = String(errorObj.message || errorObj.error || JSON.stringify(error))
+    type = 'server'
+  }
+
+  return {
+    userMessage,
+    logMessage,
+    type
+  }
+
+  /* CÓDIGO ORIGINAL COMENTADO - Sanitização de erros
   let userMessage = 'Algo deu errado. Tente novamente.'
   let logMessage = 'Unknown error'
   let type: ErrorInfo['type'] = 'unknown'
@@ -145,6 +181,7 @@ export function sanitizeError(error: unknown, context?: string): ErrorInfo {
     logMessage,
     type
   }
+  */
 }
 
 /**
