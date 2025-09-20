@@ -53,12 +53,20 @@ interface AppStore extends AppState {
 
 const defaultModels: LLMModel[] = [
   {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3 70B',
-    description: 'Modelo padrão para consultas SQL',
-    provider: 'groq',
+    id: 'gemini-2.5-flash-lite',
+    name: 'Gemini 2.5 Flash-Lite',
+    description: 'Modelo principal para consultas SQL (1000 RPD)',
+    provider: 'gemini',
     maxTokens: 8192,
     isDefault: true
+  },
+  {
+    id: 'gemini-2.0-flash-lite',
+    name: 'Gemini 2.0 Flash-Lite',
+    description: 'Modelo fallback para consultas SQL (200 RPD)',
+    provider: 'gemini',
+    maxTokens: 8192,
+    isDefault: false
   }
 ]
 
@@ -448,13 +456,26 @@ export const useAppStore = create<AppStore>()(
           // Usar o userId diretamente (já é string)
           const userId = user?.id
 
-          // 3. TERCEIRO: Enviar via WebSocket para processar resposta
+          // 3. TERCEIRO: Obter configurações do usuário do localStorage
+          let autoExecuteSQL = true // Default
+          try {
+            const settingsStr = localStorage.getItem('querylab-user-settings')
+            if (settingsStr) {
+              const settings = JSON.parse(settingsStr)
+              autoExecuteSQL = settings.autoExecuteSQL !== false
+            }
+          } catch (error) {
+            console.warn('Erro ao ler configurações do usuário:', error)
+          }
+
+          // 4. QUARTO: Enviar via WebSocket para processar resposta
           websocketService.sendMessage({
             sessionId: state.currentSession.id,
             message: content,
             model: state.selectedModel.id,
-            userId: userId
-          })
+            userId: userId,
+            autoExecuteSQL
+          } as any)
         } catch (error) {
           console.error('Erro ao enviar mensagem:', error)
 

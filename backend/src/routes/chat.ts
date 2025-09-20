@@ -12,7 +12,7 @@ const sessionService = SessionService.getInstance()
 
 router.post('/message', async (req, res) => {
   try {
-    const { sessionId, message, model }: ChatRequest = req.body
+    const { sessionId, message, model, userId, autoExecuteSQL } = req.body
 
     if (!sessionId || !message) {
       return res.status(400).json({
@@ -25,7 +25,9 @@ router.post('/message', async (req, res) => {
     const result = await chatService.processMessage({
       sessionId,
       message,
-      model
+      model,
+      userId: userId || 'anonymous-user',
+      autoExecuteSQL: autoExecuteSQL !== undefined ? autoExecuteSQL : true // Default true para compatibilidade
     })
 
     if (!result.success) {
@@ -111,7 +113,7 @@ router.patch('/execute', async(req, res) => {
       console.error('[ERRO]: ', message.error || 'Erro ao executar query')
       return res.status(500).json({
         success: false,
-        error: 'Erro ao executar consulta. Verifique os dados solicitados.'
+        error: message.error || 'Erro ao executar query'
       })
     }
 

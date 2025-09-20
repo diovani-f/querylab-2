@@ -166,7 +166,7 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
         {/* Conteúdo da mensagem */}
         {messageData.conteudo && (
           <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
-            <ReactMarkdown>{messageData.conteudo}</ReactMarkdown>
+            <ReactMarkdown>{message.reverseTranslation || messageData.conteudo}</ReactMarkdown>
           </div>
         )}
 
@@ -280,9 +280,7 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
             </p>
           </div>
         )} */}
-
       </div>
-
       {/* Botões flutuantes abaixo do bubble-message */}
       {(() => {
         const shouldShowButtons = messageData.tipo === 'assistant' && (messageData.sqlQuery || messageData.queryResult || messageData.explanation);

@@ -1,26 +1,35 @@
-import Groq from 'groq-sdk'
 import { LLMRequest, LLMResponse, QueryResult } from '../types'
 import { PrismaClient, LLMModel } from '@prisma/client'
+import { GeminiService } from './gemini-service'
+import { GroqService } from './groq-service'
 
 export class LLMService {
   private prisma: PrismaClient
   private static instance: LLMService
-  private groqClient: Groq
+  private geminiService: GeminiService
+  private groqService?: GroqService
   private availableModels: LLMModel[] = []
 
   private constructor() {
     this.prisma = new PrismaClient()
 
-    // Verificar se a API key está disponível
-    const groqApiKey = process.env.GROQ_API_KEY
-    if (!groqApiKey) {
-      throw new Error('GROQ_API_KEY é obrigatória! Verifique o arquivo .env')
+    // Inicializar Gemini como provider principal
+    try {
+      this.geminiService = GeminiService.getInstance()
+      console.log('✅ Gemini inicializado como provider principal')
+    } catch (error) {
+      console.error('❌ Falha ao inicializar Gemini:', error)
+      throw new Error('GEMINI_API_KEY é obrigatória! Verifique o arquivo .env')
     }
 
-    // Inicializar cliente Groq
-    this.groqClient = new Groq({
-      apiKey: groqApiKey
-    })
+    // Inicializar Groq para resumos
+    try {
+      this.groqService = GroqService.getInstance()
+      console.log('✅ Groq inicializado para resumos')
+    } catch (error) {
+      console.error('❌ Falha ao inicializar Groq:', error)
+      console.warn('⚠️ Groq não disponível - resumos usarão Gemini como fallback')
+    }
   }
 
   static getInstance(): LLMService {
@@ -39,15 +48,16 @@ export class LLMService {
   }
 
   getAvailableModels(): LLMModel[] {
-    // Organizar modelos: primeiro Groq (alfabético), depois outros providers
+    // Organizar modelos: primeiro Gemini (padrão), depois Groq (fallback), depois outros providers
     const sortedModels = [...this.availableModels].sort((a, b) => {
       // Definir ordem de prioridade dos providers
       const providerOrder: Record<string, number> = {
-        'groq': 1,
-        'cloudflare': 2,
-        'openai': 3,
-        'anthropic': 4,
-        'local': 5
+        'gemini': 1,
+        'groq': 2,
+        'cloudflare': 3,
+        'openai': 4,
+        'anthropic': 5,
+        'local': 6
       }
 
       const aOrder = providerOrder[a.provider] || 999
@@ -116,53 +126,37 @@ export class LLMService {
   }
 
   /**
-   * Método simples para chamar o Groq e retornar a resposta direta
+   * Método principal para chamar LLM usando Gemini com fallback interno
    */
   async handlePrompt(request: LLMRequest): Promise<LLMResponse> {
-    const { prompt, model, context } = request
     try {
-      // Construir mensagens para o modelo
-      const conversationMessages = this.buildConversationMessages(prompt, context?.conversationHistory || [])
+      console.log('🔄 Processando prompt com Gemini...')
+      const response = await this.geminiService.generateResponse(request)
 
-      // Chamar Groq diretamente com configurações otimizadas
-      const completion = await this.groqClient.chat.completions.create({
-        messages: conversationMessages,
-        model,
-        temperature: this.getOptimalTemperature(model),
-        max_tokens: this.getOptimalMaxTokens(model),
-        top_p: 0.9, // Melhor para consistência
-        stream: false
-      })
-
-      const response = completion.choices[0]?.message?.content
-
-      if (!response) {
-        throw new Error('Resposta vazia do modelo LLM')
+      if (response.success) {
+        console.log('✅ Resposta bem-sucedida do Gemini')
+        return response
       }
 
-      // Retornar resposta simples e direta
-      return {
-        success: true,
-        content: response.trim(),
-        model,
-        tokensUsed: completion.usage?.total_tokens || 0,
-        processingTime: Date.now()
-      }
+      console.error('❌ Falha no Gemini:', response.error)
+      return response
 
     } catch (error) {
-      console.error('❌ Erro ao processar prompt:', error)
+      console.error('❌ Erro inesperado no LLMService:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erro desconhecido',
-        model: model,
-        tokensUsed: 0,
-        processingTime: Date.now()
+        model: request.model || 'gemini-2.5-flash-lite',
+        provider: 'gemini'
       }
     }
   }
 
+
+
   /**
    * Gera uma explicação sucinta e amigável da consulta SQL para o usuário leigo.
+   * Usa Groq preferencialmente, com fallback para Gemini
    */
   public async generateQueryExplanation(params: {
     prompt: string
@@ -170,22 +164,42 @@ export class LLMService {
   }): Promise<string> {
     const { prompt, sql } = params
     if (!sql) return ''
-    const explanationPrompt = `Gere uma explicação curta e amigável, em uma única frase, para a seguinte consulta SQL. Diga ao usuário o que a consulta irá buscar, sem usar termos técnicos ou repetir o SQL.
+
+    try {
+      // Tentar usar Groq primeiro (otimizado para resumos)
+      if (this.groqService) {
+        console.log('🔄 Gerando explicação com Groq...')
+        const groqResponse = await this.groqService.generateSQLSummary({
+          question: prompt,
+          sql
+        })
+
+        if (groqResponse.success && groqResponse.content) {
+          console.log('✅ Explicação gerada com Groq')
+          return groqResponse.content.trim()
+        }
+      }
+
+      // Fallback para Gemini
+      console.log('🔄 Gerando explicação com Gemini (fallback)...')
+      const explanationPrompt = `Gere uma explicação curta e amigável, em uma única frase, para a seguinte consulta SQL. Diga ao usuário o que a consulta irá buscar, sem usar termos técnicos ou repetir o SQL.
 
     Pergunta original: "${prompt}"
 
     Consulta SQL: ${sql}
 
     Explicação amigável:`
-    try {
-      const completion = await this.groqClient.chat.completions.create({
-        messages: [{ role: 'user', content: explanationPrompt }],
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0.1, // Baixa para explicações consistentes
-        max_tokens: 400 // Aumentado para explicações mais completas
+
+      const response = await this.handlePrompt({
+        prompt: explanationPrompt,
+        model: 'gemini-2.5-flash-lite'
       })
-      const explanation = completion.choices[0]?.message?.content?.trim()
-      return explanation || ''
+
+      if (response.success && response.content) {
+        return response.content.trim()
+      }
+
+      return 'Não foi possível gerar uma explicação para a consulta.'
     } catch (error) {
       console.error('❌ Erro ao gerar explicação da query:', error)
       return 'Não foi possível gerar uma explicação para a consulta.'
@@ -194,6 +208,7 @@ export class LLMService {
 
   /**
    * Gera uma explicação detalhada e técnica dos resultados de uma consulta.
+   * Usa Groq preferencialmente, com fallback para Gemini
    */
   async generateDetailedResultExplanation(params: {
     query: string
@@ -202,6 +217,24 @@ export class LLMService {
   }): Promise<{ success: boolean; explanation?: string; error?: string }> {
     try {
       const { query, result, originalPrompt } = params
+
+      // Tentar usar Groq primeiro (otimizado para resumos)
+      if (this.groqService) {
+        console.log('🔄 Gerando resumo detalhado com Groq...')
+        const groqResponse = await this.groqService.generateResultSummary({
+          originalPrompt,
+          query,
+          result
+        })
+
+        if (groqResponse.success && groqResponse.content) {
+          console.log('✅ Resumo detalhado gerado com Groq')
+          return { success: true, explanation: groqResponse.content.trim() }
+        }
+      }
+
+      // Fallback para Gemini
+      console.log('🔄 Gerando resumo detalhado com Gemini (fallback)...')
       const explanationPrompt = `
 Você é um assistente especializado em análise de dados. Sua tarefa é fornecer uma explicação técnica e detalhada de um resultado de consulta SQL.
 
@@ -234,21 +267,101 @@ INSTRUÇÕES:
 
 Explicação detalhada dos resultados:`
 
-      const response = await this.groqClient.chat.completions.create({
-        messages: [{ role: 'user', content: explanationPrompt }],
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0.4, // Reduzida para mais consistência
-        max_tokens: 1200 // Aumentado para análises mais detalhadas
+      const response = await this.handlePrompt({
+        prompt: explanationPrompt,
+        model: 'gemini-2.5-flash-lite'
       })
 
-      const explanation = response.choices[0]?.message?.content?.trim()
-      if (!explanation) {
-        return { success: false, error: 'Não foi possível gerar explicação detalhada' }
+      if (response.success && response.content) {
+        return { success: true, explanation: response.content.trim() }
       }
-      return { success: true, explanation }
+
+      return { success: false, error: response.error || 'Não foi possível gerar explicação detalhada' }
     } catch (error) {
       console.error('❌ Erro ao gerar explicação detalhada:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' }
+    }
+  }
+
+  /**
+   * Gera explicação amigável de erro SQL usando Groq preferencialmente
+   */
+  public async generateErrorExplanation(params: {
+    originalPrompt: string
+    sql: string
+    error: string
+  }): Promise<string> {
+    const { originalPrompt, sql, error } = params
+
+    try {
+      // Tentar usar Groq primeiro (otimizado para explicações)
+      if (this.groqService) {
+        console.log('🔄 Gerando explicação de erro com Groq...')
+        const groqResponse = await this.groqService.generateErrorExplanation({
+          originalPrompt,
+          query: sql,
+          error
+        })
+
+        if (groqResponse.success && groqResponse.content) {
+          console.log('✅ Explicação de erro gerada com Groq')
+          return groqResponse.content.trim()
+        }
+      }
+
+      // Fallback para Gemini
+      console.log('🔄 Gerando explicação de erro com Gemini (fallback)...')
+      const errorPrompt = `Você é um assistente especializado em dados educacionais do INEP. Analise este erro de consulta SQL e ajude o usuário reformulando sua pergunta original.
+
+PERGUNTA ORIGINAL DO USUÁRIO:
+"${originalPrompt}"
+
+CONSULTA SQL QUE GEROU ERRO:
+\`\`\`sql
+${sql}
+\`\`\`
+
+ERRO RETORNADO PELO BANCO:
+${error}
+
+INSTRUÇÕES:
+Analise a intenção da pergunta original do usuário e sugira versões reformuladas da mesma pergunta que evitariam o erro. Sua resposta deve:
+
+1. **Explicar brevemente o que deu errado** (1 frase simples)
+2. **Sugerir 2-3 versões melhoradas da pergunta original** que conseguiriam obter a informação desejada
+3. **Manter a intenção original** do usuário, apenas ajustando para funcionar com os dados disponíveis
+4. **Usar tom conversacional** e amigável
+
+FORMATO DA RESPOSTA:
+- Primeira linha: Explicação breve do problema
+- Depois: "Tente reformular sua pergunta assim:"
+- Lista de 2-3 versões melhoradas da pergunta original
+
+EXEMPLO:
+Se a pergunta original foi "Mostre os nomes dos cursos de 2023" mas a coluna 'nome_curso' não existe:
+
+"Parece que a coluna 'nome_curso' não existe na tabela.
+
+Tente reformular sua pergunta assim:
+• "Mostre os cursos oferecidos em 2023"
+• "Quais são os cursos disponíveis em 2023?"
+• "Liste todos os cursos do ano de 2023""
+
+RESPOSTA:`
+
+      const response = await this.handlePrompt({
+        prompt: errorPrompt,
+        model: 'gemini-2.5-flash-lite'
+      })
+
+      if (response.success && response.content) {
+        return response.content.trim()
+      }
+
+      return 'Não foi possível gerar uma explicação para este erro.'
+    } catch (error) {
+      console.error('❌ Erro ao gerar explicação de erro:', error)
+      return 'Não foi possível gerar uma explicação para este erro.'
     }
   }
 
@@ -311,15 +424,34 @@ EXEMPLOS:
 Resumo analítico:`
 
     try {
-      const completion = await this.groqClient.chat.completions.create({
-        messages: [{ role: 'user', content: reverseTranslationPrompt }],
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0.3,
-        max_tokens: 400
+      // Tentar usar Groq primeiro (otimizado para resumos)
+      if (this.groqService) {
+        console.log('🔄 Gerando reverse translation com Groq...')
+        const groqResponse = await this.groqService.generateResultSummary({
+          originalPrompt: originalPrompt || 'Consulta SQL',
+          query: sql,
+          result
+        })
+
+        if (groqResponse.success && groqResponse.content) {
+          console.log('✅ Reverse translation gerada com Groq')
+          return groqResponse.content.trim()
+        }
+      }
+
+      // Fallback para Gemini
+      console.log('🔄 Gerando reverse translation com Gemini (fallback)...')
+      const response = await this.handlePrompt({
+        prompt: reverseTranslationPrompt,
+        model: 'gemini-2.5-flash-lite'
       })
 
-      const reverseTranslation = completion.choices[0]?.message?.content?.trim()
-      return reverseTranslation || `Consultou ${tablesDescription} e ${resultDescription}.`
+      if (response.success && response.content) {
+        return response.content.trim()
+      }
+
+      // Fallback para uma explicação básica e direta
+      return `Consultou ${tablesDescription} e ${resultDescription}.`
     } catch (error) {
       console.error('❌ Erro ao gerar reverse translation:', error)
       // Fallback para uma explicação básica e direta
@@ -507,30 +639,30 @@ Regras para o título:
 - Use linguagem clara e direta
 - Foque no assunto principal da consulta
 - Não use aspas ou caracteres especiais
-- Exemplos: "Universidades por Estado", "Análise de Cursos EAD", "Dados de Matrículas 2023"
+- Exemplos: Universidades por Estado, Análise de Cursos EAD, Dados de Matrículas 2023
 
 Título:`
 
-      // Usar Groq para gerar o título
-      const completion = await this.groqClient.chat.completions.create({
-        messages: [
-          {
-            role: 'user',
-            content: titlePrompt
-          }
-        ],
-        model: 'llama-3.1-8b-instant', // Modelo rápido para títulos
-        temperature: 0.3,
-        max_tokens: 80
+      // Usar sistema de fallback para gerar o título
+      const response = await this.handlePrompt({
+        prompt: titlePrompt,
+        model: 'llama-3.1-8b-instant' // Modelo rápido para títulos
       })
 
-      const generatedTitle = completion.choices[0]?.message?.content?.trim()
+      const generatedTitle = response.success && response.content ? response.content.trim() : null
 
       if (generatedTitle && generatedTitle.length > 0) {
+        // Remover aspas do início e fim se existirem
+        let cleanTitle = generatedTitle
+        if ((cleanTitle.startsWith('"') && cleanTitle.endsWith('"')) ||
+            (cleanTitle.startsWith("'") && cleanTitle.endsWith("'"))) {
+          cleanTitle = cleanTitle.slice(1, -1).trim()
+        }
+
         // Limitar o título a 50 caracteres
-        const finalTitle = generatedTitle.length > 50
-          ? generatedTitle.substring(0, 47) + '...'
-          : generatedTitle
+        const finalTitle = cleanTitle.length > 50
+          ? cleanTitle.substring(0, 47) + '...'
+          : cleanTitle
 
         console.log('✅ Título automático gerado pelo LLMService:', finalTitle)
         return finalTitle

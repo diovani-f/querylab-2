@@ -81,7 +81,7 @@ export interface ChatSession {
   modelo: LLMModel
 }
 
-export type LLMProvider = 'groq' | 'openai' | 'anthropic' | 'local' | 'replicate' | 'cloudflare'
+export type LLMProvider = 'gemini' | 'groq' | 'openai' | 'anthropic' | 'local' | 'replicate' | 'cloudflare'
 
 export interface LLMModel {
   id: string
@@ -200,9 +200,16 @@ export interface LLMResponse {
   explanation?: string
   reverseTranslation?: string
   error?: string
-  model: string
-  tokensUsed: number
-  processingTime: number
+  model?: string
+  provider?: LLMProvider
+  tokensUsed?: number
+  processingTime?: number
+  isRateLimit?: boolean
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
 }
 
 export interface LLMAdapter {

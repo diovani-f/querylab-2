@@ -23,20 +23,51 @@ async function main() {
   })
   console.log(`Usuário admin criado com ID: ${adminUser.id}`)
 
-  // 2. Criar modelos LLM (se ainda não existirem)
+  // 2. Criar modelos LLM Gemini Flash-Lite (se ainda não existirem)
+  // Gemini 2.5 Flash-Lite como modelo padrão (1000 RPD)
   const defaultModel = await prisma.lLMModel.upsert({
-    where: { id: 'llama-3.3-70b-versatile' },
+    where: { id: 'gemini-2.5-flash-lite' },
     update: {},
     create: {
-      id: 'llama-3.3-70b-versatile',
-      name: 'Llama 3.3 70B Versatile',
-      description: 'Modelo principal para conversas e consultas SQL via Groq',
-      provider: 'groq',
+      id: 'gemini-2.5-flash-lite',
+      name: 'Gemini 2.5 Flash-Lite',
+      description: 'Modelo principal para conversas e consultas SQL (1000 RPD)',
+      provider: 'gemini',
       maxTokens: 8192,
       isDefault: true,
     },
   })
-  console.log(`Modelo LLM padrão criado com ID: ${defaultModel.id}`)
+  console.log(`Modelo LLM padrão (Gemini 2.5 Flash-Lite) criado com ID: ${defaultModel.id}`)
+
+  // Gemini 2.0 Flash-Lite como fallback (200 RPD)
+  const geminiFlashModel = await prisma.lLMModel.upsert({
+    where: { id: 'gemini-2.0-flash-lite' },
+    update: {},
+    create: {
+      id: 'gemini-2.0-flash-lite',
+      name: 'Gemini 2.0 Flash-Lite',
+      description: 'Modelo fallback para consultas simples (200 RPD)',
+      provider: 'gemini',
+      maxTokens: 8192,
+      isDefault: false,
+    },
+  })
+  console.log(`Modelo Gemini 2.0 Flash-Lite criado com ID: ${geminiFlashModel.id}`)
+
+  // Remover dependência do Groq - manter apenas para compatibilidade se existir
+  const groqFallbackModel = await prisma.lLMModel.upsert({
+    where: { id: 'llama-3.3-70b-versatile' },
+    update: { isDefault: false }, // Garantir que não é mais padrão
+    create: {
+      id: 'llama-3.3-70b-versatile',
+      name: 'Llama 3.3 70B Versatile (Descontinuado)',
+      description: 'Modelo legado - use Gemini Flash-Lite',
+      provider: 'groq',
+      maxTokens: 8192,
+      isDefault: false,
+    },
+  })
+  console.log(`Modelo legado (Groq) atualizado com ID: ${groqFallbackModel.id}`)
 
   // Modelo Llama 3.1 8B (mais rápido)
   const llama8bModel = await prisma.lLMModel.upsert({

@@ -30,7 +30,7 @@ export interface ChatSession {
   messageCount?: number // Para quando carregamos apenas o resumo das sessões
 }
 
-export type LLMProvider = 'groq' | 'openai' | 'anthropic' | 'local' | 'replicate' | 'cloudflare'
+export type LLMProvider = 'gemini' | 'groq' | 'openai' | 'anthropic' | 'local' | 'replicate' | 'cloudflare'
 
 export interface LLMModel {
   id: string

@@ -13,9 +13,9 @@ export function setupWebSocketHandlers(io: Server) {
     })
 
     // Processar mensagem de chat
-    socket.on('send-message', async (data: ChatRequest & { userId?: string }) => {
+    socket.on('send-message', async (data: ChatRequest & { userId?: string, autoExecuteSQL?: boolean }) => {
       try {
-        const { sessionId, message, model, userId } = data
+        const { sessionId, message, model, userId, autoExecuteSQL } = data
 
         // Notificar que a mensagem está sendo processada
         socket.to(sessionId).emit('message-processing', 'Processando sua consulta...')
@@ -25,13 +25,14 @@ export function setupWebSocketHandlers(io: Server) {
           sessionId,
           message,
           model,
-          userId
+          userId,
+          autoExecuteSQL: autoExecuteSQL !== undefined ? autoExecuteSQL : true // Default true
         })
 
         if (!result.success) {
-          console.log("🚀 ~ setupWebSocketHandlers ~ result:", result)
-          // socket.emit('error', result.error)
-          // return
+          // console.log("🚀 ~ setupWebSocketHandlers ~ result:", result)
+          socket.emit('error', result.error)
+          return
         }
 
         // Usar o ID da sessão (pode ter sido criada uma nova)

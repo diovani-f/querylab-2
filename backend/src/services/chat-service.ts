@@ -3,6 +3,7 @@ import { LLMService } from './llm-service'
 import { QueryService } from './query-service'
 import { CloudflareAIService } from './cloudflare-ai-service'
 import { SchemaDiscoveryService } from './schema-discovery-service'
+import { SQLGenerationService } from './sql-generation-service'
 import { PrismaClient } from '@prisma/client'
 import { Mensagem, Sessao as PrismaSessao, LLMModel as PrismaLLMModel } from '@prisma/client'
 import { SessionService } from './session-service'
@@ -48,7 +49,7 @@ function mapSession(session: PrismaSessao & {
 
 /**
  * Serviço responsável por processar mensagens de chat
- * Centraliza a lógica que estava duplicada entre WebSocket handlers e REST routes
+ * REFATORADO: Agora usa SQLGenerationService unificado e timeout nas execuções
  */
 export class ChatService {
   private static instance: ChatService
@@ -57,6 +58,7 @@ export class ChatService {
   private queryService: QueryService
   private cloudflareAI: CloudflareAIService
   private schemaService: SchemaDiscoveryService
+  private sqlGenerationService: SQLGenerationService
 
   private constructor() {
     this.sessionService = SessionService.getInstance()
@@ -64,6 +66,7 @@ export class ChatService {
     this.queryService = QueryService.getInstance()
     this.cloudflareAI = CloudflareAIService.getInstance()
     this.schemaService = SchemaDiscoveryService.getInstance()
+    this.sqlGenerationService = SQLGenerationService.getInstance()
   }
 
   public static getInstance(): ChatService {
@@ -74,120 +77,6 @@ export class ChatService {
   }
 
   /**
-   * Assistente que usa Groq inteligente (Llama 3.3 70B) para identificar e processar consultas educacionais
-   */
-  private async processWithEducationalAssistant(
-    sessionId: string,
-    message: string,
-    userMessage: Message,
-    session: ChatSession,
-    selectedModel: string
-  ): Promise<{
-    success: boolean
-    userMessage?: Message
-    assistantMessage?: Message
-    session?: ChatSession
-    error?: string
-  }> {
-    try {
-      // Usar modelo inteligente como assistente educacional
-      const assistantPrompt = `
-Você é um assistente especializado em dados educacionais do INEP (Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira).
-
-MENSAGEM: "${message}"
-
-INSTRUÇÕES:
-Analise a mensagem e responda de acordo com uma das categorias:
-
-1. CONSULTA DE DADOS - Se o usuário quer dados específicos (quantos, mostre, liste, dados de, cursos, instituições, estudantes, etc.):
-   Responda APENAS: SQL_QUERY
-
-2. INFORMAÇÕES DO BANCO - Se pergunta sobre estrutura, tabelas disponíveis, que dados existem:
-   Responda APENAS: SCHEMA_INFO
-
-3. CONVERSA GERAL - Para saudações, explicações, dúvidas sobre o sistema:
-   Responda naturalmente como assistente educacional especializado em dados do INEP.
-
-EXEMPLOS:
-- "quantos cursos de pedagogia" → SQL_QUERY
-- "universidades do Rio de Janeiro" → SQL_QUERY
-- "quais tabelas existem" → SCHEMA_INFO
-- "que dados vocês têm" → SCHEMA_INFO
-- "oi, como funciona" → Olá! Sou especialista em dados educacionais do INEP. Posso ajudar você a explorar informações sobre educação superior, cursos, instituições e muito mais através de consultas inteligentes. O que gostaria de descobrir?
-
-RESPOSTA:`
-
-// Usar LLMService para chamar o modelo mais inteligente
-      const assistantResponse = await this.llmService.handlePrompt({
-        prompt: assistantPrompt,
-        model: 'llama-3.3-70b-versatile'
-      })
-
-      if (!assistantResponse.success) {
-        throw new Error(`Erro no assistente: ${assistantResponse.error}`)
-      }
-      const response = (assistantResponse.content || '').trim()
-
-      if (!response) {
-        throw new Error('Resposta vazia do assistente')
-      }
-
-      if (response.includes('SQL_QUERY')) {
-        // É uma consulta SQL - partir para fluxo de geração SQL
-        return await this.processSQLQuery(sessionId, message, userMessage, session, selectedModel)
-      } else if (response.includes('SCHEMA_INFO')) {
-        // É uma pergunta sobre schema - retornar informações das tabelas
-        return await this.processSchemaInfo(sessionId, message, userMessage, session)
-      } else {
-        // É uma conversa/explicação - usar a resposta direta do modelo
-        const assistantMessageData = await this.addMessage(sessionId, {
-          type: 'assistant',
-          content: response
-        })
-
-        return {
-          success: true,
-          userMessage,
-          assistantMessage: mapMessage(assistantMessageData),
-          session
-        }
-      }
-
-    } catch (error) {
-      console.error('❌ Erro no assistente educacional:', error)
-
-      // Fallback: tentar responder de forma básica baseado em palavras-chave
-      let fallbackResponse = 'Desculpe, houve um problema temporário. '
-
-      if (message.toLowerCase().includes('quantos') ||
-          message.toLowerCase().includes('mostre') ||
-          message.toLowerCase().includes('liste')) {
-        fallbackResponse += 'Parece que você quer consultar dados. Tente reformular sua pergunta de forma mais específica.'
-      } else if (message.toLowerCase().includes('tabela') ||
-                 message.toLowerCase().includes('schema') ||
-                 message.toLowerCase().includes('dados disponíveis')) {
-        fallbackResponse += 'Você quer saber sobre nossa estrutura de dados. Tente perguntar "que dados vocês têm disponíveis?"'
-      } else {
-        fallbackResponse += 'Sou um assistente para dados educacionais do INEP. Posso ajudar com consultas sobre cursos, instituições e dados educacionais.'
-      }
-
-      const errorMessageData = await this.addMessage(sessionId, {
-        type: 'assistant',
-        content: fallbackResponse
-      })
-
-      return {
-        success: true, // Mudamos para success: true pois temos um fallback
-        userMessage,
-        assistantMessage: mapMessage(errorMessageData),
-        session
-      }
-    }
-  }
-
-
-
-  /**
    * Processa uma mensagem de chat completa
    */
   async processMessage(params: {
@@ -195,6 +84,7 @@ RESPOSTA:`
     message: string
     model: string
     userId?: string
+    autoExecuteSQL?: boolean
   }): Promise<{
     success: boolean
     userMessage?: Message
@@ -223,36 +113,288 @@ RESPOSTA:`
         }
       }
 
-      // Mapear a sessão do Prisma para o tipo ChatSession
-      const session = mapSession(sessionData);
+      const session = mapSession(sessionData)
 
-      // Usar o ID da sessão
-      const actualSessionId = session.id
-
-      // Adicionar mensagem do usuário no banco
-      const userMessageData = await this.addMessage(actualSessionId, {
+      // Salvar mensagem do usuário
+      const userMessageData = await this.addMessage(sessionId, {
         type: 'user',
         content: message
       })
+      const userMessage = mapMessage(userMessageData)
 
-      const userMessage = mapMessage(userMessageData);
+      // Processar mensagem usando assistente educacional
+      return await this.classifyAndProcess(sessionId, message, userMessage, session, model, params.autoExecuteSQL)
 
-      // Verificar se é a terceira mensagem do usuário para gerar título automaticamente
-      await this.checkAndGenerateAutoTitle(actualSessionId, sessionData)
-
-      // NOVO FLUXO: Usar assistente educacional para todas as mensagens
-      return await this.processWithEducationalAssistant(actualSessionId, message, userMessage, session, model)
-    } catch (error: any) {
-      console.error("❌ Erro ao processar mensagem:", error.message)
+    } catch (error) {
+      console.error('❌ Erro ao processar mensagem:', error)
       return {
         success: false,
-        error: 'Erro ao processar sua mensagem. Tente novamente.'
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
       }
     }
   }
 
+  /**
+   * Constrói contexto da conversa para melhor classificação
+   */
+  private buildConversationContext(messages: Message[]): string {
+    if (!messages || messages.length === 0) {
+      return "CONTEXTO: Esta é a primeira mensagem da conversa."
+    }
 
+    // Pegar as últimas 6 mensagens (3 pares usuário-assistente)
+    const recentMessages = messages.slice(-6)
 
+    if (recentMessages.length === 0) {
+      return "CONTEXTO: Esta é a primeira mensagem da conversa."
+    }
+
+    const contextLines = recentMessages.map(msg => {
+      const role = msg.tipo === 'user' ? 'USUÁRIO' : 'ASSISTENTE'
+      const content = msg.conteudo.length > 100
+        ? msg.conteudo.substring(0, 100) + '...'
+        : msg.conteudo
+
+      return `${role}: ${content}`
+    })
+
+    return `CONTEXTO DA CONVERSA (últimas mensagens):
+${contextLines.join('\n')}
+
+---`
+  }
+
+  /**
+   * Classifica e processa a mensagem usando LLM
+   */
+  private async classifyAndProcess(
+    sessionId: string,
+    message: string,
+    userMessage: Message,
+    session: ChatSession,
+    selectedModel: string,
+    autoExecuteSQL?: boolean
+  ): Promise<{
+    success: boolean
+    userMessage?: Message
+    assistantMessage?: Message
+    session?: ChatSession
+    error?: string
+  }> {
+    try {
+      // Construir contexto da conversa
+      const conversationContext = this.buildConversationContext(session.mensagens)
+
+      // Usar modelo inteligente como assistente educacional
+      const assistantPrompt = `
+Você é um assistente especializado em dados educacionais do INEP (Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira).
+
+${conversationContext}
+
+MENSAGEM ATUAL: "${message}"
+
+INSTRUÇÕES:
+Analise a mensagem atual considerando o contexto da conversa e responda de acordo com uma das categorias:
+
+1. CONSULTA DE DADOS - Se o usuário quer dados específicos (quantos, mostre, liste, dados de, cursos, instituições, estudantes, etc.):
+   Responda APENAS: SQL_QUERY
+
+2. INFORMAÇÕES DO BANCO - Se pergunta sobre estrutura, tabelas disponíveis, que dados existem:
+   Responda APENAS: SCHEMA_INFO
+
+3. CONVERSA GERAL - Para saudações, explicações, dúvidas sobre o sistema, ou continuação de conversa:
+   Responda naturalmente como assistente educacional especializado em dados do INEP, considerando o contexto anterior.
+
+EXEMPLOS:
+- "quantos cursos de pedagogia" → SQL_QUERY
+- "e no Rio de Janeiro?" (após pergunta sobre cursos) → SQL_QUERY
+- "universidades do Rio de Janeiro" → SQL_QUERY
+- "quais tabelas existem" → SCHEMA_INFO
+- "que dados vocês têm" → SCHEMA_INFO
+- "oi, como funciona" → Olá! Sou especialista em dados educacionais do INEP...
+- "obrigado" (após consulta) → De nada! Posso ajudar com mais alguma consulta sobre dados educacionais?
+
+RESPOSTA:`
+
+      // Usar LLMService para chamar Gemini (modelo mais inteligente para classificação)
+      const assistantResponse = await this.llmService.handlePrompt({
+        prompt: assistantPrompt,
+        model: 'gemini-2.5-flash-lite'
+      })
+
+      if (!assistantResponse.success) {
+        throw new Error(`Erro no assistente: ${assistantResponse.error}`)
+      }
+      const response = (assistantResponse.content || '').trim()
+
+      if (!response) {
+        throw new Error('Resposta vazia do assistente')
+      }
+
+      if (response.includes('SQL_QUERY')) {
+        // É uma consulta SQL - usar novo SQLGenerationService
+        return await this.processSQLQueryRefactored(sessionId, message, userMessage, session, selectedModel, autoExecuteSQL)
+      } else if (response.includes('SCHEMA_INFO')) {
+        // É uma pergunta sobre schema - retornar informações das tabelas
+        return await this.processSchemaInfo(sessionId, message, userMessage, session)
+      } else {
+        // É uma conversa/explicação - usar a resposta direta do modelo
+        const assistantMessageData = await this.addMessage(sessionId, {
+          type: 'assistant',
+          content: response
+        })
+
+        return {
+          success: true,
+          userMessage,
+          assistantMessage: mapMessage(assistantMessageData),
+          session
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ Erro no assistente educacional:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro na classificação',
+        userMessage
+      }
+    }
+  }
+
+  /**
+   * Processa consultas SQL usando o novo SQLGenerationService
+   */
+  private async processSQLQueryRefactored(
+    sessionId: string,
+    question: string,
+    userMessage: Message,
+    session: ChatSession,
+    selectedModel: string,
+    autoExecuteSQL?: boolean
+  ): Promise<{
+    success: boolean
+    userMessage?: Message
+    assistantMessage?: Message
+    session?: ChatSession
+    error?: string
+  }> {
+    try {
+      console.log(`🔧 Processando SQL Query com modelo: ${selectedModel}`)
+
+      // Usar o novo SQLGenerationService unificado
+      const sqlGenerationResult = await this.sqlGenerationService.generateSQL({
+        question,
+        model: selectedModel,
+        sessionId,
+        conversationHistory: session.mensagens
+      })
+
+      if (!sqlGenerationResult.success) {
+        // Criar mensagem de erro
+        const errorMessageData = await this.addMessage(sessionId, {
+          type: 'assistant',
+          content: `Não foi possível gerar a consulta SQL: ${sqlGenerationResult.error}`
+        })
+
+        return {
+          success: false,
+          error: sqlGenerationResult.error,
+          userMessage,
+          assistantMessage: mapMessage(errorMessageData)
+        }
+      }
+
+      // Salvar mensagem assistant com SQL gerado e explicação
+      let assistantMessageData = await this.addMessage(sessionId, {
+        type: 'assistant',
+        content: sqlGenerationResult.explanation || 'Consulta SQL gerada com sucesso!'
+      }, {
+        sqlQuery: sqlGenerationResult.sql,
+        queryResult: null, // Será preenchido quando executar
+        hasExplanation: true,
+        explanation: sqlGenerationResult.explanation,
+        reverseTranslation: null // Será preenchido após execução
+      })
+
+      // Se execução automática está ativa, executar SQL imediatamente
+      if (autoExecuteSQL) {
+        console.log('🚀 Execução automática ativa - executando SQL imediatamente')
+
+        try {
+          // Executar SQL com timeout
+          const dbResponse = await this.queryService.executeQueryWithTimeout(sqlGenerationResult.sql!, {
+            timeoutMs: 30000,
+            retryAttempts: 1,
+            retryDelayMs: 1000
+          })
+
+          // Gerar reverse translation se execução foi bem-sucedida, ou explicação de erro se falhou
+          let reverseTranslation = ''
+          let errorExplanation = ''
+
+          if (dbResponse.success) {
+            try {
+              console.log('🔄 Gerando reverse translation...')
+              reverseTranslation = await this.llmService.generateReverseTranslation({
+                sql: sqlGenerationResult.sql!,
+                result: dbResponse,
+                originalPrompt: question
+              })
+              console.log('✅ Reverse translation gerada:', reverseTranslation)
+            } catch (error) {
+              console.error('❌ Erro ao gerar reverse translation:', error)
+            }
+          } else {
+            // Se houve erro, gerar explicação amigável
+            try {
+              console.log('🔄 Gerando explicação de erro...')
+              errorExplanation = await this.llmService.generateErrorExplanation({
+                originalPrompt: question,
+                sql: sqlGenerationResult.sql!,
+                error: dbResponse.error || 'Erro desconhecido'
+              })
+              console.log('✅ Explicação de erro gerada:', errorExplanation)
+            } catch (error) {
+              console.error('❌ Erro ao gerar explicação de erro:', error)
+            }
+          }
+
+          // Atualizar mensagem com resultado da execução
+          assistantMessageData = await this.updateMessage(assistantMessageData.id, {
+            queryResult: dbResponse,
+            reverseTranslation: reverseTranslation || null,
+            explanation: errorExplanation || null,
+            hasExplanation: !!errorExplanation
+          })
+
+          console.log('✅ SQL executado automaticamente com sucesso')
+        } catch (error) {
+          console.error('❌ Erro na execução automática:', error)
+          // Não falhar o processo todo se a execução automática falhar
+        }
+      }
+
+      return {
+        success: true,
+        userMessage,
+        assistantMessage: mapMessage(assistantMessageData),
+        session
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao processar pergunta SQL:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro no processamento SQL',
+        userMessage
+      }
+    }
+  }
+
+  /**
+   * Executa query com timeout melhorado
+   */
   async processQuery(
     messageId: string
   ): Promise<{
@@ -279,40 +421,44 @@ RESPOSTA:`
 
       console.log(`🔍 SQL Query encontrada: ${mensagem.sqlQuery}`)
 
-      const dbResponse = await this.queryService.executeQuery(mensagem.sqlQuery);
+      // Usar execução com timeout melhorado
+      const dbResponse = await this.queryService.executeQueryWithTimeout(mensagem.sqlQuery, {
+        timeoutMs: 30000, // 30 segundos
+        retryAttempts: 1,
+        retryDelayMs: 1000
+      })
 
       if (!dbResponse.success) {
-        // Criar mensagem de erro simples para o bubble
-        const errorContent = `Não foi possível executar a consulta SQL. Verifique os detalhes técnicos para mais informações sobre o erro.`
+        // Gerar explicação amigável do erro usando Groq
+        let errorExplanation = ''
+        try {
+          console.log('🔄 Gerando explicação de erro...')
+          errorExplanation = await this.llmService.generateErrorExplanation({
+            originalPrompt: mensagem.conteudo,
+            sql: mensagem.sqlQuery,
+            error: dbResponse.error || 'Erro desconhecido'
+          })
+          console.log('✅ Explicação de erro gerada:', errorExplanation)
+        } catch (error) {
+          console.error('❌ Erro ao gerar explicação de erro:', error)
+          errorExplanation = `Erro na execução: ${dbResponse.error}`
+        }
 
+        // Criar mensagem de erro com explicação amigável
         const errorMessageData = await this.addMessage(mensagem.sessaoId, {
           type: 'assistant',
-          content: errorContent
+          content: errorExplanation
         }, {
           sqlQuery: mensagem.sqlQuery,
           queryResult: dbResponse,
-          hasExplanation: false,
-          explanation: `❌ **Erro na execução da consulta SQL**
-
-**Detalhes do erro:**
-${dbResponse.error}
-
-**SQL que causou o erro:**
-\`\`\`sql
-${mensagem.sqlQuery}
-\`\`\`
-
-**Sugestões para correção:**
-- Verifique se as tabelas e colunas mencionadas existem no banco de dados
-- Confirme se a sintaxe SQL está correta
-- Tente reformular sua pergunta de forma mais específica
-- Consulte a documentação do schema disponível`
+          hasExplanation: true,
+          explanation: errorExplanation // Salvar explicação do erro no explanation
         })
 
         return {
           success: false,
           error: `Erro ao processar consulta: ${dbResponse.error}`,
-          assistantMessage: mapMessage(errorMessageData) || undefined,
+          assistantMessage: mapMessage(errorMessageData),
           sessionId: mensagem.sessaoId
         }
       }
@@ -329,7 +475,6 @@ ${mensagem.sqlQuery}
         console.log('✅ Reverse translation gerada:', reverseTranslation)
       } catch (error) {
         console.error('❌ Erro ao gerar reverse translation:', error)
-        // Continuar sem reverse translation em caso de erro
       }
 
       const assistantMessageData = await this.updateMessage(mensagem.id, {
@@ -337,504 +482,22 @@ ${mensagem.sqlQuery}
         reverseTranslation: reverseTranslation || null
       })
 
-      const assistantMessage = mapMessage(assistantMessageData);
-
       return {
         success: true,
-        assistantMessage,
+        assistantMessage: mapMessage(assistantMessageData),
         sessionId: mensagem.sessaoId
-      };
+      }
 
     } catch (error: any) {
       return {
         success: false,
-        error: `Erro interno: ${error.message}`
+        error: error.message || 'Erro desconhecido'
       }
     }
   }
 
   /**
-   * Processa consultas que requerem geração e execução de SQL
-   * FUNÇÃO PRINCIPAL: Gerencia todo o fluxo completo de SQL (geração + execução + explicação)
-   * Usa CloudflareAIService.processSQL() apenas como auxiliar para geração
-   */
-  private async processSQLQuery(
-    sessionId: string,
-    question: string,
-    userMessage: Message,
-    session: ChatSession,
-    selectedModel: string
-  ): Promise<{
-    success: boolean
-    userMessage?: Message
-    assistantMessage?: Message
-    session?: ChatSession
-    error?: string
-  }> {
-    try {
-      // Obter schema completo do banco
-      const fullSchema = await this.schemaService.getSchemaForLLM('inep')
-
-      if (!fullSchema) {
-        // Criar mensagem de erro como assistant para mostrar botões flutuantes
-        const errorContent = `Schema do banco de dados não encontrado. É necessário executar a descoberta do schema primeiro.`
-
-        const errorMessageData = await this.addMessage(sessionId, {
-          type: 'assistant',
-          content: errorContent
-        }, {
-          sqlQuery: null,
-          queryResult: {
-            success: false,
-            error: 'Schema do banco não encontrado',
-            columns: null,
-            rows: null,
-            rowCount: null,
-            executionTime: null
-          },
-          hasExplanation: true,
-          explanation: `❌ **Schema do banco não encontrado**
-
-**Problema:**
-O sistema não conseguiu encontrar informações sobre a estrutura do banco de dados.
-
-**Solução:**
-1. Execute a descoberta do schema primeiro
-2. Verifique se o banco de dados está configurado corretamente
-3. Confirme se as credenciais de acesso estão válidas
-
-**Como proceder:**
-- Acesse as configurações do sistema
-- Execute a função de descoberta do schema
-- Aguarde a conclusão do processo antes de fazer consultas`
-        })
-
-        return {
-          success: false,
-          error: 'Schema não encontrado',
-          userMessage,
-          assistantMessage: mapMessage(errorMessageData)
-        }
-      }
-
-      // Gerar SQL usando o modelo selecionado pelo usuário
-      let sqlResponse: { success: boolean; sql?: string; error?: string }
-
-      if (selectedModel === 'cloudflare-sqlcoder-7b-2' || selectedModel.includes('cloudflare')) {
-        // Usar função processSQL do CloudflareAI (reduz schema + gera SQL)
-        const cloudflareResponse = await this.cloudflareAI.processSQL(question, JSON.stringify(fullSchema))
-
-        if (cloudflareResponse.success) {
-          sqlResponse = { success: true, sql: cloudflareResponse.sql }
-        } else {
-          sqlResponse = { success: false, error: cloudflareResponse.error }
-        }
-      } else {
-        // Para outros modelos (Groq, etc.), precisamos reduzir schema primeiro
-        const schemaReduction = await this.cloudflareAI.reduceSchema(question, JSON.stringify(fullSchema))
-
-        if (!schemaReduction.success) {
-          // Criar mensagem de erro como assistant para mostrar botões flutuantes
-          const errorContent = `Não foi possível processar o schema do banco de dados. Verifique os detalhes técnicos para mais informações.`
-
-          const errorMessageData = await this.addMessage(sessionId, {
-            type: 'assistant',
-            content: errorContent
-          }, {
-            sqlQuery: null,
-            queryResult: {
-              success: false,
-              error: schemaReduction.error,
-              columns: null,
-              rows: null,
-              rowCount: null,
-              executionTime: null
-            },
-            hasExplanation: true,
-            explanation: `❌ **Erro no processamento do schema**
-
-**Detalhes do erro:**
-${schemaReduction.error}
-
-**Pergunta original:**
-${question}
-
-**Sugestões para correção:**
-- Verifique se o banco de dados está acessível
-- Confirme se o schema foi descoberto corretamente
-- Tente uma pergunta mais simples primeiro`
-          })
-
-          return {
-            success: false,
-            error: schemaReduction.error,
-            userMessage,
-            assistantMessage: mapMessage(errorMessageData)
-          }
-        }
-
-        console.log('📊 Schema reduzido:', schemaReduction.reducedSchema?.substring(0, 300) + '...')
-
-        // Usar LLMService para outros modelos (Groq, etc.)
-        const prompt = `
-Você é um especialista em SQL e dados educacionais do INEP. Gere uma consulta SQL otimizada para responder a pergunta sobre dados educacionais.
-
-PERGUNTA: ${question}
-
-SCHEMA DO BANCO (INEP):
-${schemaReduction.reducedSchema}
-
-REGRAS OBRIGATÓRIAS:
-- Retorne APENAS o código SQL limpo, sem explicações ou formatação markdown
-- NÃO adicione ponto e vírgula (;) no final - será adicionado automaticamente
-- SEMPRE prefixe nomes de tabelas com "inep." (ex: inep.censo_cursos, inep.censo_modalidades_ensino)
-- Use nomes exatos de tabelas e colunas do schema fornecido
-- SEMPRE adicione LIMIT 100 para SELECT * (proteção do banco)
-- Use LIMIT 50 para consultas com múltiplos JOINs
-- Priorize performance: use índices quando disponíveis
-- Para dados educacionais, considere filtros por ano quando relevante
-
-CONTEXTO EDUCACIONAL:
-- Dados do ensino superior brasileiro
-- Informações sobre cursos, instituições, estudantes
-- Dados históricos por ano acadêmico
-
-EXEMPLOS:
-select * from inep.municipios_ibge m where m.nome_municipio like '%Santa Maria%';
-SELECT * FROM inep.censo_cursos WHERE cod_municipio = '4316907';
-select * from inep.censo_cursos c join inep.censo_ies i on c.cod_ies = i.cod_ies where i.nome_ies like '%Federal%' or i.sigla_ies = 'UFSM';
-SELECT i.nome, COUNT(c.id) as total_cursos FROM inep.instituicoes i JOIN inep.cursos c ON i.id = c.instituicao_id GROUP BY i.nome LIMIT 50;
-SELECT i.nome_ies , COUNT(c.cod_ies) as total_cursos FROM inep.censo_ies i JOIN inep.censo_cursos c ON i.cod_ies = c.cod_ies GROUP BY i.nome_ies  LIMIT 50;
-
-SQL:`
-
-        const llmResponse = await this.llmService.handlePrompt({
-          prompt,
-          model: selectedModel,
-          context: { schemaName: 'inep' }
-        })
-
-        if (llmResponse.success && llmResponse.content) {
-          // Extrair SQL da resposta
-          const sql = this.cloudflareAI.extractSQL(llmResponse.content)
-          sqlResponse = { success: true, sql }
-        } else {
-          sqlResponse = { success: false, error: llmResponse.error || 'Erro ao gerar SQL' }
-        }
-      }
-
-      if (!sqlResponse.success) {
-        // Criar mensagem de erro como assistant para mostrar botões flutuantes
-        const errorContent = `Não foi possível gerar a consulta SQL. Verifique os detalhes técnicos para mais informações sobre o erro.`
-
-        const errorMessageData = await this.addMessage(sessionId, {
-          type: 'assistant',
-          content: errorContent
-        }, {
-          sqlQuery: null,
-          queryResult: {
-            success: false,
-            error: sqlResponse.error,
-            columns: null,
-            rows: null,
-            rowCount: null,
-            executionTime: null
-          },
-          hasExplanation: true,
-          explanation: `❌ **Erro na geração da consulta SQL**
-
-**Detalhes do erro:**
-${sqlResponse.error}
-
-**Pergunta original:**
-${question}
-
-**Sugestões para correção:**
-- Tente reformular sua pergunta de forma mais específica
-- Verifique se os dados solicitados estão disponíveis no banco
-- Confirme se os nomes das tabelas e colunas estão corretos
-- Consulte a documentação do schema disponível`
-        })
-
-        return {
-          success: false,
-          error: sqlResponse.error,
-          userMessage,
-          assistantMessage: mapMessage(errorMessageData)
-        }
-      }
-
-      // Sanitizar SQL para garantir LIMIT
-      const sanitizedSQL = this.sanitizeSQL(sqlResponse.sql!)
-      console.log('🔧 SQL original:', sqlResponse.sql)
-      console.log('✅ SQL sanitizado:', sanitizedSQL)
-
-      // Validar sintaxe básica do SQL
-      if (sanitizedSQL.includes('; LIMIT')) {
-        console.error('⚠️ ERRO DE SINTAXE DETECTADO: Ponto e vírgula antes do LIMIT')
-        console.error('SQL problemático:', sanitizedSQL)
-      }
-
-      // Executar SQL
-      const queryResult = await this.queryService.executeQuery(sanitizedSQL)
-
-      if (!queryResult.success) {
-        // Criar mensagem de erro simples para o bubble
-        const errorContent = `Não foi possível executar a consulta SQL. Verifique os detalhes técnicos para mais informações sobre o erro.`
-
-        const errorMessageData = await this.addMessage(sessionId, {
-          type: 'assistant',
-          content: errorContent
-        }, {
-          sqlQuery: sanitizedSQL,
-          queryResult,
-          hasExplanation: false,
-          explanation: `❌ **Erro na execução da consulta SQL**
-
-**Detalhes do erro:**
-${queryResult.error}
-
-**SQL que causou o erro:**
-\`\`\`sql
-${sanitizedSQL}
-\`\`\`
-
-**Sugestões para correção:**
-- Verifique se as tabelas e colunas mencionadas existem no banco de dados
-- Confirme se a sintaxe SQL está correta
-- Tente reformular sua pergunta de forma mais específica
-- Consulte a documentação do schema disponível`
-        })
-
-        return {
-          success: false,
-          error: queryResult.error || 'Erro ao executar consulta',
-          userMessage,
-          assistantMessage: mapMessage(errorMessageData)
-        }
-      }
-
-      // Gerar explicação automática do resultado usando Groq rápido
-      let explanation = ''
-      try {
-        // Preparar dados para o prompt de explicação
-        const resultSummary = this.prepareResultSummary(queryResult)
-        console.log('🔍 Resumo dos resultados para explicação:', resultSummary)
-
-        const explanationPrompt = `
-Você é um assistente especializado em explicar resultados de consultas SQL de forma clara e amigável.
-
-PERGUNTA ORIGINAL: ${question}
-SQL EXECUTADO: ${sqlResponse.sql}
-RESULTADO: ${resultSummary}
-
-Explique de forma natural e amigável:
-1. O que a consulta fez
-2. O que os resultados significam
-3. Insights relevantes dos dados (se houver)
-
-Seja conciso mas informativo. Use linguagem natural, não técnica.
-`
-
-        const explanationResponse = await this.llmService.handlePrompt({
-          prompt: explanationPrompt,
-          model: 'llama-3.1-8b-instant', // Modelo rápido
-          context: { schemaName: 'inep' }
-        })
-
-        if (explanationResponse.success && explanationResponse.content) {
-          explanation = explanationResponse.content
-        }
-      } catch (error) {
-        console.error('❌ Erro ao gerar explicação:', error)
-      }
-
-      // Criar mensagem de sucesso com dados, SQL e explicação
-      // \n\n**Dados encontrados:**\n${this.formatQueryResult(queryResult)}
-      const content = queryResult.success
-        ? `${explanation}`
-        : `Erro na execução da consulta: ${queryResult.error}`
-
-      const assistantMessageData = await this.addMessage(sessionId, {
-        type: 'assistant',
-        content
-      }, {
-        sqlQuery: sanitizedSQL, // Usar SQL sanitizado
-        queryResult,
-        reverseTranslation: explanation || question,
-        hasExplanation: !!explanation,
-        explanation
-      })
-
-      return {
-        success: true,
-        userMessage,
-        assistantMessage: mapMessage(assistantMessageData),
-        session
-      }
-
-    } catch (error) {
-      console.error('❌ Erro ao processar pergunta SQL:', error)
-
-      // Criar mensagem de erro como assistant para mostrar botões flutuantes
-      const errorContent = `Não foi possível processar sua consulta. Verifique os detalhes técnicos para mais informações sobre o erro.`
-
-      const errorMessageData = await this.addMessage(sessionId, {
-        type: 'assistant',
-        content: errorContent
-      }, {
-        sqlQuery: null,
-        queryResult: {
-          success: false,
-          error: error instanceof Error ? error.message : 'Erro desconhecido ao processar consulta',
-          columns: null,
-          rows: null,
-          rowCount: null,
-          executionTime: null
-        },
-        hasExplanation: true,
-        explanation: `❌ **Erro no processamento da consulta**
-
-**Detalhes do erro:**
-${error instanceof Error ? error.message : 'Erro desconhecido'}
-
-**Pergunta original:**
-${question}
-
-**Sugestões para correção:**
-- Tente reformular a pergunta de forma mais específica
-- Verifique se os dados solicitados estão disponíveis no banco
-- Confirme se a conexão com o banco está funcionando
-- Tente uma consulta mais simples primeiro`
-      })
-
-      return {
-        success: false,
-        error: 'Erro ao processar consulta',
-        userMessage,
-        assistantMessage: mapMessage(errorMessageData)
-      }
-    }
-  }
-
-  /**
-   * Sanitiza SQL para garantir que sempre tenha LIMIT em consultas SELECT
-   */
-  private sanitizeSQL(sql: string): string {
-    if (!sql) return sql
-
-    // Remover espaços extras e quebras de linha
-    let cleanSQL = sql.trim().replace(/\s+/g, ' ')
-
-    // Verificar se é uma consulta SELECT
-    if (!cleanSQL.toLowerCase().startsWith('select')) {
-      return cleanSQL
-    }
-
-    // Remover ponto e vírgula do final se existir
-    if (cleanSQL.endsWith(';')) {
-      cleanSQL = cleanSQL.slice(0, -1).trim()
-    }
-
-    // Verificar se já tem LIMIT (mais rigoroso)
-    const limitRegex = /\blimit\s+\d+\b/i
-    if (limitRegex.test(cleanSQL)) {
-      return cleanSQL + ';' // Adicionar ponto e vírgula de volta
-    }
-
-    // Adicionar LIMIT baseado no tipo de consulta
-    const hasJoin = cleanSQL.toLowerCase().includes('join')
-    const hasSelectStar = cleanSQL.toLowerCase().includes('select *')
-
-    let limitValue = 100 // Padrão
-    if (hasJoin) {
-      limitValue = 50 // Consultas com JOIN são mais pesadas
-    } else if (hasSelectStar) {
-      limitValue = 100 // SELECT * pode retornar muitos dados
-    }
-
-    // Adicionar LIMIT no final (antes de possível ORDER BY)
-    if (cleanSQL.toLowerCase().includes('order by')) {
-      const orderByIndex = cleanSQL.toLowerCase().lastIndexOf('order by')
-      const beforeOrderBy = cleanSQL.substring(0, orderByIndex).trim()
-      const orderByPart = cleanSQL.substring(orderByIndex)
-      return `${beforeOrderBy} LIMIT ${limitValue} ${orderByPart};`
-    } else {
-      return `${cleanSQL} LIMIT ${limitValue};`
-    }
-  }
-
-  /**
-   * Prepara um resumo dos resultados para o prompt de explicação
-   */
-  private prepareResultSummary(result: QueryResult): string {
-    if (!result.success) {
-      return `Erro: ${result.error}`
-    }
-
-    if (!result.rows || !result.columns || result.rows.length === 0) {
-      return 'Nenhum registro encontrado'
-    }
-
-    const rowCount = result.rowCount || result.rows.length
-    const columns = result.columns
-
-    // Mostrar algumas amostras dos dados para o modelo entender o contexto
-    const sampleRows = result.rows.slice(0, 3) // Primeiras 3 linhas
-    let summary = `${rowCount} registros encontrados\n`
-    summary += `Colunas: ${columns.join(', ')}\n`
-    summary += `Amostra dos dados:\n`
-
-    sampleRows.forEach((row, index) => {
-      summary += `Registro ${index + 1}: `
-      columns.forEach((col, colIndex) => {
-        summary += `${col}=${row[colIndex]} `
-      })
-      summary += '\n'
-    })
-
-    if (rowCount > 3) {
-      summary += `... e mais ${rowCount - 3} registros`
-    }
-
-    return summary
-  }
-
-  /**
-   * Formata o resultado da query para exibição
-   */
-  private formatQueryResult(result: QueryResult): string {
-    if (!result.success) {
-      return 'Erro na execução da consulta.'
-    }
-
-    if (!result.rows || !result.columns || result.rows.length === 0) {
-      return 'Nenhum registro encontrado.'
-    }
-
-    const { columns, rows } = result
-    const totalRows = result.rowCount || rows.length
-
-    // Limitar a 10 registros para não sobrecarregar a resposta
-    const limitedRows = rows.slice(0, 10)
-
-    // Criar tabela simples
-    let table = columns.join(' | ') + '\n'
-    table += columns.map(() => '---').join(' | ') + '\n'
-
-    limitedRows.forEach(row => {
-      table += row.map(cell => String(cell || '')).join(' | ') + '\n'
-    })
-
-    if (totalRows > 10) {
-      table += `\n... e mais ${totalRows - 10} registros.`
-    }
-
-    return table
-  }
-
-  /**
-   * Processa perguntas sobre schema/estrutura do banco
+   * Processa informações sobre schema
    */
   private async processSchemaInfo(
     sessionId: string,
@@ -853,37 +516,9 @@ ${question}
       const fullSchema = await this.schemaService.getSchemaForLLM('inep')
 
       if (!fullSchema || !fullSchema.tables || fullSchema.tables.length === 0) {
-        // Criar mensagem de erro como assistant para mostrar botões flutuantes
-        const errorContent = `Schema do banco de dados não encontrado. É necessário executar a descoberta do schema primeiro.`
-
         const errorMessageData = await this.addMessage(sessionId, {
           type: 'assistant',
-          content: errorContent
-        }, {
-          sqlQuery: null,
-          queryResult: {
-            success: false,
-            error: 'Schema do banco não encontrado',
-            columns: null,
-            rows: null,
-            rowCount: null,
-            executionTime: null
-          },
-          hasExplanation: true,
-          explanation: `❌ **Schema do banco não encontrado**
-
-**Problema:**
-O sistema não conseguiu encontrar informações sobre a estrutura do banco de dados.
-
-**Solução:**
-1. Execute a descoberta do schema primeiro
-2. Verifique se o banco de dados está configurado corretamente
-3. Confirme se as credenciais de acesso estão válidas
-
-**Como proceder:**
-- Acesse as configurações do sistema
-- Execute a função de descoberta do schema
-- Aguarde a conclusão do processo antes de fazer consultas`
+          content: 'Schema do banco de dados não encontrado. Execute a descoberta do schema primeiro.'
         })
 
         return {
@@ -911,59 +546,24 @@ O sistema não conseguiu encontrar informações sobre a estrutura do banco de d
 
     } catch (error) {
       console.error('❌ Erro ao processar informações do schema:', error)
-
-      // Criar mensagem de erro como assistant para mostrar botões flutuantes
-      const errorContent = `Erro interno ao processar informações do schema. Verifique os detalhes técnicos para mais informações.`
-
-      const errorMessageData = await this.addMessage(sessionId, {
-        type: 'assistant',
-        content: errorContent
-      }, {
-        sqlQuery: null,
-        queryResult: {
-          success: false,
-          error: error instanceof Error ? error.message : 'Erro desconhecido',
-          columns: null,
-          rows: null,
-          rowCount: null,
-          executionTime: null
-        },
-        hasExplanation: true,
-        explanation: `❌ **Erro interno no processamento do schema**
-
-**Detalhes do erro:**
-${error instanceof Error ? error.message : 'Erro desconhecido'}
-
-**Pergunta original:**
-${question}
-
-**Sugestões para correção:**
-- Verifique se o banco de dados está acessível
-- Confirme se o schema foi descoberto corretamente
-- Tente recarregar a página e fazer a pergunta novamente
-- Entre em contato com o suporte se o problema persistir`
-      })
-
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
-        userMessage,
-        assistantMessage: mapMessage(errorMessageData)
+        error: error instanceof Error ? error.message : 'Erro no processamento do schema',
+        userMessage
       }
     }
   }
 
   /**
-   * Gera uma resposta amigável sobre o schema do banco usando LLM
+   * Gera resposta sobre schema
    */
   private async generateSchemaResponse(schema: any, question: string): Promise<string> {
     const tables = schema.tables || []
     const totalTables = tables.length
 
-    // Preparar informações resumidas das principais tabelas
     const mainTables = tables
       .sort((a: any, b: any) => (b.columnCount || 0) - (a.columnCount || 0))
-      .slice(0, 10) // Top 10 tabelas
+      .slice(0, 10)
 
     const tablesInfo = mainTables.map((table: any) => {
       const keyColumns = table.keyColumns?.map((col: any) => col.name).join(', ') || 'N/A'
@@ -971,11 +571,9 @@ ${question}
 
       return `- ${table.name} (${table.columnCount || 0} colunas)
   Chaves: ${keyColumns}
-  Colunas importantes: ${importantColumns}
-  ${table.comment ? `Descrição: ${table.comment}` : ''}`
+  Colunas importantes: ${importantColumns}`
     }).join('\n')
 
-    // Criar prompt para o LLM
     const prompt = `Você é um especialista em dados educacionais do INEP. O usuário perguntou: "${question}"
 
 📊 **BANCO DE DADOS EDUCACIONAIS INEP**
@@ -986,9 +584,6 @@ ${question}
 🗂️ **PRINCIPAIS TABELAS:**
 ${tablesInfo}
 
-🔗 **RELACIONAMENTOS:**
-${schema.relationships?.map((rel: any) => `- ${rel.fromTable}.${rel.fromColumn} → ${rel.toTable}`).join('\n') || 'Relacionamentos entre tabelas detectados automaticamente'}
-
 **INSTRUÇÕES:**
 Responda de forma clara e útil sobre nossos dados educacionais. Destaque:
 - Que tipos de informações educacionais temos disponíveis
@@ -996,14 +591,13 @@ Responda de forma clara e útil sobre nossos dados educacionais. Destaque:
 - Exemplos práticos de perguntas que podem ser feitas
 - Use emojis e markdown para clareza
 - Seja informativo mas conciso (máximo 250 palavras)
-- Foque no potencial analítico dos dados do INEP
 
 **Resposta:**`
 
     try {
       const llmResponse = await this.llmService.handlePrompt({
         prompt,
-        model: 'llama-3.3-70b-versatile'
+        model: 'gemini-2.5-flash-lite'
       })
 
       if (llmResponse.success && llmResponse.content) {
@@ -1013,7 +607,7 @@ Responda de forma clara e útil sobre nossos dados educacionais. Destaque:
       }
     } catch (error) {
       console.error('❌ Erro ao gerar resposta do schema via LLM:', error)
-      throw error
+      return 'Erro ao gerar informações sobre o schema.'
     }
   }
 
@@ -1048,102 +642,26 @@ Responda de forma clara e útil sobre nossos dados educacionais. Destaque:
     });
   }
 
-  public async updateMessage(id: string, updateData: {
-  sqlQuery?: string;
-  queryResult?: any;
-  hasExplanation?: boolean | null;
-  explanation?: string | null;
-  reverseTranslation?: string | null;
-  }) {
+  /**
+   * Atualiza mensagem existente
+   */
+  public async updateMessage(messageId: string, data: any) {
+    const updateData: any = {
+      queryResult: data.queryResult as any,
+      reverseTranslation: data.reverseTranslation
+    }
+
+    // Adicionar campos opcionais se fornecidos
+    if (data.explanation !== undefined) {
+      updateData.explanation = data.explanation
+    }
+    if (data.hasExplanation !== undefined) {
+      updateData.hasExplanation = data.hasExplanation
+    }
+
     return prisma.mensagem.update({
-      data: updateData,
-      where: { id }
+      where: { id: messageId },
+      data: updateData
     });
-  }
-
-  /**
-   * Verifica se é a terceira mensagem do usuário e gera título automaticamente
-   */
-  private async checkAndGenerateAutoTitle(sessionId: string, sessionData: any): Promise<void> {
-    try {
-      // Contar mensagens do usuário na sessão
-      const userMessagesCount = await prisma.mensagem.count({
-        where: {
-          sessaoId: sessionId,
-          tipo: 'user'
-        }
-      })
-
-      console.log(`📊 Sessão ${sessionId}: ${userMessagesCount} mensagens do usuário`)
-
-      // Se é exatamente a terceira mensagem do usuário, gerar título automaticamente
-      if (userMessagesCount === 3) {
-        console.log('🎯 Terceira mensagem detectada! Gerando título automático...')
-
-        // Verificar se a sessão ainda tem título padrão
-        const currentTitle = sessionData.titulo
-        const isDefaultTitle = currentTitle.includes('Sessão') && currentTitle.includes('/')
-
-        if (isDefaultTitle) {
-          await this.generateConversationTitle(sessionId)
-        } else {
-          console.log('ℹ️ Sessão já possui título personalizado, não gerando automaticamente')
-        }
-      }
-    } catch (error) {
-      console.error('❌ Erro ao verificar/gerar título automático:', error)
-      // Não falhar o processamento da mensagem por causa do título
-    }
-  }
-
-  /**
-   * Gera um título para a conversa baseado nas primeiras mensagens usando LLMService
-   */
-  private async generateConversationTitle(sessionId: string): Promise<void> {
-    try {
-      console.log('🤖 Gerando título automático para sessão:', sessionId)
-
-      // Buscar as primeiras mensagens do usuário para gerar o título
-      const userMessages = await prisma.mensagem.findMany({
-        where: {
-          sessaoId: sessionId,
-          tipo: 'user'
-        },
-        orderBy: {
-          timestamp: 'asc'
-        },
-        take: 3 // Pegar as 3 primeiras mensagens do usuário
-      })
-
-      if (userMessages.length === 0) {
-        console.log('⚠️ Nenhuma mensagem do usuário encontrada para gerar título')
-        return
-      }
-
-      // Usar LLMService para gerar o título
-      const generatedTitle = await this.llmService.generateConversationTitle(userMessages)
-
-      if (generatedTitle) {
-        // Atualizar o título da sessão
-        await this.sessionService.updateSessionTitle(sessionId, generatedTitle)
-
-        // Emitir evento WebSocket para notificar o frontend sobre a atualização do título
-        if (global.socketIO) {
-          global.socketIO.to(sessionId).emit('session-title-updated', {
-            sessionId,
-            title: generatedTitle
-          })
-          console.log('📡 Evento session-title-updated emitido para sessão:', sessionId)
-        }
-
-        console.log('✅ Título automático gerado:', generatedTitle)
-      } else {
-        console.log('⚠️ Não foi possível gerar título automático')
-      }
-
-    } catch (error) {
-      console.error('❌ Erro ao gerar título automático:', error)
-      // Não falhar o processamento por causa do título
-    }
   }
 }

@@ -13,6 +13,7 @@ import { ChevronDown, Bot, Zap, Brain, Code } from "lucide-react"
 import { LLMModel, LLMProvider } from "@/types"
 
 const providerIcons: Record<LLMProvider, React.ReactNode> = {
+  gemini: <Brain className="h-4 w-4" />,
   groq: <Zap className="h-4 w-4" />,
   openai: <Brain className="h-4 w-4" />,
   anthropic: <Bot className="h-4 w-4" />,
@@ -22,6 +23,7 @@ const providerIcons: Record<LLMProvider, React.ReactNode> = {
 }
 
 const providerColors: Record<LLMProvider, string> = {
+  gemini: "text-blue-600",
   groq: "text-orange-500",
   openai: "text-green-500",
   anthropic: "text-purple-500",
@@ -76,7 +78,7 @@ export function ModelSelector() {
             return acc
           }, {} as Record<string, typeof availableModels>)
 
-          const providerOrder = ['groq', 'cloudflare', 'openai', 'anthropic', 'local']
+          const providerOrder = ['gemini', 'groq', 'cloudflare', 'openai', 'anthropic', 'local']
 
           return providerOrder.map((provider) => {
             const models = groupedModels[provider]

@@ -1,5 +1,6 @@
 import { QueryResult } from '../types'
 import { QueryDatabaseService } from './query-database-service'
+import { QueryExecutionService, QueryExecutionOptions } from './query-execution-service'
 
 /**
  * Serviço responsável por executar consultas SQL
@@ -10,6 +11,7 @@ import { QueryDatabaseService } from './query-database-service'
 export class QueryService {
   private static instance: QueryService
   private queryDbService: QueryDatabaseService
+  private executionService: QueryExecutionService
 
   public static getInstance(): QueryService {
     if (!QueryService.instance) {
@@ -20,13 +22,35 @@ export class QueryService {
 
   constructor() {
     this.queryDbService = QueryDatabaseService.getInstance()
+    this.executionService = QueryExecutionService.getInstance()
   }
 
   /**
-   * Executa uma consulta SQL usando o banco configurado
+   * Executa uma consulta SQL usando o banco configurado (método legado)
    */
   async executeQuery(sql: string): Promise<QueryResult> {
     return await this.queryDbService.executeQuery(sql)
+  }
+
+  /**
+   * Executa uma consulta SQL com timeout e retry
+   */
+  async executeQueryWithTimeout(
+    sql: string,
+    options?: QueryExecutionOptions
+  ): Promise<QueryResult> {
+    return await this.executionService.executeWithTimeout(sql, options)
+  }
+
+  /**
+   * Executa uma consulta SQL com progress callback
+   */
+  async executeQueryWithProgress(
+    sql: string,
+    progressCallback: (status: string) => void,
+    options?: QueryExecutionOptions
+  ): Promise<QueryResult> {
+    return await this.executionService.executeWithProgress(sql, progressCallback, options)
   }
 
   /**

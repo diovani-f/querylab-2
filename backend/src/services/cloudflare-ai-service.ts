@@ -72,10 +72,10 @@ INSTRUÇÕES:
 SCHEMA REDUZIDO:
 `
 
-      // Usar LLMService centralizado para reduzir o schema
+      // Usar LLMService centralizado para reduzir o schema (Gemini é melhor para análise de schema)
       const llmResponse = await this.llmService.handlePrompt({
         prompt,
-        model: 'llama-3.3-70b-versatile'
+        model: 'gemini-2.5-flash-lite'
       })
 
       if (!llmResponse.success) {
