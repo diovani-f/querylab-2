@@ -500,8 +500,11 @@ CONTEXTO EDUCACIONAL:
 - Dados históricos por ano acadêmico
 
 EXEMPLOS:
-SELECT * FROM inep.censo_cursos WHERE area_conhecimento = 'Educação' LIMIT 100;
+select * from inep.municipios_ibge m where m.nome_municipio like '%Santa Maria%';
+SELECT * FROM inep.censo_cursos WHERE cod_municipio = '4316907';
+select * from inep.censo_cursos c join inep.censo_ies i on c.cod_ies = i.cod_ies where i.nome_ies like '%Federal%' or i.sigla_ies = 'UFSM';
 SELECT i.nome, COUNT(c.id) as total_cursos FROM inep.instituicoes i JOIN inep.cursos c ON i.id = c.instituicao_id GROUP BY i.nome LIMIT 50;
+SELECT i.nome_ies , COUNT(c.cod_ies) as total_cursos FROM inep.censo_ies i JOIN inep.censo_cursos c ON i.cod_ies = c.cod_ies GROUP BY i.nome_ies  LIMIT 50;
 
 SQL:`
 
@@ -733,9 +736,6 @@ ${question}
       cleanSQL = cleanSQL.slice(0, -1).trim()
     }
 
-    // Adicionar prefixo inep. às tabelas se não existir
-    cleanSQL = this.addSchemaPrefix(cleanSQL)
-
     // Verificar se já tem LIMIT (mais rigoroso)
     const limitRegex = /\blimit\s+\d+\b/i
     if (limitRegex.test(cleanSQL)) {
@@ -762,57 +762,6 @@ ${question}
     } else {
       return `${cleanSQL} LIMIT ${limitValue};`
     }
-  }
-
-  /**
-   * Adiciona prefixo inep. às tabelas se não existir
-   */
-  private addSchemaPrefix(sql: string): string {
-    // Lista expandida de tabelas conhecidas do schema INEP
-    const inepTables = [
-      // Tabelas principais do censo
-      'censo_cursos', 'censo_modalidades_ensino', 'censo_instituicoes', 'censo_niveis_academicos',
-      'censo_graus_academicos', 'censo_organizacoes_academicas', 'censo_cine_area_geral',
-      'censo_cine_area_especifica', 'censo_cine_rotulo', 'censo_curso_vagas_bruto',
-
-      // Tabelas de dados dimensionais
-      'dm_aluno', 'dm_curso', 'dm_ies',
-
-      // Tabelas de dados e indicadores
-      'dados_igc', 'dados_percepcao_enade', 'dados_percepcao_enade_questoes', 'dados_enade',
-      'dados_cpc_brutos', 'igc_fatos',
-
-      // Tabelas CAPES
-      'capes_cursos_bruto', 'capes_programas_bruto',
-
-      // Tabelas EMEC
-      'emec_instituicoes',
-
-      // Tabelas ENADE e microdados
-      'microdados_enade_arq3', 'microdados_enade_arq5', 'microdados_enade_arq22', 'microdados_enade_arq29',
-      'microdados_enade_respostas', 'microdados_enade_questoes', 'enade_dic_aux',
-
-      // Tabelas geográficas e demográficas
-      'regioes_ibge', 'mesoregioes_ibge', 'municipios_ibge', 'ufs_ibge',
-      'ibge_demografia_por_idade_bruto', 'pibs_per_capita', 'variaveis_pib_municipios_ibge',
-
-      // Outras tabelas importantes
-      'idhms', 'ind_fluxo_ies_tda'
-    ]
-
-    let processedSQL = sql
-
-    // Para cada tabela conhecida, verificar se precisa adicionar prefixo
-    inepTables.forEach(tableName => {
-      // Regex para encontrar referências à tabela sem prefixo
-      // Usar negative lookbehind para não substituir se já tem prefixo
-      const tableRegex = new RegExp(`\\b(?<!inep\\.)${tableName}\\b`, 'gi')
-
-      // Substituir por versão com prefixo
-      processedSQL = processedSQL.replace(tableRegex, `inep.${tableName}`)
-    })
-
-    return processedSQL
   }
 
   /**

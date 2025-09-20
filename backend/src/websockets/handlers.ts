@@ -29,8 +29,9 @@ export function setupWebSocketHandlers(io: Server) {
         })
 
         if (!result.success) {
-          socket.emit('error', result.error)
-          return
+          console.log("🚀 ~ setupWebSocketHandlers ~ result:", result)
+          // socket.emit('error', result.error)
+          // return
         }
 
         // Usar o ID da sessão (pode ter sido criada uma nova)
