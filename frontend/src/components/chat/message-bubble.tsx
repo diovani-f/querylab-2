@@ -134,7 +134,7 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
   return (
     <div className={cn("flex", getContainerStyles(messageData.tipo), "relative w-full")}> {/* relative para botões absolutos */}
       <div className={cn(
-        "max-w-[85%] sm:max-w-[70%] md:max-w-[60%] lg:max-w-[50%] xl:max-w-[45%] rounded-lg p-3 sm:p-4 space-y-2 overflow-hidden break-words min-w-0",
+        "max-w-[85%] sm:max-w-[70%] md:max-w-[60%] lg:max-w-[50%] xl:max-w-[45%] rounded-lg p-3 sm:p-4 space-y-2 overflow-hidden break-words min-w-0 select-text",
         getBubbleStyles(messageData.tipo)
       )}>
         {/* Header da mensagem */}
@@ -165,7 +165,7 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
 
         {/* Conteúdo da mensagem */}
         {messageData.conteudo && (
-          <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
+          <div className="text-sm whitespace-pre-wrap break-words overflow-hidden select-text">
             <ReactMarkdown>{message.reverseTranslation || messageData.conteudo}</ReactMarkdown>
           </div>
         )}
@@ -207,8 +207,8 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
               </TooltipProvider>
             </div>
             <div className="flex items-start gap-2 sm:gap-4 w-full">
-              <div className="relative bg-black/10 rounded p-2 sm:p-3 font-mono text-xs overflow-auto flex-grow min-w-0" style={{ maxHeight: 300 }}>
-                <pre className="whitespace-pre-wrap break-all">{messageData.sqlQuery}</pre>
+              <div className="relative bg-black/10 rounded p-2 sm:p-3 font-mono text-xs overflow-auto flex-grow min-w-0 select-text" style={{ maxHeight: 300 }}>
+                <pre className="whitespace-pre-wrap break-all select-text">{messageData.sqlQuery}</pre>
               </div>
               {/* Botão de executar só aparece no modo desenvolvedor */}
               {settings.developerMode && (
@@ -364,12 +364,41 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
                         <div className="space-y-4 mt-4">
                           {/* SQL Query */}
                           <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Code className="h-4 w-4" />
-                              <span className="font-medium text-sm">Consulta SQL</span>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Code className="h-4 w-4" />
+                                <span className="font-medium text-sm">Consulta SQL</span>
+                              </div>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 px-2 text-xs"
+                                      onClick={handleCopySQL}
+                                    >
+                                      {isCopied ? (
+                                        <>
+                                          <Check className="h-3 w-3 mr-1" />
+                                          Copiado!
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="h-3 w-3 mr-1" />
+                                          Copiar
+                                        </>
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {isCopied ? 'SQL copiado para a área de transferência!' : 'Copiar SQL'}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
                             <div className="bg-muted/50 rounded-lg p-3 border">
-                              <pre className="text-xs font-mono whitespace-pre-wrap break-all overflow-auto max-h-32">
+                              <pre className="text-xs font-mono whitespace-pre-wrap break-all overflow-auto max-h-32 select-text">
                                 {messageData.sqlQuery}
                               </pre>
                             </div>

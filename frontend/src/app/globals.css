@@ -117,7 +117,22 @@
       word-break: break-all;
       overflow-x: auto;
     }
+  }
 
+  /* Ensure text selection works properly in message bubbles */
+  .select-text {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
 
+  /* Prevent selection on interactive elements within selectable text */
+  .select-text button,
+  .select-text [role="button"] {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
 }
