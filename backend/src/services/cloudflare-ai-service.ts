@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { LLMService } from './llm-service'
+import { SmartSchemaReducer } from './smart-schema-reducer'
 
 export interface CloudflareAIRequest {
   prompt: string
@@ -21,12 +22,14 @@ export class CloudflareAIService {
   private accountId: string
   private baseUrl: string
   private llmService: LLMService
+  private smartReducer: SmartSchemaReducer
 
   private constructor() {
     this.apiToken = process.env.CLOUDFLARE_API_TOKEN!
     this.accountId = process.env.CLOUDFLARE_ACCOUNT_ID!
     this.baseUrl = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run`
     this.llmService = LLMService.getInstance()
+    this.smartReducer = SmartSchemaReducer.getInstance()
 
     if (!this.apiToken) {
       throw new Error('CLOUDFLARE_API_TOKEN é obrigatória! Verifique o arquivo .env')
@@ -45,69 +48,127 @@ export class CloudflareAIService {
   }
 
   /**
-   * Chama uma IA rápida para reduzir o schema baseado na pergunta
+   * Reduz schema de forma inteligente baseado na pergunta
+   * Usa análise semântica para selecionar apenas tabelas relevantes
    */
   async reduceSchema(question: string, fullSchema: string): Promise<{
+    success: boolean
+    reducedSchema?: string
+    error?: string
+    reasoning?: string
+  }> {
+    try {
+      console.log('🧠 Usando redução inteligente de schema...')
+
+      // Usar o novo SmartSchemaReducer
+      const reductionResult = await this.smartReducer.reduceSchema({
+        question,
+        schemaName: 'inep',
+        maxTables: 12, // Reduzir ainda mais para otimizar
+        includeRelationships: true
+      })
+
+      if (!reductionResult.success) {
+        console.log('⚠️ Redução inteligente falhou, usando fallback LLM...')
+        return await this.fallbackLLMReduction(question, fullSchema)
+      }
+
+      console.log('✅ Schema reduzido inteligentemente:', {
+        tabelas: reductionResult.selectedTables?.length,
+        tempo: reductionResult.processingTime
+      })
+
+      return {
+        success: true,
+        reducedSchema: reductionResult.reducedSchema,
+        reasoning: reductionResult.reasoning
+      }
+
+    } catch (error) {
+      console.error('❌ Erro na redução inteligente:', error)
+
+      // Fallback para método LLM tradicional
+      console.log('⚠️ Usando fallback LLM devido a erro...')
+      return await this.fallbackLLMReduction(question, fullSchema)
+    }
+  }
+
+  /**
+   * Método de fallback usando LLM para redução de schema
+   */
+  private async fallbackLLMReduction(question: string, fullSchema: string): Promise<{
     success: boolean
     reducedSchema?: string
     error?: string
   }> {
     try {
       const prompt = `
-Você é um especialista em bancos de dados educacionais do INEP. Analise a pergunta sobre dados educacionais e identifique apenas as tabelas e colunas relevantes do schema.
+Você é um especialista em bancos de dados educacionais do INEP. Analise a pergunta e identifique apenas as tabelas mais relevantes do schema.
 
 PERGUNTA: ${question}
 
-SCHEMA COMPLETO (DADOS EDUCACIONAIS):
-${fullSchema}
+SCHEMA COMPLETO (PRIMEIRAS 50 TABELAS):
+${this.truncateSchemaForLLM(fullSchema)}
 
 INSTRUÇÕES:
-- Retorne APENAS as tabelas e colunas necessárias para responder a pergunta
+- Retorne APENAS as 8-12 tabelas mais relevantes para a pergunta
 - Mantenha o formato JSON original do schema
 - SEMPRE inclua chaves primárias e estrangeiras das tabelas selecionadas
-- Para dados educacionais, considere relacionamentos entre instituições, cursos, estudantes
-- Seja preciso: inclua apenas o essencial, mas não omita dependências importantes
+- Priorize tabelas que contenham dados diretamente relacionados à pergunta
 - Se a pergunta menciona anos/períodos, inclua colunas de data relevantes
 
 SCHEMA REDUZIDO:
 `
 
-      // Usar LLMService centralizado para reduzir o schema (Gemini é melhor para análise de schema)
       const llmResponse = await this.llmService.handlePrompt({
         prompt,
         model: 'gemini-2.5-flash-lite'
       })
 
       if (!llmResponse.success) {
+        // Último fallback: usar schema original truncado
+        console.log('⚠️ LLM fallback falhou, usando schema truncado...')
         return {
-          success: false,
-          error: `Erro do LLM: ${llmResponse.error}`
-        }
-      }
-
-      const reducedSchema = llmResponse.content?.trim()
-
-      if (!reducedSchema) {
-        return {
-          success: false,
-          error: 'Não foi possível reduzir o schema'
+          success: true,
+          reducedSchema: this.truncateSchemaForLLM(fullSchema)
         }
       }
 
       return {
         success: true,
-        reducedSchema
+        reducedSchema: llmResponse.content?.trim() || this.truncateSchemaForLLM(fullSchema)
       }
 
     } catch (error) {
-      console.error('❌ Erro ao reduzir schema:', error)
+      console.error('❌ Erro no fallback LLM:', error)
 
-      // Fallback: retornar schema original se a redução falhar
-      console.log('⚠️ Usando schema completo como fallback')
+      // Último recurso: schema truncado
       return {
         success: true,
-        reducedSchema: fullSchema // Usar schema completo como fallback
+        reducedSchema: this.truncateSchemaForLLM(fullSchema)
       }
+    }
+  }
+
+  /**
+   * Trunca schema para caber no contexto do LLM
+   */
+  private truncateSchemaForLLM(fullSchema: string): string {
+    try {
+      const schema = JSON.parse(fullSchema)
+      if (schema.tables && schema.tables.length > 30) {
+        // Manter apenas as primeiras 30 tabelas mais importantes
+        const truncatedSchema = {
+          ...schema,
+          tables: schema.tables.slice(0, 30),
+          note: 'Schema truncado para otimização'
+        }
+        return JSON.stringify(truncatedSchema, null, 2)
+      }
+      return fullSchema
+    } catch {
+      // Se não conseguir parsear, truncar por tamanho
+      return fullSchema.length > 50000 ? fullSchema.substring(0, 50000) + '...' : fullSchema
     }
   }
 

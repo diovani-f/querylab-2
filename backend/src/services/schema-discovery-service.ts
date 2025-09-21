@@ -159,35 +159,134 @@ export class SchemaDiscoveryService {
 
   /**
    * Otimiza schema para uso com LLM
+   * Agora inclui informações semânticas e de relevância
    */
   private optimizeSchemaForLLM(schemaData: any): any {
     if (!schemaData || !schemaData.tables) {
       return schemaData
     }
 
-    // Limitar número de tabelas para não sobrecarregar o LLM
-    const maxTables = 50
-    const tables = schemaData.tables.slice(0, maxTables)
+    // Priorizar tabelas por relevância e categoria
+    const prioritizedTables = this.prioritizeTablesByRelevance(schemaData.tables)
 
-    // Otimizar informações de cada tabela
+    // Limitar número de tabelas para não sobrecarregar o LLM
+    const maxTables = 60 // Aumentado para incluir mais contexto
+    const tables = prioritizedTables.slice(0, maxTables)
+
+    // Otimizar informações de cada tabela com dados semânticos
     const optimizedTables = tables.map((table: any) => ({
       name: table.name,
       type: table.type,
-      comment: table.comment,
+      category: table.category || 'other',
+      description: table.description || `Tabela ${table.name}`,
+      keywords: (table.keywords || []).slice(0, 8),
       columnCount: table.columnCount,
       primaryKeys: table.primaryKeys || [],
-      keyColumns: (table.keyColumns || []).slice(0, 5), // Máximo 5 colunas chave
-      importantColumns: (table.importantColumns || []).slice(0, 10), // Máximo 10 colunas importantes
+
+      // Colunas chave com metadados semânticos
+      keyColumns: (table.keyColumns || []).slice(0, 6).map((col: any) => ({
+        name: col.name,
+        dataType: col.dataType,
+        nullable: col.nullable,
+        isPrimaryKey: col.isPrimaryKey || false,
+        isIdentifier: col.isIdentifier || false
+      })),
+
+      // Colunas importantes com tipos semânticos
+      importantColumns: (table.importantColumns || []).slice(0, 12).map((col: any) => ({
+        name: col.name,
+        dataType: col.dataType,
+        nullable: col.nullable,
+        semanticType: col.semanticType || 'other'
+      })),
+
+      // Scores de relevância para diferentes domínios
+      relevanceScores: table.relevanceScores || {
+        students: 0,
+        courses: 0,
+        institutions: 0,
+        performance: 0,
+        demographics: 0
+      },
+
+      // Indicadores de qualidade dos dados
+      dataQuality: {
+        hasTemporalData: table.dataQuality?.hasTemporalData || false,
+        hasGeographicData: table.dataQuality?.hasGeographicData || false,
+        estimatedSize: table.dataQuality?.estimatedSize || 'medium'
+      },
+
       sampleDataAvailable: table.sampleDataAvailable || false
     }))
 
     return {
       schemaName: schemaData.schemaName,
       totalTables: schemaData.totalTables,
+      processedTables: optimizedTables.length,
       discoveredAt: schemaData.discoveredAt,
       tables: optimizedTables,
-      relationships: (schemaData.relationships || []).slice(0, 20) // Máximo 20 relacionamentos
+      relationships: (schemaData.relationships || []).slice(0, 25), // Máximo 25 relacionamentos
+
+      // Estatísticas do schema otimizado
+      optimization: {
+        originalTableCount: schemaData.totalTables,
+        optimizedTableCount: optimizedTables.length,
+        reductionRatio: `${optimizedTables.length}/${schemaData.totalTables}`,
+        categoriesIncluded: [...new Set(optimizedTables.map((t: any) => t.category))]
+      }
     }
+  }
+
+  /**
+   * Prioriza tabelas por relevância geral e diversidade de categorias
+   */
+  private prioritizeTablesByRelevance(tables: any[]): any[] {
+    // Calcular score geral de relevância para cada tabela
+    const tablesWithScores = tables.map(table => {
+      const relevanceScores = table.relevanceScores || {}
+      const totalRelevance = Object.values(relevanceScores).reduce((sum: number, score: any) => sum + (score || 0), 0)
+
+      // Bonus para tabelas com dados temporais e geográficos
+      let bonus = 0
+      if (table.dataQuality?.hasTemporalData) bonus += 2
+      if (table.dataQuality?.hasGeographicData) bonus += 1
+      if (table.primaryKeys && table.primaryKeys.length > 0) bonus += 1
+
+      // Penalty para tabelas muito grandes sem relevância específica
+      let penalty = 0
+      if (table.dataQuality?.estimatedSize === 'large' && totalRelevance < 5) penalty = 2
+
+      return {
+        ...table,
+        overallScore: totalRelevance + bonus - penalty
+      }
+    })
+
+    // Ordenar por score e garantir diversidade de categorias
+    const sorted = tablesWithScores.sort((a, b) => b.overallScore - a.overallScore)
+
+    // Garantir que temos representação de todas as categorias importantes
+    const prioritized: any[] = []
+    const categoriesUsed = new Set<string>()
+    const importantCategories = ['students', 'courses', 'institutions', 'performance', 'census']
+
+    // Primeiro, garantir pelo menos uma tabela de cada categoria importante
+    importantCategories.forEach(category => {
+      const tableFromCategory = sorted.find(t => t.category === category && !prioritized.includes(t))
+      if (tableFromCategory) {
+        prioritized.push(tableFromCategory)
+        categoriesUsed.add(category)
+      }
+    })
+
+    // Depois, adicionar as demais por score
+    sorted.forEach(table => {
+      if (!prioritized.includes(table)) {
+        prioritized.push(table)
+      }
+    })
+
+    return prioritized
   }
 
   /**
