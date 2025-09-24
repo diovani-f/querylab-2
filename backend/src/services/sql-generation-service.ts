@@ -2,6 +2,7 @@ import { LLMService } from './llm-service'
 import { CloudflareAIService } from './cloudflare-ai-service'
 import { SchemaDiscoveryService } from './schema-discovery-service'
 import { GroqService } from './groq-service'
+import { SmartSchemaReducer } from './smart-schema-reducer'
 
 export interface SQLGenerationRequest {
   question: string
@@ -36,12 +37,14 @@ export class SQLGenerationService {
   private llmService: LLMService
   private cloudflareAI: CloudflareAIService
   private schemaService: SchemaDiscoveryService
+  private smartSchemaReducer: SmartSchemaReducer
   private groqService?: GroqService
 
   private constructor() {
     this.llmService = LLMService.getInstance()
     this.cloudflareAI = CloudflareAIService.getInstance()
     this.schemaService = SchemaDiscoveryService.getInstance()
+    this.smartSchemaReducer = SmartSchemaReducer.getInstance()
 
     // Inicializar Groq para resumos (opcional)
     try {
@@ -152,11 +155,13 @@ export class SQLGenerationService {
         }
       }
 
-      // Reduzir schema usando CloudflareAI (mais eficiente para esta tarefa)
-      const reductionResult = await this.cloudflareAI.reduceSchema(
+      // Reduzir schema usando SmartSchemaReducer (análise inteligente baseada na pergunta)
+      const reductionResult = await this.smartSchemaReducer.reduceSchema({
         question,
-        JSON.stringify(fullSchema, null, 2)
-      )
+        schemaName: 'inep',
+        maxTables: 15,
+        includeRelationships: true
+      })
 
       if (!reductionResult.success) {
         console.warn('⚠️ Falha na redução do schema, usando schema completo')
@@ -165,6 +170,11 @@ export class SQLGenerationService {
           reducedSchema: JSON.stringify(fullSchema, null, 2)
         }
       }
+
+      console.log('🧠 Schema reduzido com sucesso:', {
+        tabelas: reductionResult.selectedTables?.length,
+        reasoning: reductionResult.reasoning
+      })
 
       return {
         success: true,
