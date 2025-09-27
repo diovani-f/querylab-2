@@ -155,7 +155,7 @@ export class SQLGenerationService {
         }
       }
 
-      const reductionResult = await this.cloudflareAI.fallbackLLMReduction(question, fullSchema);
+      // const reductionResult = await this.cloudflareAI.reduceSchema(question, fullSchema);
 
       // Reduzir schema usando SmartSchemaReducer (análise inteligente baseada na pergunta)
       // const reductionResult = await this.smartSchemaReducer.reduceSchema({
@@ -165,13 +165,13 @@ export class SQLGenerationService {
       //   includeRelationships: true
       // })
 
-      if (!reductionResult.success) {
-        console.warn('⚠️ Falha na redução do schema, usando schema completo')
-        return {
-          success: true,
-          reducedSchema: JSON.stringify(fullSchema, null, 2)
-        }
-      }
+      // if (!reductionResult.success) {
+      //   console.warn('⚠️ Falha na redução do schema, usando schema completo')
+      //   return {
+      //     success: true,
+      //     reducedSchema: JSON.stringify(fullSchema, null, 2)
+      //   }
+      // }
 
       // console.log('🧠 Schema reduzido com sucesso:', {
       //   tabelas: reductionResult.selectedTables?.length,
@@ -180,7 +180,7 @@ export class SQLGenerationService {
 
       return {
         success: true,
-        reducedSchema: reductionResult.reducedSchema
+        reducedSchema: JSON.stringify(fullSchema, null, 2)
       }
 
     } catch (error) {
@@ -283,7 +283,12 @@ ${reducedSchema}
 
 ### Important Rules
 - Return ONLY clean SQL code without semicolon at the end
-- ALWAYS prefix table names with "inep." (e.g., inep.censo_cursos, inep.censo_modalidades_ensino)
+- ALWAYS prefix table names with "inep." (e.g., inep.emec_instituicoes, inep.uf_ibge)
+- Use ONLY the EXACT table and column names from the schema provided above
+- DO NOT invent table names like DIM_INSTITUICAO, DIM_MUNICIPIO, DIM_UF - they DO NOT exist
+- For institutions/universities use: inep.emec_instituicoes (columns: no_ies, sg_uf, no_municipio)
+- For states/UF use: inep.uf_ibge (columns: uf_ibge, nome_uf_ibge)
+- For municipalities use: inep.municipios_ibge (columns: nome_municipio, uf_ibge)
 - ALWAYS add LIMIT 100 to SELECT * queries to prevent database overload
 - Use LIMIT 50 for complex queries with JOINs
 - Consider the conversation context when generating the query
@@ -332,8 +337,12 @@ ${reducedSchema}
 REGRAS OBRIGATÓRIAS:
 - Retorne APENAS o código SQL limpo, sem explicações ou formatação markdown
 - NÃO adicione ponto e vírgula (;) no final - será adicionado automaticamente
-- SEMPRE prefixe nomes de tabelas com "inep." (ex: inep.censo_cursos, inep.censo_modalidades_ensino)
-- Use nomes exatos de tabelas e colunas do schema fornecido
+- SEMPRE prefixe nomes de tabelas com "inep." (ex: inep.emec_instituicoes, inep.uf_ibge)
+- Use APENAS os nomes EXATOS de tabelas e colunas do schema fornecido acima
+- NÃO invente nomes de tabelas como DIM_INSTITUICAO, DIM_MUNICIPIO, DIM_UF - eles NÃO existem
+- Para instituições/universidades use: inep.emec_instituicoes (colunas: no_ies, sg_uf, no_municipio)
+- Para estados/UF use: inep.uf_ibge (colunas: uf_ibge, nome_uf_ibge)
+- Para municípios use: inep.municipios_ibge (colunas: nome_municipio, uf_ibge)
 - SEMPRE adicione LIMIT 100 para SELECT * (proteção do banco)
 - Use LIMIT 50 para consultas com múltiplos JOINs
 - Priorize performance: use índices quando disponíveis
@@ -344,6 +353,11 @@ CONTEXTO EDUCACIONAL:
 - Dados do ensino superior brasileiro
 - Informações sobre cursos, instituições, estudantes
 - Dados históricos por ano acadêmico
+
+TABELAS PRINCIPAIS PARA CONSULTAS COMUNS:
+- Instituições: inep.emec_instituicoes (no_ies, sg_uf, no_municipio, co_ies)
+- Estados: inep.uf_ibge (uf_ibge, nome_uf_ibge)
+- Municípios: inep.municipios_ibge (nome_municipio, uf_ibge)
 
 SQL:`
 
@@ -504,12 +518,13 @@ SQL:`
     const warnings: string[] = []
 
     // Procurar por referências de tabelas sem prefixo inep.
-    const tableReferences = sql.match(/(?:from|join)\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)
+    const tableReferences = sql.match(/(?:from|join)\s+([a-zA-Z_][a-zA-Z0-9_.]*)/gi)
 
     if (tableReferences) {
       for (const ref of tableReferences) {
         const tableName = ref.split(/\s+/)[1]
-        if (!tableName.startsWith('inep.')) {
+        // Verificar se a tabela não tem prefixo inep. e não é um alias
+        if (!tableName.startsWith('inep.') && !tableName.includes(' AS ') && tableName.length > 3) {
           warnings.push(`Tabela '${tableName}' deveria ter prefixo 'inep.'`)
         }
       }

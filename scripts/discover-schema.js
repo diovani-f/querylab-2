@@ -133,6 +133,8 @@ function createAISummary(schema) {
       // Colunas importantes (nomes, descrições, valores, datas)
       importantColumns: table.columns.filter(col =>
         col.name.toLowerCase().includes('nome') ||
+        col.name.toLowerCase().includes('no_') ||
+        col.name.toLowerCase().includes('nm_') ||
         col.name.toLowerCase().includes('descricao') ||
         col.name.toLowerCase().includes('data') ||
         col.name.toLowerCase().includes('ano') ||
@@ -141,7 +143,11 @@ function createAISummary(schema) {
         col.name.toLowerCase().includes('qtd') ||
         col.name.toLowerCase().includes('quantidade') ||
         col.name.toLowerCase().includes('nota') ||
-        col.name.toLowerCase().includes('conceito')
+        col.name.toLowerCase().includes('conceito') ||
+        col.name.toLowerCase().includes('sg_uf') ||
+        col.name.toLowerCase().includes('municipio') ||
+        col.name.toLowerCase().includes('uf') ||
+        col.name.toLowerCase().includes('regiao')
       ).map(col => ({
         name: col.name,
         dataType: col.dataType,
