@@ -158,29 +158,29 @@ export class SQLGenerationService {
       // const reductionResult = await this.cloudflareAI.reduceSchema(question, fullSchema);
 
       // Reduzir schema usando SmartSchemaReducer (análise inteligente baseada na pergunta)
-      // const reductionResult = await this.smartSchemaReducer.reduceSchema({
-      //   question,
-      //   schemaName: 'inep',
-      //   maxTables: 15,
-      //   includeRelationships: true
-      // })
+      const reductionResult = await this.smartSchemaReducer.reduceSchema({
+        question,
+        schemaName: 'inep',
+        maxTables: 15,
+        includeRelationships: true
+      })
 
-      // if (!reductionResult.success) {
-      //   console.warn('⚠️ Falha na redução do schema, usando schema completo')
-      //   return {
-      //     success: true,
-      //     reducedSchema: JSON.stringify(fullSchema, null, 2)
-      //   }
-      // }
+      if (!reductionResult.success) {
+        console.warn('⚠️ Falha na redução do schema, usando schema completo')
+        return {
+          success: true,
+          reducedSchema: JSON.stringify(fullSchema, null, 2)
+        }
+      }
 
-      // console.log('🧠 Schema reduzido com sucesso:', {
-      //   tabelas: reductionResult.selectedTables?.length,
-      //   reasoning: reductionResult.reasoning
-      // })
+      console.log('🧠 Schema reduzido com sucesso:', {
+        tabelas: reductionResult.selectedTables?.length,
+        reasoning: reductionResult.reasoning
+      })
 
       return {
         success: true,
-        reducedSchema: JSON.stringify(fullSchema, null, 2)
+        reducedSchema: reductionResult.reducedSchema || JSON.stringify(fullSchema, null, 2)
       }
 
     } catch (error) {

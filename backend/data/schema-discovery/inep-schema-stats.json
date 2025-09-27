@@ -1,0 +1,29 @@
+{
+  "totalTables": 87,
+  "categoriesCount": 7,
+  "categories": [
+    "courses",
+    "census",
+    "institutions",
+    "other",
+    "performance",
+    "students",
+    "geography"
+  ],
+  "tablesWithTemporalData": 60,
+  "tablesWithGeographicData": 19,
+  "tablesWithPrimaryKeys": 24,
+  "averageColumnsPerTable": 13,
+  "sizeDistribution": {
+    "small": 36,
+    "medium": 11,
+    "large": 40
+  },
+  "topRelevanceScores": {
+    "students": 10,
+    "courses": 10,
+    "institutions": 10,
+    "performance": 10,
+    "demographics": 10
+  }
+}

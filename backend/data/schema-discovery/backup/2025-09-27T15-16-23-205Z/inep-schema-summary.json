@@ -2,7 +2,7 @@
   "schemaName": "inep",
   "totalTables": 87,
   "processedTables": 87,
-  "discoveredAt": "2025-09-27T15:16:23.165Z",
+  "discoveredAt": "2025-09-27T15:04:41.030Z",
   "tables": [
     {
       "name": "capes_cursos_bruto",
@@ -113,34 +113,10 @@
           "semanticType": "name"
         },
         {
-          "name": "sg_entidade_ensino",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "identifier"
-        },
-        {
           "name": "nm_entidade_ensino",
           "dataType": "character varying",
           "nullable": true,
           "semanticType": "name"
-        },
-        {
-          "name": "cs_status_juridico",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "identifier"
-        },
-        {
-          "name": "ds_dependencia_administrativa",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "ds_organizacao_academica",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "description"
         },
         {
           "name": "nm_regiao",
@@ -183,18 +159,6 @@
           "dataType": "integer",
           "nullable": true,
           "semanticType": "score"
-        },
-        {
-          "name": "ds_situacao_curso",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "dt_situacao_curso",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "date"
         }
       ],
       "relevanceScores": {
@@ -209,8 +173,8 @@
         "hasGeographicData": true,
         "estimatedSize": "medium"
       },
-      "estimatedRows": 72501,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "capes_programas_bruto",
@@ -348,34 +312,10 @@
           "semanticType": "name"
         },
         {
-          "name": "sg_entidade_ensino",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "identifier"
-        },
-        {
           "name": "nm_entidade_ensino",
           "dataType": "character varying",
           "nullable": true,
           "semanticType": "name"
-        },
-        {
-          "name": "cs_status_juridico",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "identifier"
-        },
-        {
-          "name": "ds_dependencia_administrativa",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "ds_organizacao_academica",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "description"
         },
         {
           "name": "nm_regiao",
@@ -436,24 +376,6 @@
           "dataType": "character varying",
           "nullable": true,
           "semanticType": "identifier"
-        },
-        {
-          "name": "ds_situacao_programa",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "dt_situacao_programa",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "date"
-        },
-        {
-          "name": "ds_clientela_quadrienal_2017",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "description"
         }
       ],
       "relevanceScores": {
@@ -466,10 +388,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": true,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 47265,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_categorias_administrativas",
@@ -511,10 +433,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 8,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_cine_area_detalhada",
@@ -554,10 +476,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 89,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_cine_area_especifica",
@@ -597,10 +519,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 37,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_cine_area_geral",
@@ -639,10 +561,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 11,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_cine_rotulo",
@@ -683,10 +605,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 372,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_curso_vagas_bruto",
@@ -843,30 +765,6 @@
           "semanticType": "code"
         },
         {
-          "name": "tp_dimensao",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_organizacao_academica",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_rede",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_categoria_administrativa",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "no_curso",
           "dataType": "character varying",
           "nullable": true,
@@ -897,24 +795,6 @@
           "semanticType": "other"
         },
         {
-          "name": "tp_grau_academico",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_modalidade_ensino",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "identifier"
-        },
-        {
-          "name": "tp_nivel_academico",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "qt_aluno_deficiente",
           "dataType": "integer",
           "nullable": true,
@@ -933,8 +813,8 @@
         "hasGeographicData": true,
         "estimatedSize": "large"
       },
-      "estimatedRows": 3079438,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_cursos",
@@ -1022,12 +902,6 @@
           "semanticType": "other"
         },
         {
-          "name": "dt_inicio_funcionamento",
-          "dataType": "date",
-          "nullable": true,
-          "semanticType": "date"
-        },
-        {
           "name": "turno_curso",
           "dataType": "character",
           "nullable": true,
@@ -1068,10 +942,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": true,
-        "estimatedSize": "medium"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 65392,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_cursos_bkp",
@@ -1159,12 +1033,6 @@
           "semanticType": "other"
         },
         {
-          "name": "dt_inicio_funcionamento",
-          "dataType": "date",
-          "nullable": true,
-          "semanticType": "date"
-        },
-        {
           "name": "turno_curso",
           "dataType": "character",
           "nullable": true,
@@ -1205,10 +1073,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": true,
-        "estimatedSize": "medium"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 60000,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_graus_academicos",
@@ -1247,10 +1115,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 4,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_ies",
@@ -1304,12 +1172,6 @@
           "semanticType": "name"
         },
         {
-          "name": "sigla_ies",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "cod_municipio",
           "dataType": "character",
           "nullable": true,
@@ -1326,10 +1188,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": true,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 3473,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_ies_bruto",
@@ -1524,18 +1386,6 @@
           "semanticType": "code"
         },
         {
-          "name": "tp_organizacao_academica",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_categoria_administrativa",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "no_mantenedora",
           "dataType": "character varying",
           "nullable": true,
@@ -1548,25 +1398,7 @@
           "semanticType": "other"
         },
         {
-          "name": "sg_ies",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "ds_endereco_ies",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
           "name": "ds_numero_endereco_ies",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "ds_complemento_endereco_ies",
           "dataType": "character varying",
           "nullable": true,
           "semanticType": "description"
@@ -1574,18 +1406,6 @@
         {
           "name": "no_bairro_ies",
           "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "nu_cep_ies",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_rede",
-          "dataType": "smallint",
           "nullable": true,
           "semanticType": "other"
         },
@@ -1606,10 +1426,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": true,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 34488,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_modalidades_ensino",
@@ -1654,10 +1474,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 2,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_niveis_academicos",
@@ -1696,10 +1516,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 2,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "censo_organizacoes_academicas",
@@ -1741,10 +1561,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 5,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "cesta_dimensoes",
@@ -1781,10 +1601,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 5,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "cesta_indicadores",
@@ -1837,10 +1657,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 8,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "cesta_indicadores_visualizacoes",
@@ -1892,10 +1712,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 36,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "cesta_visualizacao_indicadores",
@@ -1934,17 +1754,17 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 6,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dados_cpc",
       "type": "TABLE",
       "columnCount": 29,
       "primaryKeys": [],
-      "category": "performance",
+      "category": "other",
       "description": "Tabela relacionada a cursos com 29 atributos",
       "keywords": [
         "dados",
@@ -2015,24 +1835,6 @@
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "enade_continuo",
-          "dataType": "numeric",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "cpc_continuo",
-          "dataType": "numeric",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "cpc_faixa",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
         }
       ],
       "relevanceScores": {
@@ -2047,15 +1849,15 @@
         "hasGeographicData": false,
         "estimatedSize": "medium"
       },
-      "estimatedRows": 58071,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dados_cpc_bkp",
       "type": "TABLE",
       "columnCount": 27,
       "primaryKeys": [],
-      "category": "performance",
+      "category": "other",
       "description": "Tabela relacionada a cursos com 27 atributos",
       "keywords": [
         "dados",
@@ -2126,24 +1928,6 @@
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "enade_continuo",
-          "dataType": "numeric",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "cpc_continuo",
-          "dataType": "numeric",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "cpc_faixa",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
         }
       ],
       "relevanceScores": {
@@ -2158,15 +1942,15 @@
         "hasGeographicData": false,
         "estimatedSize": "medium"
       },
-      "estimatedRows": 58071,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dados_cpc_brutos",
       "type": "TABLE",
       "columnCount": 40,
       "primaryKeys": [],
-      "category": "performance",
+      "category": "other",
       "description": "Tabela relacionada a cursos com 40 atributos",
       "keywords": [
         "dados",
@@ -2243,12 +2027,6 @@
           "dataType": "character varying",
           "nullable": true,
           "semanticType": "name"
-        },
-        {
-          "name": "sigla_ies",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
         },
         {
           "name": "cod_municipio",
@@ -2393,18 +2171,6 @@
           "dataType": "numeric",
           "nullable": true,
           "semanticType": "score"
-        },
-        {
-          "name": "cpc_continuo",
-          "dataType": "numeric",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "cpc_faixa",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
         }
       ],
       "relevanceScores": {
@@ -2419,8 +2185,8 @@
         "hasGeographicData": true,
         "estimatedSize": "medium"
       },
-      "estimatedRows": 67883,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dados_enade",
@@ -2469,18 +2235,6 @@
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "enade_continuo",
-          "dataType": "numeric",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "enade_faixa",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
         }
       ],
       "relevanceScores": {
@@ -2495,8 +2249,8 @@
         "hasGeographicData": false,
         "estimatedSize": "medium"
       },
-      "estimatedRows": 67888,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dados_enade_percepcao_respostas",
@@ -2534,10 +2288,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 210,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dados_idd",
@@ -2620,8 +2374,8 @@
         "hasGeographicData": false,
         "estimatedSize": "medium"
       },
-      "estimatedRows": 59765,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dados_ies_docentes",
@@ -2669,17 +2423,17 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 31908,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dados_igc",
       "type": "TABLE",
       "columnCount": 12,
       "primaryKeys": [],
-      "category": "performance",
+      "category": "other",
       "description": "Tabela relacionada a cursos com 12 atributos",
       "keywords": [
         "dados",
@@ -2715,24 +2469,6 @@
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "n_cursos_cpc_trienio",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "igc_continuo",
-          "dataType": "numeric",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "igc_faixa",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
         }
       ],
       "relevanceScores": {
@@ -2745,10 +2481,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 17136,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dados_percepcao_enade",
@@ -2796,10 +2532,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": false,
-        "estimatedSize": "large"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 3775032,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dados_percepcao_enade_questoes",
@@ -2844,10 +2580,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 68,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "dm_aluno",
@@ -3026,18 +2762,6 @@
           "semanticType": "other"
         },
         {
-          "name": "nu_idade_aluno",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "identifier"
-        },
-        {
-          "name": "dt_ingresso_curso",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "date"
-        },
-        {
           "name": "ano_ingresso",
           "dataType": "integer",
           "nullable": true,
@@ -3056,7 +2780,7 @@
         "hasGeographicData": false,
         "estimatedSize": "medium"
       },
-      "estimatedRows": 0,
+      "estimatedRows": "0",
       "sampleDataAvailable": false
     },
     {
@@ -3064,7 +2788,7 @@
       "type": "TABLE",
       "columnCount": 18,
       "primaryKeys": [],
-      "category": "institutions",
+      "category": "other",
       "description": "Tabela emec_instituicoes com 18 colunas",
       "keywords": [
         "emec",
@@ -3102,18 +2826,6 @@
           "semanticType": "other"
         },
         {
-          "name": "sg_ies",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "endereco",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "no_municipio",
           "dataType": "character varying",
           "nullable": true,
@@ -3124,12 +2836,6 @@
           "dataType": "character varying",
           "nullable": true,
           "semanticType": "other"
-        },
-        {
-          "name": "dt_criacao",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "date"
         },
         {
           "name": "ano_ci",
@@ -3144,12 +2850,6 @@
           "semanticType": "year"
         },
         {
-          "name": "igc",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "ano_igc",
           "dataType": "integer",
           "nullable": true,
@@ -3159,17 +2859,17 @@
       "relevanceScores": {
         "students": 0,
         "courses": 0,
-        "institutions": 10,
+        "institutions": 5,
         "performance": 0,
         "demographics": 5
       },
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": true,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 3059,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "enade_dic_aux",
@@ -3197,10 +2897,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 318,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "enade_dic_aux_tmp",
@@ -3229,10 +2929,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 208,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "fluxo_tda",
@@ -3326,18 +3026,6 @@
           "semanticType": "other"
         },
         {
-          "name": "tp_categoria_administrativa",
-          "dataType": "smallint",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_organizacao_academica",
-          "dataType": "smallint",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "no_curso",
           "dataType": "character varying",
           "nullable": true,
@@ -3360,18 +3048,6 @@
           "dataType": "character varying",
           "nullable": true,
           "semanticType": "code"
-        },
-        {
-          "name": "tp_grau_academico",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_modalidade_ensino",
-          "dataType": "smallint",
-          "nullable": true,
-          "semanticType": "identifier"
         },
         {
           "name": "no_cine_rotulo",
@@ -3398,22 +3074,10 @@
           "semanticType": "year"
         },
         {
-          "name": "nu_prazo_integralizacao",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "nu_ano_integralizacao",
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "nu_prazo_acompanhamento",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
         },
         {
           "name": "nu_ano_maximo_acompanhamento",
@@ -3432,10 +3096,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": true,
-        "estimatedSize": "large"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 1998056,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "ibge_demografia_idade_grupos",
@@ -3472,10 +3136,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 134,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "ibge_demografia_por_idade_bruto",
@@ -3529,8 +3193,8 @@
         "hasGeographicData": false,
         "estimatedSize": "medium"
       },
-      "estimatedRows": 734944,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "idhms",
@@ -3590,10 +3254,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 16710,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "ies_area_cine_pos",
@@ -3631,17 +3295,17 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 1950,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "igc_bruto",
       "type": "TABLE",
       "columnCount": 21,
       "primaryKeys": [],
-      "category": "performance",
+      "category": "other",
       "description": "Tabela relacionada a cursos com 21 atributos",
       "keywords": [
         "igc",
@@ -3662,12 +3326,6 @@
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "sigla_ies",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
         },
         {
           "name": "uf_ies",
@@ -3694,18 +3352,6 @@
           "semanticType": "year"
         },
         {
-          "name": "igc_continuo",
-          "dataType": "numeric",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "igc_faixa",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "ano_arquivo",
           "dataType": "integer",
           "nullable": true,
@@ -3722,17 +3368,17 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": true,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 27167,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "igc_fatos",
       "type": "TABLE",
       "columnCount": 11,
       "primaryKeys": [],
-      "category": "performance",
+      "category": "other",
       "description": "Tabela relacionada a cursos com 11 atributos",
       "keywords": [
         "igc",
@@ -3755,12 +3401,6 @@
           "semanticType": "year"
         },
         {
-          "name": "num_cursos_cpc",
-          "dataType": "smallint",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "conceito_medio_graduacao",
           "dataType": "numeric",
           "nullable": true,
@@ -3777,18 +3417,6 @@
           "dataType": "numeric",
           "nullable": true,
           "semanticType": "score"
-        },
-        {
-          "name": "igc_continuo",
-          "dataType": "numeric",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "igc_faixa",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
         }
       ],
       "relevanceScores": {
@@ -3801,10 +3429,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 9390,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "ind_fluxo_ies",
@@ -3855,22 +3483,10 @@
           "semanticType": "year"
         },
         {
-          "name": "nu_prazo_integralizacao",
-          "dataType": "smallint",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "nu_ano_integralizacao",
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "nu_prazo_acompanhamento",
-          "dataType": "smallint",
-          "nullable": true,
-          "semanticType": "other"
         },
         {
           "name": "nu_ano_maximo_acompanhamento",
@@ -3882,17 +3498,17 @@
       "relevanceScores": {
         "students": 0,
         "courses": 5,
-        "institutions": 8,
+        "institutions": 10,
         "performance": 0,
         "demographics": 0
       },
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": false,
-        "estimatedSize": "large"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 1998056,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "ind_fluxo_ies_bkp",
@@ -3943,22 +3559,10 @@
           "semanticType": "year"
         },
         {
-          "name": "nu_prazo_integralizacao",
-          "dataType": "smallint",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "nu_ano_integralizacao",
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "nu_prazo_acompanhamento",
-          "dataType": "smallint",
-          "nullable": true,
-          "semanticType": "other"
         },
         {
           "name": "nu_ano_maximo_acompanhamento",
@@ -3970,17 +3574,17 @@
       "relevanceScores": {
         "students": 0,
         "courses": 5,
-        "institutions": 8,
+        "institutions": 10,
         "performance": 0,
         "demographics": 0
       },
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": false,
-        "estimatedSize": "large"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 1858056,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "ind_fluxo_ies_tda",
@@ -4060,18 +3664,6 @@
           "semanticType": "other"
         },
         {
-          "name": "tp_categoria_administrativa",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_organizacao_academica",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
           "name": "no_curso",
           "dataType": "character varying",
           "nullable": true,
@@ -4090,18 +3682,6 @@
           "semanticType": "code"
         },
         {
-          "name": "tp_grau_academico",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_modalidade_ensino",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "identifier"
-        },
-        {
           "name": "no_cine_rotulo",
           "dataType": "character varying",
           "nullable": true,
@@ -4118,18 +3698,6 @@
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "tp_rede",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "sigla_ies",
-          "dataType": "character varying",
-          "nullable": true,
-          "semanticType": "other"
         },
         {
           "name": "nome_ies",
@@ -4160,17 +3728,17 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": true,
-        "estimatedSize": "large"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 1998056,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "matriculas_municipio",
       "type": "TABLE",
       "columnCount": 10,
       "primaryKeys": [],
-      "category": "students",
+      "category": "geography",
       "description": "Tabela matriculas_municipio com 10 colunas",
       "keywords": [
         "matriculas",
@@ -4206,10 +3774,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": true,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 32012,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "mesoregioes_ibge",
@@ -4281,10 +3849,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": true,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 137,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq1",
@@ -4402,8 +3970,8 @@
         "hasGeographicData": true,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq10",
@@ -4449,8 +4017,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq11",
@@ -4496,8 +4064,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq12",
@@ -4543,8 +4111,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq13",
@@ -4590,8 +4158,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq14",
@@ -4637,8 +4205,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq15",
@@ -4684,8 +4252,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq16",
@@ -4731,8 +4299,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq17",
@@ -4778,8 +4346,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq18",
@@ -4825,8 +4393,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq19",
@@ -4872,8 +4440,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq2",
@@ -4947,8 +4515,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq20",
@@ -4994,8 +4562,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq21",
@@ -5041,8 +4609,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq22",
@@ -5088,8 +4656,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq23",
@@ -5135,8 +4703,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq24",
@@ -5182,8 +4750,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq25",
@@ -5229,8 +4797,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq26",
@@ -5276,8 +4844,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq27",
@@ -5323,8 +4891,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq28",
@@ -5370,8 +4938,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq29",
@@ -5417,8 +4985,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq3",
@@ -5517,156 +5085,6 @@
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "nu_item_ofg",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "nu_item_ofg_z",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "nu_item_ofg_x",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "nu_item_ofg_n",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "nu_item_oce",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "nu_item_oce_z",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "nu_item_oce_x",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "nu_item_oce_n",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "ds_vt_gab_ofg_fin",
-          "dataType": "character",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "ds_vt_gab_oce_fin",
-          "dataType": "character",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "ds_vt_esc_ofg",
-          "dataType": "character",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "ds_vt_ace_ofg",
-          "dataType": "character",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "ds_vt_esc_oce",
-          "dataType": "character",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "ds_vt_ace_oce",
-          "dataType": "character",
-          "nullable": true,
-          "semanticType": "description"
-        },
-        {
-          "name": "tp_pres",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_pr_ger",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_pr_ob_fg",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_pr_di_fg",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_pr_ob_ce",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_pr_di_ce",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_sfg_d1",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_sfg_d2",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_sce_d1",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_sce_d2",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
-        },
-        {
-          "name": "tp_sce_d3",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "other"
         }
       ],
       "relevanceScores": {
@@ -5681,8 +5099,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 1924103,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq30",
@@ -5728,8 +5146,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq31",
@@ -5775,8 +5193,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq32",
@@ -5822,8 +5240,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq33",
@@ -5873,8 +5291,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 1083879,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq4",
@@ -5924,8 +5342,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq5",
@@ -5957,12 +5375,6 @@
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "tp_sexo",
-          "dataType": "character",
-          "nullable": true,
-          "semanticType": "other"
         }
       ],
       "relevanceScores": {
@@ -5977,8 +5389,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq6",
@@ -6017,12 +5429,6 @@
           "dataType": "integer",
           "nullable": true,
           "semanticType": "year"
-        },
-        {
-          "name": "nu_idade",
-          "dataType": "integer",
-          "nullable": true,
-          "semanticType": "identifier"
         }
       ],
       "relevanceScores": {
@@ -6037,8 +5443,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq7",
@@ -6084,8 +5490,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq8",
@@ -6131,8 +5537,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_arq9",
@@ -6178,8 +5584,8 @@
         "hasGeographicData": false,
         "estimatedSize": "large"
       },
-      "estimatedRows": 2472225,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_questoes",
@@ -6216,10 +5622,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 569,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microdados_enade_respostas",
@@ -6257,10 +5663,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": false,
-        "estimatedSize": "small"
+        "estimatedSize": "large"
       },
-      "estimatedRows": 3304,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "microregioes_ibge",
@@ -6333,10 +5739,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": true,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 558,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "municipios_ibge",
@@ -6413,8 +5819,8 @@
         "hasGeographicData": true,
         "estimatedSize": "small"
       },
-      "estimatedRows": 5570,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "pibs_per_capita",
@@ -6471,8 +5877,8 @@
         "hasGeographicData": false,
         "estimatedSize": "medium"
       },
-      "estimatedRows": 61270,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "regioes_ibge",
@@ -6530,10 +5936,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": true,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 5,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "uf_ibge",
@@ -6606,10 +6012,10 @@
       "dataQuality": {
         "hasTemporalData": false,
         "hasGeographicData": true,
-        "estimatedSize": "small"
+        "estimatedSize": "medium"
       },
-      "estimatedRows": 27,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     },
     {
       "name": "variaveis_pib_municipios_ibge",
@@ -6695,10 +6101,10 @@
       "dataQuality": {
         "hasTemporalData": true,
         "hasGeographicData": false,
-        "estimatedSize": "large"
+        "estimatedSize": "small"
       },
-      "estimatedRows": 4868180,
-      "sampleDataAvailable": true
+      "estimatedRows": "0",
+      "sampleDataAvailable": false
     }
   ],
   "relationships": [

@@ -36,9 +36,11 @@ async function regenerateEnhancedSchema() {
 
     console.log(`📊 Processando ${tables.length} tabelas...`);
     let discoveredTables = [];
+    let processedCount = 0;
 
     for (const tableName of tables) {
-      console.log(`🔍 Analisando tabela: ${tableName}`);
+      processedCount++;
+      console.log(`🔍 [${processedCount}/${tables.length}] Analisando tabela: ${tableName}`);
 
       // Obter informações das colunas
       const columnsQuery = `
@@ -66,20 +68,33 @@ async function regenerateEnhancedSchema() {
       const primaryKeysResult = await client.query(primaryKeysQuery, [tableName]);
       const primaryKeys = primaryKeysResult.rows.map(row => row.column_name);
 
-      // Obter estatísticas da tabela (estimativa de tamanho)
+      // Obter contagem real da tabela (mais preciso que estatísticas)
       let estimatedRows = 0;
       try {
-        const statsQuery = `
-          SELECT n_tup_ins - n_tup_del as estimated_rows
-          FROM pg_stat_user_tables
-          WHERE schemaname = 'inep' AND relname = $1
-        `;
-        const statsResult = await client.query(statsQuery, [tableName]);
-        if (statsResult.rows.length > 0) {
-          estimatedRows = statsResult.rows[0].estimated_rows || 0;
+        console.log(`  📊 Contando registros em ${tableName}...`);
+        const countQuery = `SELECT COUNT(*) as total_rows FROM inep.${tableName}`;
+        const countResult = await client.query(countQuery);
+        if (countResult.rows.length > 0) {
+          estimatedRows = parseInt(countResult.rows[0].total_rows) || 0;
+          console.log(`  ✅ ${tableName}: ${estimatedRows.toLocaleString()} registros`);
         }
       } catch (error) {
-        // Ignorar erros de estatísticas
+        console.log(`  ⚠️ Erro ao contar ${tableName}: ${error.message}`);
+        // Fallback para estimativa baseada em estatísticas
+        try {
+          const statsQuery = `
+            SELECT n_tup_ins - n_tup_del as estimated_rows
+            FROM pg_stat_user_tables
+            WHERE schemaname = 'inep' AND relname = $1
+          `;
+          const statsResult = await client.query(statsQuery, [tableName]);
+          if (statsResult.rows.length > 0) {
+            estimatedRows = statsResult.rows[0].estimated_rows || 0;
+            console.log(`  📈 ${tableName}: ~${estimatedRows.toLocaleString()} registros (estimativa)`);
+          }
+        } catch (statsError) {
+          console.log(`  ❌ Não foi possível obter dados de ${tableName}`);
+        }
       }
 
       discoveredTables.push({
@@ -203,25 +218,36 @@ function createEnhancedAISummary(schema) {
         isIdentifier: col.name.toLowerCase().includes('id') || col.name.toLowerCase().includes('codigo')
       })),
 
-      // Colunas importantes (nomes, descrições, valores, datas)
-      importantColumns: table.columns.filter(col =>
-        col.name.toLowerCase().includes('nome') ||
-        col.name.toLowerCase().includes('no_') ||
-        col.name.toLowerCase().includes('nm_') ||
-        col.name.toLowerCase().includes('descricao') ||
-        col.name.toLowerCase().includes('data') ||
-        col.name.toLowerCase().includes('ano') ||
-        col.name.toLowerCase().includes('valor') ||
-        col.name.toLowerCase().includes('numero') ||
-        col.name.toLowerCase().includes('qtd') ||
-        col.name.toLowerCase().includes('quantidade') ||
-        col.name.toLowerCase().includes('nota') ||
-        col.name.toLowerCase().includes('conceito') ||
-        col.name.toLowerCase().includes('sg_uf') ||
-        col.name.toLowerCase().includes('municipio') ||
-        col.name.toLowerCase().includes('uf') ||
-        col.name.toLowerCase().includes('regiao')
-      ).map(col => ({
+      // Colunas importantes (nomes, descrições, valores, datas, localização)
+      importantColumns: table.columns.filter(col => {
+        const colName = col.name.toLowerCase();
+        return (
+          // Nomes e identificadores textuais
+          colName.includes('nome') || colName.includes('no_') || colName.includes('nm_') ||
+          colName.includes('descricao') || colName.includes('ds_') ||
+
+          // Dados temporais
+          colName.includes('data') || colName.includes('dt_') || colName.includes('ano') ||
+
+          // Valores e quantidades
+          colName.includes('valor') || colName.includes('vl_') || colName.includes('numero') ||
+          colName.includes('nu_') || colName.includes('qtd') || colName.includes('quantidade') ||
+
+          // Avaliações e notas
+          colName.includes('nota') || colName.includes('conceito') || colName.includes('igc') ||
+          colName.includes('cpc') || colName.includes('enade') ||
+
+          // Localização geográfica
+          colName.includes('sg_uf') || colName.includes('uf') || colName.includes('municipio') ||
+          colName.includes('regiao') || colName.includes('endereco') ||
+
+          // Siglas e códigos importantes
+          colName.includes('sg_') || colName.includes('sigla') ||
+
+          // Status e situação
+          colName.includes('situacao') || colName.includes('status') || colName.includes('tp_')
+        );
+      }).map(col => ({
         name: col.name,
         dataType: col.dataType,
         nullable: col.nullable,
@@ -248,7 +274,7 @@ function createEnhancedAISummary(schema) {
           col.name.toLowerCase().includes('uf') ||
           col.name.toLowerCase().includes('regiao')
         ),
-        estimatedSize: estimateTableSize(table.name, table.columns, table.estimatedRows)
+        estimatedSize: estimateTableSize(table.name, table.estimatedRows)
       },
 
       // Informações adicionais
@@ -265,19 +291,37 @@ function createEnhancedAISummary(schema) {
 function categorizeTable(tableName) {
   const name = tableName.toLowerCase();
 
-  if (name.includes('aluno') || name.includes('estudante') || name.includes('discente')) {
-    return 'students';
-  } else if (name.includes('curso') || name.includes('programa')) {
-    return 'courses';
-  } else if (name.includes('instituicao') || name.includes('ies') || name.includes('universidade')) {
+  // Instituições - incluir tanto emec_instituicoes quanto censo_ies
+  if (name.includes('instituicao') || name.includes('ies') || name.includes('universidade') ||
+      name === 'emec_instituicoes' || name === 'censo_ies') {
     return 'institutions';
-  } else if (name.includes('enade') || name.includes('avaliacao') || name.includes('nota')) {
+  }
+  // Estudantes/Alunos
+  else if (name.includes('aluno') || name.includes('estudante') || name.includes('discente') ||
+           name.includes('matricula') || name.includes('ingresso')) {
+    return 'students';
+  }
+  // Cursos e Programas
+  else if (name.includes('curso') || name.includes('programa')) {
+    return 'courses';
+  }
+  // Performance e Avaliações
+  else if (name.includes('enade') || name.includes('avaliacao') || name.includes('nota') ||
+           name.includes('conceito') || name.includes('cpc') || name.includes('igc')) {
     return 'performance';
-  } else if (name.includes('censo') || name.includes('microdados')) {
-    return 'census';
-  } else if (name.includes('municipio') || name.includes('ibge') || name.includes('regiao')) {
+  }
+  // Geografia e Demografia
+  else if (name.includes('municipio') || name.includes('ibge') || name.includes('regiao') ||
+           name.includes('uf_') || name.includes('microregiao') || name.includes('mesoregiao')) {
     return 'geography';
-  } else if (name.includes('modalidade') || name.includes('tipo')) {
+  }
+  // Censo e Microdados (dados grandes)
+  else if (name.includes('censo') || name.includes('microdados')) {
+    return 'census';
+  }
+  // Metadados e Tipos
+  else if (name.includes('modalidade') || name.includes('tipo') || name.includes('categoria') ||
+           name.includes('classificacao')) {
     return 'metadata';
   }
 
@@ -364,8 +408,11 @@ function calculateRelevanceScore(tableName, columns, domain) {
       break;
 
     case 'institutions':
-      if (name.includes('ies') || name.includes('instituicao') || name.includes('universidade')) score += 10;
-      if (columnNames.includes('instituicao') || columnNames.includes('ies')) score += 5;
+      // Dar peso máximo para as principais tabelas de instituições
+      if (name === 'emec_instituicoes' || name === 'censo_ies') score += 10;
+      else if (name.includes('ies') || name.includes('instituicao') || name.includes('universidade')) score += 8;
+      if (columnNames.includes('instituicao') || columnNames.includes('ies') ||
+          columnNames.includes('no_ies') || columnNames.includes('nome_ies')) score += 5;
       break;
 
     case 'performance':
@@ -382,20 +429,28 @@ function calculateRelevanceScore(tableName, columns, domain) {
   return Math.min(score, 10);
 }
 
-function estimateTableSize(tableName, columns, estimatedRows) {
+function estimateTableSize(tableName, estimatedRows) {
   const name = tableName.toLowerCase();
 
-  // Usar dados reais se disponíveis
-  if (estimatedRows > 1000000) return 'large';
-  if (estimatedRows > 100000) return 'medium';
-  if (estimatedRows > 0) return 'small';
+  // Usar dados reais se disponíveis (mais preciso)
+  if (estimatedRows > 0) {
+    if (estimatedRows > 1000000) return 'large';
+    if (estimatedRows > 50000) return 'medium';
+    return 'small';
+  }
 
-  // Fallback para estimativas baseadas em conhecimento
+  // Fallback para estimativas baseadas em conhecimento do domínio INEP
   if (name.includes('microdados')) return 'large';
-  if (name.includes('censo')) return 'large';
-  if (name.includes('dm_')) return 'medium';
-  if (name.includes('municipios')) return 'small';
-  if (name.includes('modalidade') || name.includes('tipo')) return 'small';
+  if (name.includes('censo') && !name.includes('ies')) return 'large'; // censo_ies é menor
+  if (name.includes('dm_') || name.includes('fato_')) return 'medium';
+
+  // Tabelas de referência/lookup são pequenas
+  if (name.includes('municipios') || name.includes('uf_') ||
+      name.includes('modalidade') || name.includes('tipo') ||
+      name.includes('categoria') || name.includes('classificacao')) return 'small';
+
+  // Instituições são médias
+  if (name.includes('ies') || name.includes('instituicao')) return 'medium';
 
   return 'medium';
 }
