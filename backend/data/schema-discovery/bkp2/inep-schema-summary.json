@@ -1,0 +1,5531 @@
+{
+  "schemaName": "inep",
+  "totalTables": 87,
+  "processedTables": 87,
+  "discoveredAt": "2025-09-20T19:49:02.731Z",
+  "tables": [
+    {
+      "name": "capes_cursos_bruto",
+      "type": "TABLE",
+      "columnCount": 28,
+      "primaryKeys": [],
+      "category": "courses",
+      "description": "Tabela relacionada a cursos com 28 atributos",
+      "keywords": [
+        "capes",
+        "cursos",
+        "bruto",
+        "base",
+        "grande",
+        "area",
+        "conhecimento",
+        "subarea",
+        "especialidade",
+        "avaliacao"
+      ],
+      "keyColumns": [
+        {
+          "name": "nm_especialidade",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "cd_entidade_capes",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "cd_entidade_emec",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "sg_entidade_ensino",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nm_entidade_ensino",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "cs_status_juridico",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_add_foto_programa_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_add_foto_programa",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "cd_conceito_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "score"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 10,
+        "institutions": 5,
+        "performance": 5,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "72501",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "capes_programas_bruto",
+      "type": "TABLE",
+      "columnCount": 34,
+      "primaryKeys": [],
+      "category": "courses",
+      "description": "Tabela relacionada a cursos com 34 atributos",
+      "keywords": [
+        "capes",
+        "programas",
+        "bruto",
+        "base",
+        "grande",
+        "area",
+        "conhecimento",
+        "basica",
+        "subarea",
+        "especialidade"
+      ],
+      "keyColumns": [
+        {
+          "name": "nm_especialidade",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "cd_entidade_capes",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "cd_entidade_emec",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "sg_entidade_ensino",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nm_entidade_ensino",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "cs_status_juridico",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nm_modalidade_programa",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nm_programa_idioma",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "sg_entidade_ensino_rede",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_add_foto_programa_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_add_foto_programa",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "cd_conceito_programa",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "ano_inicio_programa",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 10,
+        "institutions": 5,
+        "performance": 5,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "47265",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_categorias_administrativas",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [
+        "id_categoria_administrativa"
+      ],
+      "category": "census",
+      "description": "Tabela censo_categorias_administrativas com 3 colunas",
+      "keywords": [
+        "censo",
+        "categorias",
+        "administrativas",
+        "categoria",
+        "administrativa",
+        "descr",
+        "cat",
+        "adm",
+        "agrupada"
+      ],
+      "keyColumns": [
+        {
+          "name": "id_categoria_administrativa",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "8",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_cine_area_detalhada",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [
+        "cod_cine_area_detalhada"
+      ],
+      "category": "census",
+      "description": "Tabela censo_cine_area_detalhada com 3 colunas",
+      "keywords": [
+        "censo",
+        "cine",
+        "area",
+        "detalhada",
+        "cod",
+        "descr",
+        "especifica"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_cine_area_detalhada",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "89",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_cine_area_especifica",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [
+        "cod_cine_area_especifica"
+      ],
+      "category": "census",
+      "description": "Tabela censo_cine_area_especifica com 3 colunas",
+      "keywords": [
+        "censo",
+        "cine",
+        "area",
+        "especifica",
+        "cod",
+        "descr",
+        "geral"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_cine_area_especifica",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "37",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_cine_area_geral",
+      "type": "TABLE",
+      "columnCount": 2,
+      "primaryKeys": [
+        "cod_cine_area_geral"
+      ],
+      "category": "census",
+      "description": "Tabela censo_cine_area_geral com 2 colunas",
+      "keywords": [
+        "censo",
+        "cine",
+        "area",
+        "geral",
+        "cod",
+        "descr"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_cine_area_geral",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "11",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_cine_rotulo",
+      "type": "TABLE",
+      "columnCount": 5,
+      "primaryKeys": [
+        "cod_cine_rotulo"
+      ],
+      "category": "census",
+      "description": "Tabela censo_cine_rotulo com 5 colunas",
+      "keywords": [
+        "censo",
+        "cine",
+        "rotulo",
+        "cod",
+        "descr",
+        "area",
+        "detalhada",
+        "tcu"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_cine_rotulo",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "372",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_curso_vagas_bruto",
+      "type": "TABLE",
+      "columnCount": 202,
+      "primaryKeys": [],
+      "category": "courses",
+      "description": "Tabela relacionada a cursos com 202 atributos",
+      "keywords": [
+        "censo",
+        "curso",
+        "vagas",
+        "bruto",
+        "ano",
+        "regiao",
+        "municipio",
+        "capital",
+        "dimensao",
+        "organizacao"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_regiao",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_uf",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_municipio",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_cine_rotulo",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_cine_area_geral",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_cine_area_especifica",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_cine_area_detalhada",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "tp_modalidade_ensino",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "qt_sit_transferido",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "qt_sit_falecido",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano_censo",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 8,
+        "courses": 10,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "3079438",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_cursos",
+      "type": "TABLE",
+      "columnCount": 21,
+      "primaryKeys": [
+        "cod_curso"
+      ],
+      "category": "courses",
+      "description": "Dados do Censo da Educação Superior sobre cursos oferecidos pelas instituições",
+      "keywords": [
+        "censo",
+        "cursos",
+        "cod",
+        "curso",
+        "nome",
+        "ies",
+        "municipio",
+        "grau",
+        "academico",
+        "modalidade"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_curso",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        },
+        {
+          "name": "id_grau_academico",
+          "dataType": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_modalidade_ensino",
+          "dataType": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_nivel_academico",
+          "dataType": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_atributo_ingresso",
+          "dataType": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_centro_ufsm",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nome_curso",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "cc_ano",
+          "dataType": "smallint",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nome_curso_ajustado",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "tempo_integralizacao_anos",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 10,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "medium"
+      },
+      "estimatedRows": "136103",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_cursos_bkp",
+      "type": "TABLE",
+      "columnCount": 21,
+      "primaryKeys": [
+        "cod_curso"
+      ],
+      "category": "courses",
+      "description": "Dados do Censo da Educação Superior sobre cursos oferecidos pelas instituições",
+      "keywords": [
+        "censo",
+        "cursos",
+        "bkp",
+        "cod",
+        "curso",
+        "nome",
+        "ies",
+        "municipio",
+        "grau",
+        "academico"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_curso",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        },
+        {
+          "name": "id_grau_academico",
+          "dataType": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_modalidade_ensino",
+          "dataType": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_nivel_academico",
+          "dataType": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_atributo_ingresso",
+          "dataType": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_centro_ufsm",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nome_curso",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "cc_ano",
+          "dataType": "smallint",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nome_curso_ajustado",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "tempo_integralizacao_anos",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 10,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "60000",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_graus_academicos",
+      "type": "TABLE",
+      "columnCount": 2,
+      "primaryKeys": [
+        "id_grau_academico"
+      ],
+      "category": "census",
+      "description": "Tabela censo_graus_academicos com 2 colunas",
+      "keywords": [
+        "censo",
+        "graus",
+        "academicos",
+        "grau",
+        "academico",
+        "descr"
+      ],
+      "keyColumns": [
+        {
+          "name": "id_grau_academico",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 3,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "4",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_ies",
+      "type": "TABLE",
+      "columnCount": 8,
+      "primaryKeys": [
+        "cod_ies"
+      ],
+      "category": "institutions",
+      "description": "Tabela censo_ies com 8 colunas",
+      "keywords": [
+        "censo",
+        "ies",
+        "cod",
+        "nome",
+        "sigla",
+        "mantenedora",
+        "categoria",
+        "administrativa",
+        "organizacao",
+        "academica"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_ies",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        },
+        {
+          "name": "id_categoria_administrativa",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_organizacao_academica",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nome_ies",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 10,
+        "performance": 0,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "3473",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_ies_bruto",
+      "type": "TABLE",
+      "columnCount": 87,
+      "primaryKeys": [],
+      "category": "institutions",
+      "description": "Tabela censo_ies_bruto com 87 colunas",
+      "keywords": [
+        "censo",
+        "ies",
+        "bruto",
+        "ano",
+        "regiao",
+        "municipio",
+        "capital",
+        "mesorregiao",
+        "microrregiao",
+        "organizacao"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_regiao_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_uf_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_municipio_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_mesorregiao_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_microrregiao_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_mantenedora",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "ds_endereco_ies",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "ds_numero_endereco_ies",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "ds_complemento_endereco_ies",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "in_servico_internet",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "qt_periodico_eletronico",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_projeto",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_local_oferta",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano_censo",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "ds_numero_endereco_ies",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "description"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 10,
+        "performance": 0,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "34488",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_modalidades_ensino",
+      "type": "TABLE",
+      "columnCount": 2,
+      "primaryKeys": [
+        "id_modalidade_ensino"
+      ],
+      "category": "census",
+      "description": "Tipos e modalidades de ensino (presencial, EAD, etc.)",
+      "keywords": [
+        "censo",
+        "modalidades",
+        "ensino",
+        "modalidade",
+        "descr"
+      ],
+      "keyColumns": [
+        {
+          "name": "id_modalidade_ensino",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": true
+        },
+        {
+          "name": "descr_modalidade_ensino",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 3,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "2",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_niveis_academicos",
+      "type": "TABLE",
+      "columnCount": 2,
+      "primaryKeys": [
+        "id_nivel_academico"
+      ],
+      "category": "census",
+      "description": "Tabela censo_niveis_academicos com 2 colunas",
+      "keywords": [
+        "censo",
+        "niveis",
+        "academicos",
+        "nivel",
+        "academico",
+        "descr"
+      ],
+      "keyColumns": [
+        {
+          "name": "id_nivel_academico",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "2",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "censo_organizacoes_academicas",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [
+        "id_organizacao_academica"
+      ],
+      "category": "census",
+      "description": "Tabela censo_organizacoes_academicas com 3 colunas",
+      "keywords": [
+        "censo",
+        "organizacoes",
+        "academicas",
+        "organizacao",
+        "academica",
+        "descr",
+        "org",
+        "acad",
+        "agrupada"
+      ],
+      "keyColumns": [
+        {
+          "name": "id_organizacao_academica",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "5",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "cesta_dimensoes",
+      "type": "TABLE",
+      "columnCount": 2,
+      "primaryKeys": [
+        "id"
+      ],
+      "category": "other",
+      "description": "Tabela cesta_dimensoes com 2 colunas",
+      "keywords": [
+        "cesta",
+        "dimensoes",
+        "descr",
+        "dimensao"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "5",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "cesta_indicadores",
+      "type": "TABLE",
+      "columnCount": 4,
+      "primaryKeys": [
+        "id"
+      ],
+      "category": "other",
+      "description": "Tabela cesta_indicadores com 4 colunas",
+      "keywords": [
+        "cesta",
+        "indicadores",
+        "nome",
+        "indicador",
+        "descr",
+        "dimensao"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_dimensao",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nome_indicador",
+          "dataType": "character varying",
+          "nullable": false,
+          "semanticType": "name"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "7",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "cesta_indicadores_visualizacoes",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [
+        "id"
+      ],
+      "category": "other",
+      "description": "Tabela cesta_indicadores_visualizacoes com 3 colunas",
+      "keywords": [
+        "cesta",
+        "indicadores",
+        "visualizacoes",
+        "indicador",
+        "visualizacao"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_indicador",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "id_visualizacao",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "36",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "cesta_visualizacao_indicadores",
+      "type": "TABLE",
+      "columnCount": 4,
+      "primaryKeys": [
+        "id"
+      ],
+      "category": "other",
+      "description": "Tabela cesta_visualizacao_indicadores com 4 colunas",
+      "keywords": [
+        "cesta",
+        "visualizacao",
+        "indicadores",
+        "descr",
+        "tipo",
+        "forma"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "6",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dados_cpc",
+      "type": "TABLE",
+      "columnCount": 29,
+      "primaryKeys": [],
+      "category": "other",
+      "description": "Tabela relacionada a cursos com 29 atributos",
+      "keywords": [
+        "dados",
+        "cpc",
+        "ano",
+        "ies",
+        "curso",
+        "conc",
+        "inscritos",
+        "participantes",
+        "bruta",
+        "enade"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "nb_idd",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "np_idd",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nb_org_did_pedag",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "np_org_did_pedag",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "58071",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dados_cpc_bkp",
+      "type": "TABLE",
+      "columnCount": 27,
+      "primaryKeys": [],
+      "category": "other",
+      "description": "Tabela relacionada a cursos com 27 atributos",
+      "keywords": [
+        "dados",
+        "cpc",
+        "bkp",
+        "ano",
+        "ies",
+        "curso",
+        "conc",
+        "inscritos",
+        "participantes",
+        "bruta"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "nb_idd",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "np_idd",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nb_org_did_pedag",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "np_org_did_pedag",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "58071",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dados_cpc_brutos",
+      "type": "TABLE",
+      "columnCount": 40,
+      "primaryKeys": [],
+      "category": "other",
+      "description": "Tabela relacionada a cursos com 40 atributos",
+      "keywords": [
+        "dados",
+        "cpc",
+        "brutos",
+        "ano",
+        "cod",
+        "area",
+        "descr",
+        "ies",
+        "nome",
+        "sigla"
+      ],
+      "keyColumns": [
+        {
+          "name": "modalidade",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nota_bruta_idd",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nota_padr_idd",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nota_bruta_org_did_pegago",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nota_padr_org_did_pegago",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nota_bruta_oportunidade",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "nota_padr_oportunidade",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nome_ies",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "nome_municipio",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "nota_bruta_fg",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_padr_fg",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_bruta_ce",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_padr_ce",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "conceito_enade_cont",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "num_conclui_part_nota_enem",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "prop_conclui_part_nota_enem",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_bruta_idd",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_padr_idd",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_bruta_org_did_pegago",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_padr_org_did_pegago",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_bruta_infra",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_padr_infra",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_bruta_oportunidade",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_padr_oportunidade",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_bruta_mestres",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_padr_mestres",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_bruta_doutores",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_padr_doutores",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_bruta_reg_trabalho",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "nota_padr_reg_trabalho",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 8,
+        "institutions": 5,
+        "performance": 5,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "67883",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dados_enade",
+      "type": "TABLE",
+      "columnCount": 10,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "dados",
+        "enade",
+        "ano",
+        "ies",
+        "curso",
+        "continuo",
+        "faixa",
+        "bruta",
+        "padronizada"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 5,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "67888",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dados_enade_percepcao_respostas",
+      "type": "TABLE",
+      "columnCount": 5,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "dados",
+        "enade",
+        "percepcao",
+        "respostas",
+        "questao",
+        "opcao",
+        "resposta"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "210",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dados_idd",
+      "type": "TABLE",
+      "columnCount": 7,
+      "primaryKeys": [],
+      "category": "other",
+      "description": "Tabela relacionada a cursos com 7 atributos",
+      "keywords": [
+        "dados",
+        "idd",
+        "ano",
+        "ies",
+        "curso",
+        "bruta",
+        "continuo",
+        "faixa"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "idd_bruta",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "idd_continuo",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "idd_faixa",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "59765",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dados_ies_docentes",
+      "type": "TABLE",
+      "columnCount": 14,
+      "primaryKeys": [],
+      "category": "institutions",
+      "description": "Tabela dados_ies_docentes com 14 colunas",
+      "keywords": [
+        "dados",
+        "ies",
+        "docentes",
+        "ano",
+        "censo",
+        "doc",
+        "total",
+        "exe",
+        "sem",
+        "grad"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano_censo",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 10,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "31908",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dados_igc",
+      "type": "TABLE",
+      "columnCount": 12,
+      "primaryKeys": [],
+      "category": "other",
+      "description": "Tabela relacionada a cursos com 12 atributos",
+      "keywords": [
+        "dados",
+        "igc",
+        "ano",
+        "ies",
+        "cursos",
+        "cpc",
+        "trienio",
+        "alfa",
+        "conc",
+        "med"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "17136",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dados_percepcao_enade",
+      "type": "TABLE",
+      "columnCount": 44,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "dados",
+        "percepcao",
+        "enade",
+        "ano",
+        "curso",
+        "i27",
+        "i28",
+        "i29",
+        "i30",
+        "i31"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "smallint",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "3775032",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dados_percepcao_enade_questoes",
+      "type": "TABLE",
+      "columnCount": 5,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "dados",
+        "percepcao",
+        "enade",
+        "questoes",
+        "questao",
+        "descricao",
+        "grupo"
+      ],
+      "keyColumns": [
+        {
+          "name": "id_questao",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "descricao",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "description"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "68",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "dm_aluno",
+      "type": "TABLE",
+      "columnCount": 75,
+      "primaryKeys": [],
+      "category": "students",
+      "description": "Dimensão de alunos com dados demográficos e acadêmicos",
+      "keywords": [
+        "aluno",
+        "ies",
+        "categoria",
+        "administrativa",
+        "organizacao",
+        "academica",
+        "curso",
+        "nivel",
+        "academico",
+        "modalidade"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_categoria_administrativa",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_organizacao_academica",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_nivel_academico",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_modalidade_ensino",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_grau_academico",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_vinculo_aluno_curso",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_aluno",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_aluno_situacao",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "in_apoio_material_didatico",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "in_atividade_complementar",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_cor_raca_aluno",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_nacionalidade_aluno",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_pais_origem_aluno",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "nu_idade_aluno",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano_aluno_nasc",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "ano_ingresso",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 10,
+        "courses": 8,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "6456694",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "emec_instituicoes",
+      "type": "TABLE",
+      "columnCount": 18,
+      "primaryKeys": [],
+      "category": "other",
+      "description": "Tabela emec_instituicoes com 18 colunas",
+      "keywords": [
+        "emec",
+        "instituicoes",
+        "ies",
+        "cnpj",
+        "telefone",
+        "site",
+        "email",
+        "endereco",
+        "municipio",
+        "criacao"
+      ],
+      "keyColumns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ano_ci",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "ano_ci_ead",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "ano_igc",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "3059",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "enade_dic_aux",
+      "type": "TABLE",
+      "columnCount": 2,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "enade",
+        "dic",
+        "aux",
+        "arquivo",
+        "variaveis"
+      ],
+      "keyColumns": [],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "318",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "enade_dic_aux_tmp",
+      "type": "TABLE",
+      "columnCount": 2,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "enade",
+        "dic",
+        "aux",
+        "tmp",
+        "arquivo",
+        "campo"
+      ],
+      "keyColumns": [],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "208",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "fluxo_tda",
+      "type": "TABLE",
+      "columnCount": 31,
+      "primaryKeys": [],
+      "category": "other",
+      "description": "Tabela relacionada a cursos com 31 atributos",
+      "keywords": [
+        "fluxo",
+        "tda",
+        "ies",
+        "categoria",
+        "administrativa",
+        "organizacao",
+        "academica",
+        "curso",
+        "regiao",
+        "municipio"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_regiao",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_uf",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_municipio",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "tp_modalidade_ensino",
+          "dataType": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_cine_rotulo",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_cine_area_geral",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "qt_falecido",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano_ingresso",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nu_ano_referencia",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nu_ano_integralizacao",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nu_ano_maximo_acompanhamento",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 8,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "1998056",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "ibge_demografia_idade_grupos",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "geography",
+      "description": "Tabela ibge_demografia_idade_grupos com 3 colunas",
+      "keywords": [
+        "ibge",
+        "demografia",
+        "idade",
+        "grupos",
+        "grupo",
+        "ajustado"
+      ],
+      "keyColumns": [
+        {
+          "name": "idade",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 10
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "134",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "ibge_demografia_por_idade_bruto",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "geography",
+      "description": "Tabela ibge_demografia_por_idade_bruto com 3 colunas",
+      "keywords": [
+        "ibge",
+        "demografia",
+        "por",
+        "idade",
+        "bruto",
+        "mun",
+        "quantidade"
+      ],
+      "keyColumns": [
+        {
+          "name": "idade",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "quantidade",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "quantidade",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "quantity"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 10
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "medium"
+      },
+      "estimatedRows": "734944",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "idhms",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [
+        "cod_ibge",
+        "ano"
+      ],
+      "category": "other",
+      "description": "Tabela idhms com 3 colunas",
+      "keywords": [
+        "idhms",
+        "cod",
+        "ibge",
+        "ano",
+        "idhm"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_ibge",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        },
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        },
+        {
+          "name": "idhm",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": false,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "16710",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "ies_area_cine_pos",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "institutions",
+      "description": "Tabela ies_area_cine_pos com 3 colunas",
+      "keywords": [
+        "ies",
+        "area",
+        "cine",
+        "pos",
+        "num",
+        "areas",
+        "classificacao"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 10,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "1950",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "igc_bruto",
+      "type": "TABLE",
+      "columnCount": 21,
+      "primaryKeys": [],
+      "category": "other",
+      "description": "Tabela relacionada a cursos com 21 atributos",
+      "keywords": [
+        "igc",
+        "bruto",
+        "ano",
+        "cod",
+        "ies",
+        "sigla",
+        "municipio",
+        "dependencia",
+        "adm",
+        "org"
+      ],
+      "keyColumns": [],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "n_curso_enade_ult_3_anos",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "n_curso_com_cpc_ult_3_anos",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "ano_arquivo",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 5,
+        "performance": 0,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "27619",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "igc_fatos",
+      "type": "TABLE",
+      "columnCount": 11,
+      "primaryKeys": [],
+      "category": "other",
+      "description": "Tabela relacionada a cursos com 11 atributos",
+      "keywords": [
+        "igc",
+        "fatos",
+        "ano",
+        "cod",
+        "ies",
+        "num",
+        "cursos",
+        "cpc",
+        "proporcao",
+        "graduandos"
+      ],
+      "keyColumns": [],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "smallint",
+          "nullable": false,
+          "semanticType": "year"
+        },
+        {
+          "name": "conceito_medio_graduacao",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "conceito_medio_mestrado",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        },
+        {
+          "name": "conceito_medio_doutorado",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "score"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 5,
+        "performance": 5,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "9390",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "ind_fluxo_ies",
+      "type": "TABLE",
+      "columnCount": 18,
+      "primaryKeys": [],
+      "category": "institutions",
+      "description": "Tabela relacionada a cursos com 18 atributos",
+      "keywords": [
+        "ind",
+        "fluxo",
+        "ies",
+        "periodo",
+        "curso",
+        "ano",
+        "ingresso",
+        "referencia",
+        "prazo",
+        "integralizacao"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "qt_falecido",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano_ingresso",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nu_ano_referencia",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nu_ano_integralizacao",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nu_ano_maximo_acompanhamento",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 10,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "1998056",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "ind_fluxo_ies_bkp",
+      "type": "TABLE",
+      "columnCount": 18,
+      "primaryKeys": [],
+      "category": "institutions",
+      "description": "Tabela relacionada a cursos com 18 atributos",
+      "keywords": [
+        "ind",
+        "fluxo",
+        "ies",
+        "bkp",
+        "periodo",
+        "curso",
+        "ano",
+        "ingresso",
+        "referencia",
+        "prazo"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "qt_falecido",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano_ingresso",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nu_ano_referencia",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nu_ano_integralizacao",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nu_ano_maximo_acompanhamento",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 10,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "1910035",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "ind_fluxo_ies_tda",
+      "type": "TABLE",
+      "columnCount": 26,
+      "primaryKeys": [],
+      "category": "institutions",
+      "description": "Tabela relacionada a cursos com 26 atributos",
+      "keywords": [
+        "ind",
+        "fluxo",
+        "ies",
+        "tda",
+        "categoria",
+        "administrativa",
+        "organizacao",
+        "academica",
+        "curso",
+        "municipio"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_uf",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_municipio",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "tp_modalidade_ensino",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_cine_rotulo",
+          "dataType": "character varying",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "qt_falecido",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano_ingresso",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nu_ano_referencia",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "nome_ies",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "nome_curso",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 8,
+        "institutions": 10,
+        "performance": 0,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "5046556",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "matriculas_municipio",
+      "type": "TABLE",
+      "columnCount": 10,
+      "primaryKeys": [],
+      "category": "geography",
+      "description": "Tabela matriculas_municipio com 10 colunas",
+      "keywords": [
+        "matriculas",
+        "municipio",
+        "ano",
+        "censo",
+        "cod",
+        "mat",
+        "mais"
+      ],
+      "keyColumns": [],
+      "importantColumns": [
+        {
+          "name": "nu_ano_censo",
+          "dataType": "smallint",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 10
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "32012",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "mesoregioes_ibge",
+      "type": "TABLE",
+      "columnCount": 5,
+      "primaryKeys": [
+        "cod_mesoregiao_ibge"
+      ],
+      "category": "geography",
+      "description": "Tabela mesoregioes_ibge com 5 colunas",
+      "keywords": [
+        "mesoregioes",
+        "ibge",
+        "cod",
+        "mesoregiao",
+        "num",
+        "nome",
+        "sem",
+        "acento"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_mesoregiao_ibge",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nome_mesoregiao_ibge",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "nome_mesoregiao_ibge_sem_acento",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 10
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "137",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq1",
+      "type": "TABLE",
+      "columnCount": 10,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq1",
+        "ano",
+        "curso",
+        "ies",
+        "categad",
+        "orgacad",
+        "grupo",
+        "modalidade"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_categad",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_orgacad",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_grupo",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_modalidade",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "co_munic_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_uf_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_regiao_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 8,
+        "institutions": 5,
+        "performance": 10,
+        "demographics": 5
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": true,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq10",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq10",
+        "ano",
+        "curso",
+        "i04"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq11",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq11",
+        "ano",
+        "curso",
+        "i05"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq12",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq12",
+        "ano",
+        "curso",
+        "i06"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq13",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq13",
+        "ano",
+        "curso",
+        "i07"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq14",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq14",
+        "ano",
+        "curso",
+        "i08"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq15",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq15",
+        "ano",
+        "curso",
+        "i09"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq16",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq16",
+        "ano",
+        "curso",
+        "i10"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq17",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq17",
+        "ano",
+        "curso",
+        "i11"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq18",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq18",
+        "ano",
+        "curso",
+        "i12"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq19",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq19",
+        "ano",
+        "curso",
+        "i13"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq2",
+      "type": "TABLE",
+      "columnCount": 5,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq2",
+        "ano",
+        "curso",
+        "fim",
+        "grad",
+        "turno",
+        "graduacao"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_turno_graduacao",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "ano_fim_em",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        },
+        {
+          "name": "ano_in_grad",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq20",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq20",
+        "ano",
+        "curso",
+        "i14"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq21",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq21",
+        "ano",
+        "curso",
+        "i15"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq22",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq22",
+        "ano",
+        "curso",
+        "i16"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq23",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq23",
+        "ano",
+        "curso",
+        "i17"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq24",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq24",
+        "ano",
+        "curso",
+        "i18"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq25",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq25",
+        "ano",
+        "curso",
+        "i19"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq26",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq26",
+        "ano",
+        "curso",
+        "i20"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq27",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq27",
+        "ano",
+        "curso",
+        "i21"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq28",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq28",
+        "ano",
+        "curso",
+        "i22"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq29",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq29",
+        "ano",
+        "curso",
+        "i23"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq3",
+      "type": "TABLE",
+      "columnCount": 52,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq3",
+        "ano",
+        "curso",
+        "item",
+        "ofg",
+        "oce",
+        "gab",
+        "fin"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_rs_i1",
+          "dataType": "character",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_rs_i2",
+          "dataType": "character",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_rs_i3",
+          "dataType": "character",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_rs_i4",
+          "dataType": "character",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_rs_i5",
+          "dataType": "character",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_rs_i6",
+          "dataType": "character",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_rs_i7",
+          "dataType": "character",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_rs_i8",
+          "dataType": "character",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "co_rs_i9",
+          "dataType": "character",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "1924103",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq30",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq30",
+        "ano",
+        "curso",
+        "i24"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq31",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq31",
+        "ano",
+        "curso",
+        "i25"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq32",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq32",
+        "ano",
+        "curso",
+        "i26"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq33",
+      "type": "TABLE",
+      "columnCount": 13,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq33",
+        "ano",
+        "curso",
+        "i69",
+        "i70",
+        "i71",
+        "i72",
+        "i73"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "1083879",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq4",
+      "type": "TABLE",
+      "columnCount": 44,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq4",
+        "ano",
+        "curso",
+        "i27",
+        "i28",
+        "i29",
+        "i30",
+        "i31"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq5",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq5",
+        "ano",
+        "curso",
+        "sexo"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq6",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq6",
+        "ano",
+        "curso",
+        "idade"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        },
+        {
+          "name": "nu_idade",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq7",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq7",
+        "ano",
+        "curso",
+        "i01"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq8",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq8",
+        "ano",
+        "curso",
+        "i02"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_arq9",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "arq9",
+        "ano",
+        "curso",
+        "i03"
+      ],
+      "keyColumns": [
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 5,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "2472225",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_questoes",
+      "type": "TABLE",
+      "columnCount": 4,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "questoes",
+        "ano",
+        "cod",
+        "questao",
+        "ajustado"
+      ],
+      "keyColumns": [],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "569",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microdados_enade_respostas",
+      "type": "TABLE",
+      "columnCount": 5,
+      "primaryKeys": [],
+      "category": "performance",
+      "description": "Resultados e dados do Exame Nacional de Desempenho dos Estudantes",
+      "keywords": [
+        "microdados",
+        "enade",
+        "respostas",
+        "ano",
+        "cod",
+        "questao",
+        "alternativa",
+        "resposta"
+      ],
+      "keyColumns": [],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": true,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 10,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "3304",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "microregioes_ibge",
+      "type": "TABLE",
+      "columnCount": 5,
+      "primaryKeys": [
+        "cod_microregiao_ibge"
+      ],
+      "category": "geography",
+      "description": "Tabela microregioes_ibge com 5 colunas",
+      "keywords": [
+        "microregioes",
+        "ibge",
+        "cod",
+        "microregiao",
+        "num",
+        "nome",
+        "mesoregiao",
+        "sem",
+        "acento"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_microregiao_ibge",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nome_microregiao_ibge",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "nome_microregiao_ibge_sem_acento",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 10
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "558",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "municipios_ibge",
+      "type": "TABLE",
+      "columnCount": 9,
+      "primaryKeys": [
+        "cod_ibge"
+      ],
+      "category": "geography",
+      "description": "Dados geográficos e demográficos dos municípios brasileiros",
+      "keywords": [
+        "municipios",
+        "ibge",
+        "cod",
+        "municipio",
+        "nome",
+        "microregiao",
+        "latitude",
+        "longitude",
+        "populacao",
+        "densidade"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_ibge",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        },
+        {
+          "name": "densidade",
+          "dataType": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nome_municipio",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "nome_municipio_sem_acento",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 10
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "5570",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "pibs_per_capita",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [
+        "cod_ibge",
+        "ano"
+      ],
+      "category": "other",
+      "description": "Tabela pibs_per_capita com 3 colunas",
+      "keywords": [
+        "pibs",
+        "per",
+        "capita",
+        "cod",
+        "ibge",
+        "ano",
+        "pib"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_ibge",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        },
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": false,
+          "semanticType": "year"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 0
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "61270",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "regioes_ibge",
+      "type": "TABLE",
+      "columnCount": 3,
+      "primaryKeys": [
+        "cod_regiao_ibge"
+      ],
+      "category": "geography",
+      "description": "Tabela regioes_ibge com 3 colunas",
+      "keywords": [
+        "regioes",
+        "ibge",
+        "cod",
+        "regiao",
+        "descr",
+        "sigla"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_regiao_ibge",
+          "dataType": "smallint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 10
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "5",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "uf_ibge",
+      "type": "TABLE",
+      "columnCount": 7,
+      "primaryKeys": [
+        "uf_ibge"
+      ],
+      "category": "geography",
+      "description": "Tabela uf_ibge com 7 colunas",
+      "keywords": [
+        "ibge",
+        "num",
+        "nome",
+        "cod",
+        "regiao",
+        "latitude",
+        "longitude",
+        "sem",
+        "acento"
+      ],
+      "keyColumns": [
+        {
+          "name": "uf_ibge",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "nome_uf_ibge",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        },
+        {
+          "name": "nome_uf_ibge_sem_acento",
+          "dataType": "character varying",
+          "nullable": true,
+          "semanticType": "name"
+        }
+      ],
+      "relevanceScores": {
+        "students": 0,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 10
+      },
+      "dataQuality": {
+        "hasTemporalData": false,
+        "hasGeographicData": true,
+        "estimatedSize": "small"
+      },
+      "estimatedRows": "27",
+      "sampleDataAvailable": true
+    },
+    {
+      "name": "variaveis_pib_municipios_ibge",
+      "type": "TABLE",
+      "columnCount": 7,
+      "primaryKeys": [
+        "cod_ibge",
+        "ano",
+        "cod_variavel"
+      ],
+      "category": "geography",
+      "description": "Dados geográficos e demográficos dos municípios brasileiros",
+      "keywords": [
+        "variaveis",
+        "pib",
+        "municipios",
+        "ibge",
+        "cod",
+        "ano",
+        "variavel",
+        "valor",
+        "unidade",
+        "medida"
+      ],
+      "keyColumns": [
+        {
+          "name": "cod_ibge",
+          "dataType": "character",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        },
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        },
+        {
+          "name": "cod_variavel",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isIdentifier": false
+        },
+        {
+          "name": "cod_unidade_medida",
+          "dataType": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        },
+        {
+          "name": "unidade_medida",
+          "dataType": "character varying",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isIdentifier": true
+        }
+      ],
+      "importantColumns": [
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": false,
+          "semanticType": "year"
+        },
+        {
+          "name": "valor",
+          "dataType": "numeric",
+          "nullable": true,
+          "semanticType": "value"
+        }
+      ],
+      "relevanceScores": {
+        "students": 3,
+        "courses": 0,
+        "institutions": 0,
+        "performance": 0,
+        "demographics": 10
+      },
+      "dataQuality": {
+        "hasTemporalData": true,
+        "hasGeographicData": false,
+        "estimatedSize": "large"
+      },
+      "estimatedRows": "4868180",
+      "sampleDataAvailable": true
+    }
+  ],
+  "relationships": [
+    {
+      "fromTable": "censo_cursos",
+      "fromColumn": "id_grau_academico",
+      "toTable": "censo_graus_academicos",
+      "toColumn": "id_grau_academico",
+      "type": "foreign_key_potential"
+    },
+    {
+      "fromTable": "censo_cursos",
+      "fromColumn": "id_modalidade_ensino",
+      "toTable": "censo_modalidades_ensino",
+      "toColumn": "id_modalidade_ensino",
+      "type": "foreign_key_potential"
+    },
+    {
+      "fromTable": "censo_cursos",
+      "fromColumn": "id_nivel_academico",
+      "toTable": "censo_niveis_academicos",
+      "toColumn": "id_nivel_academico",
+      "type": "foreign_key_potential"
+    },
+    {
+      "fromTable": "censo_cursos_bkp",
+      "fromColumn": "id_grau_academico",
+      "toTable": "censo_graus_academicos",
+      "toColumn": "id_grau_academico",
+      "type": "foreign_key_potential"
+    },
+    {
+      "fromTable": "censo_cursos_bkp",
+      "fromColumn": "id_modalidade_ensino",
+      "toTable": "censo_modalidades_ensino",
+      "toColumn": "id_modalidade_ensino",
+      "type": "foreign_key_potential"
+    },
+    {
+      "fromTable": "censo_cursos_bkp",
+      "fromColumn": "id_nivel_academico",
+      "toTable": "censo_niveis_academicos",
+      "toColumn": "id_nivel_academico",
+      "type": "foreign_key_potential"
+    },
+    {
+      "fromTable": "censo_ies",
+      "fromColumn": "id_categoria_administrativa",
+      "toTable": "censo_categorias_administrativas",
+      "toColumn": "id_categoria_administrativa",
+      "type": "foreign_key_potential"
+    },
+    {
+      "fromTable": "censo_ies",
+      "fromColumn": "id_organizacao_academica",
+      "toTable": "censo_organizacoes_academicas",
+      "toColumn": "id_organizacao_academica",
+      "type": "foreign_key_potential"
+    }
+  ]
+}

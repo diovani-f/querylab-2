@@ -194,7 +194,7 @@ Exemplo de estrutura esperada:
   /**
    * Método de fallback usando LLM para redução de schema
    */
-  private async fallbackLLMReduction(question: string, fullSchema: string): Promise<{
+  public async fallbackLLMReduction(question: string, fullSchema: string): Promise<{
     success: boolean
     reducedSchema?: string
     error?: string
@@ -206,13 +206,14 @@ Você é um especialista em bancos de dados educacionais do INEP. Analise a perg
 PERGUNTA: ${question}
 
 SCHEMA COMPLETO (PRIMEIRAS 50 TABELAS):
-${this.truncateSchemaForLLM(fullSchema)}
+${fullSchema}
 
 INSTRUÇÕES:
-- Retorne APENAS as 8-12 tabelas mais relevantes para a pergunta
+- Retorne APENAS as tabelas e colunas necessárias para responder a pergunta
 - Mantenha o formato JSON original do schema
 - SEMPRE inclua chaves primárias e estrangeiras das tabelas selecionadas
-- Priorize tabelas que contenham dados diretamente relacionados à pergunta
+- Para dados educacionais, considere relacionamentos entre instituições, cursos, estudantes
+- Seja preciso: inclua apenas o essencial, mas não omita dependências importantes
 - Se a pergunta menciona anos/períodos, inclua colunas de data relevantes
 
 SCHEMA REDUZIDO:
