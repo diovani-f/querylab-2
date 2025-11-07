@@ -9,6 +9,21 @@ export interface Message {
   hasExplanation?: boolean // Flag para indicar se tem explicação textual
   explanation?: string // Explicação detalhada da consulta
   reverseTranslation?: string // Tradução reversa do SQL para linguagem natural
+  isParallelMode?: boolean // Flag para indicar se é modo paralelo
+  parallelResults?: ParallelSQLResult[] // Resultados dos 3 modelos em paralelo
+}
+
+export interface ParallelSQLResult {
+  provider: string
+  model: string
+  sql: string | null
+  explanation: string | null
+  executionSuccess: boolean
+  data?: any[]
+  rowCount?: number
+  executionTime?: number
+  error?: string
+  generationTime: number
 }
 
 export interface QueryResult {

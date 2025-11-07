@@ -17,6 +17,7 @@ import {
 import { useState, memo, useCallback } from "react"
 import { sanitizeError } from "@/lib/error-handler"
 import { QueryResultsTable } from "./query-results-table"
+import { ParallelResultsPreview } from "./parallel-results-preview"
 import { EvaluationModal } from "../evaluation/evaluation-modal"
 import { EvaluationTrigger } from "../evaluation/evaluation-trigger"
 import { apiService } from '@/lib/api'
@@ -36,18 +37,6 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
   const [isExecuting, setIsExecuting] = useState(false)
   const [executionStatus, setExecutionStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [isCopied, setIsCopied] = useState(false)
-
-  // Log para debug
-  console.log('🔍 MessageBubble renderizando:', {
-    messageId: messageData.id,
-    tipo: messageData.tipo,
-    hasSqlQuery: !!messageData.sqlQuery,
-    hasQueryResult: !!messageData.queryResult,
-    queryResultSuccess: messageData.queryResult?.success,
-    hasRows: !!messageData.queryResult?.rows,
-    rowsLength: messageData.queryResult?.rows?.length,
-    rowCount: messageData.queryResult?.rowCount
-  })
 
   const getIcon = useCallback((type: Message['tipo']) => {
     switch (type) {
@@ -296,16 +285,6 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
       {/* Botões flutuantes abaixo do bubble-message */}
       {(() => {
         const shouldShowButtons = messageData.tipo === 'assistant' && (messageData.sqlQuery || messageData.queryResult || messageData.explanation);
-        console.log('🔘 Debug botões flutuantes:', {
-          messageId: messageData.id,
-          tipo: messageData.tipo,
-          hasSqlQuery: !!messageData.sqlQuery,
-          hasQueryResult: !!messageData.queryResult,
-          hasExplanation: !!messageData.explanation,
-          queryResultSuccess: messageData.queryResult?.success,
-          shouldShowButtons,
-          messageData: messageData
-        });
         return shouldShowButtons;
       })() && (
         <div

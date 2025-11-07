@@ -16,17 +16,17 @@ import { websocketService } from "@/lib/websocket"
 import { PulseLoader } from "react-spinners"
 import { useUserSettings } from "@/hooks/use-user-settings"
 import { useErrorHandler } from "@/lib/error-handler"
-import { useParallelSQL } from "@/hooks/use-parallel-sql"
 
 export function ChatInterface() {
   const [inputValue, setInputValue] = useState("")
   const [isHydrated, setIsHydrated] = useState(false)
   const [showParallelResults, setShowParallelResults] = useState(false)
+  const [parallelResults, setParallelResults] = useState<any[]>([])
+  const [isParallelLoading, setIsParallelLoading] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { settings } = useUserSettings()
   const { handleError } = useErrorHandler()
-  const { generateParallelSQL, results: parallelResults, isLoading: isParallelLoading, reset: resetParallelSQL } = useParallelSQL()
 
   const {
     isProcessing,
@@ -105,12 +105,37 @@ export function ChatInterface() {
     }
   }, [currentSession])
 
+  // Listener para geração paralela de SQL
+  useEffect(() => {
+    const handleParallelGenerating = (data: { status: string, results?: any[] }) => {
+      console.log('🚀 Evento SQL Paralelo recebido:', data)
+
+      if (data.results) {
+        // Resultados recebidos - mostrar preview
+        setParallelResults(data.results)
+        setShowParallelResults(true)
+        setIsParallelLoading(false)
+      } else {
+        // Iniciando geração - mostrar loading
+        setShowParallelResults(true)
+        setIsParallelLoading(true)
+        setParallelResults([])
+      }
+    }
+
+    websocketService.onSQLParallelGenerating(handleParallelGenerating)
+
+    return () => {
+      websocketService.removeListener('sql-parallel-generating', handleParallelGenerating)
+    }
+  }, [])
+
   // Limpar resultados paralelos ao trocar de sessão
   useEffect(() => {
-    // Resetar estado de resultados paralelos
     setShowParallelResults(false)
-    resetParallelSQL()
-  }, [currentSession?.id, resetParallelSQL])
+    setParallelResults([])
+    setIsParallelLoading(false)
+  }, [currentSession?.id])
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return
@@ -125,33 +150,13 @@ export function ChatInterface() {
     setInputValue("")
 
     try {
-      // Se modo paralelo está ativado, usar geração paralela
-      if (settings.useParallelMode) {
-        console.log('🚀 Modo paralelo ativado - gerando com 3 IAs...')
+      // SEMPRE usar WebSocket - o backend decide se usa modo paralelo ou não
+      // baseado na configuração useParallelMode enviada
+      await sendMessage(userMessage)
 
-        // Adicionar mensagem do usuário
-        addMessage({
-          tipo: 'user',
-          conteudo: userMessage
-        })
-
-        // Mostrar preview dos resultados paralelos
-        setShowParallelResults(true)
-
-        // Gerar SQL com 3 modelos em paralelo
-        try {
-          await generateParallelSQL(currentSession.id, userMessage)
-          console.log('✅ Geração paralela concluída com sucesso')
-        } catch (parallelError) {
-          console.error('❌ Erro na geração paralela:', parallelError)
-          // Não lançar erro - os resultados já estão no estado do hook
-          // O preview mostrará os erros individuais de cada modelo
-        }
-
-      } else {
-        // Modo normal - usar apenas 1 modelo
-        await sendMessage(userMessage)
-      }
+      console.log(settings.useParallelMode
+        ? '🚀 Mensagem enviada - modo paralelo ativado'
+        : '📤 Mensagem enviada - modo normal')
     } catch (error) {
       console.error('❌ Erro no handleSendMessage:', error)
       const userFriendlyMessage = handleError(error, 'message_send')
@@ -159,43 +164,25 @@ export function ChatInterface() {
         tipo: 'error',
         conteudo: userFriendlyMessage
       })
-      setShowParallelResults(false)
     }
   }
 
   const handleSelectParallelResult = async (result: any) => {
     console.log('✅ Resultado selecionado:', result.provider)
-    console.log('📊 Dados do resultado:', {
-      hasData: !!result.data,
-      dataLength: result.data?.length,
-      rowCount: result.rowCount,
-      executionTime: result.executionTime,
-      firstRow: result.data?.[0],
-      columns: result.columns
-    })
 
     // Ocultar preview
     setShowParallelResults(false)
 
     // Converter data (array de objetos) para rows (array de arrays)
-    // Backend retorna: [{col1: val1, col2: val2}]
-    // Frontend precisa: [[val1, val2]] + columns: ['col1', 'col2']
     const columns = result.columns || []
     const rows = result.data && result.data.length > 0
       ? result.data.map((obj: any) => columns.map((col: string) => obj[col]))
       : []
 
-    console.log('🔄 Dados convertidos:', {
-      columns,
-      rowsLength: rows.length,
-      firstRow: rows[0]
-    })
-
-    // Adicionar mensagem temporária (será atualizada com o resumo)
-    const tempMessage = {
+    // Adicionar mensagem com o resultado selecionado
+    addMessage({
       tipo: 'assistant' as const,
       conteudo: result.explanation || `SQL gerado pelo ${result.provider}`,
-      sql: result.sql,
       sqlQuery: result.sql,
       explanation: result.explanation,
       queryResult: {
@@ -205,51 +192,7 @@ export function ChatInterface() {
         rowCount: result.rowCount || 0,
         executionTime: result.executionTime || 0
       }
-    }
-
-    addMessage(tempMessage)
-
-    // Gerar resumo analítico em background (se houver dados)
-    if (result.executionSuccess && result.data && result.data.length > 0) {
-      try {
-        console.log('🔄 Gerando resumo analítico dos resultados...')
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/generate-summary`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sql: result.sql,
-            result: {
-              success: true,
-              rows,
-              columns,
-              rowCount: result.rowCount,
-              executionTime: result.executionTime
-            },
-            originalPrompt: inputValue // Usar a pergunta original do usuário
-          })
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.reverseTranslation) {
-            console.log('✅ Resumo analítico gerado:', data.reverseTranslation.substring(0, 100) + '...')
-
-            // Atualizar a última mensagem com o resumo
-            const { updateMessage } = useAppStore.getState()
-            const lastMessage = useAppStore.getState().currentSession?.mensagens.slice(-1)[0]
-
-            if (lastMessage) {
-              updateMessage(lastMessage.id, {
-                reverseTranslation: data.reverseTranslation
-              })
-            }
-          }
-        }
-      } catch (error) {
-        console.error('❌ Erro ao gerar resumo:', error)
-        // Não bloquear o fluxo se falhar
-      }
-    }
+    })
   }
 
   const handleCardClick = async (question: string) => {
@@ -461,7 +404,8 @@ export function ChatInterface() {
                   onSelectResult={handleSelectParallelResult}
                   onClose={() => {
                     setShowParallelResults(false)
-                    resetParallelSQL()
+                    setParallelResults([])
+                    setIsParallelLoading(false)
                   }}
                 />
               )}

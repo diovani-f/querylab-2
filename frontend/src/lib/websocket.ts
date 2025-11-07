@@ -55,7 +55,7 @@ class WebSocketService {
     }
   }
 
-  sendMessage(request: ChatRequest) {
+  sendMessage(request: ChatRequest & { useParallelMode?: boolean }) {
     if (!this.socket) {
       throw new Error('WebSocket não conectado')
     }
@@ -69,6 +69,10 @@ class WebSocketService {
 
   onMessageProcessing(callback: (status: string) => void) {
     this.socket?.on('message-processing', callback)
+  }
+
+  onSQLParallelGenerating(callback: (data: { status: string, results?: any[] }) => void) {
+    this.socket?.on('sql-parallel-generating', callback)
   }
 
   onMessageUpdated(callback: (message: Message) => void) {

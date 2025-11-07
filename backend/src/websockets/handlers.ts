@@ -13,9 +13,18 @@ export function setupWebSocketHandlers(io: Server) {
     })
 
     // Processar mensagem de chat
-    socket.on('send-message', async (data: ChatRequest & { userId?: string, autoExecuteSQL?: boolean }) => {
+    socket.on('send-message', async (data: ChatRequest & { userId?: string, autoExecuteSQL?: boolean, useParallelMode?: boolean }) => {
       try {
-        const { sessionId, message, model, userId, autoExecuteSQL } = data
+        const { sessionId, message, model, userId, autoExecuteSQL, useParallelMode } = data
+
+        console.log('📨 Mensagem recebida via WebSocket:', {
+          sessionId,
+          message: message.substring(0, 50) + '...',
+          model,
+          userId,
+          autoExecuteSQL,
+          useParallelMode
+        })
 
         // Notificar que a mensagem está sendo processada
         socket.to(sessionId).emit('message-processing', 'Processando sua consulta...')
@@ -26,7 +35,10 @@ export function setupWebSocketHandlers(io: Server) {
           message,
           model,
           userId,
-          autoExecuteSQL: autoExecuteSQL !== undefined ? autoExecuteSQL : true // Default true
+          autoExecuteSQL: autoExecuteSQL !== undefined ? autoExecuteSQL : true, // Default true
+          useParallelMode,
+          io, // Passar io para emitir eventos durante processamento
+          socketSessionId: sessionId // ID da sessão para emitir eventos
         })
 
         if (!result.success) {

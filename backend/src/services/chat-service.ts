@@ -7,6 +7,7 @@ import { SQLGenerationService } from './sql-generation-service'
 import { PrismaClient } from '@prisma/client'
 import { Mensagem, Sessao as PrismaSessao, LLMModel as PrismaLLMModel } from '@prisma/client'
 import { SessionService } from './session-service'
+import { Server } from 'socket.io'
 
 const prisma = new PrismaClient()
 
@@ -85,6 +86,9 @@ export class ChatService {
     model: string
     userId?: string
     autoExecuteSQL?: boolean
+    useParallelMode?: boolean
+    io?: Server
+    socketSessionId?: string
   }): Promise<{
     success: boolean
     userMessage?: Message
@@ -93,7 +97,7 @@ export class ChatService {
     error?: string
   }> {
     try {
-      const { sessionId, message, model, userId } = params
+      const { sessionId, message, model, userId, useParallelMode, io, socketSessionId } = params
 
       // Verificar se a sessão existe no banco de dados
       let sessionData = await this.sessionService.getSession(sessionId)
@@ -123,7 +127,17 @@ export class ChatService {
       const userMessage = mapMessage(userMessageData)
 
       // Processar mensagem usando assistente educacional
-      return await this.classifyAndProcess(sessionId, message, userMessage, session, model, params.autoExecuteSQL)
+      return await this.classifyAndProcess(
+        sessionId,
+        message,
+        userMessage,
+        session,
+        model,
+        params.autoExecuteSQL,
+        useParallelMode,
+        io,
+        socketSessionId
+      )
 
     } catch (error) {
       console.error('❌ Erro ao processar mensagem:', error)
@@ -173,7 +187,10 @@ ${contextLines.join('\n')}
     userMessage: Message,
     session: ChatSession,
     selectedModel: string,
-    autoExecuteSQL?: boolean
+    autoExecuteSQL?: boolean,
+    useParallelMode?: boolean,
+    io?: Server,
+    socketSessionId?: string
   ): Promise<{
     success: boolean
     userMessage?: Message
@@ -182,6 +199,16 @@ ${contextLines.join('\n')}
     error?: string
   }> {
     try {
+      console.log('🔍 classifyAndProcess chamado com:', {
+        sessionId,
+        message: message.substring(0, 50) + '...',
+        selectedModel,
+        autoExecuteSQL,
+        useParallelMode,
+        hasIO: !!io,
+        socketSessionId
+      })
+
       // Construir contexto da conversa
       const conversationContext = this.buildConversationContext(session.mensagens)
 
@@ -232,8 +259,20 @@ RESPOSTA:`
       }
 
       if (response.includes('SQL_QUERY')) {
-        // É uma consulta SQL - usar novo SQLGenerationService
-        return await this.processSQLQueryRefactored(sessionId, message, userMessage, session, selectedModel, autoExecuteSQL)
+        console.log('🔍 SQL_QUERY detectado! Verificando modo paralelo:', {
+          useParallelMode,
+          hasIO: !!io,
+          socketSessionId
+        })
+
+        // É uma consulta SQL - verificar se deve usar modo paralelo
+        if (useParallelMode && io && socketSessionId) {
+          console.log('🚀 Usando MODO PARALELO para gerar SQL')
+          return await this.processSQLQueryParallel(sessionId, message, userMessage, session, selectedModel, autoExecuteSQL, io, socketSessionId)
+        } else {
+          console.log('📝 Usando modo NORMAL para gerar SQL')
+          return await this.processSQLQueryRefactored(sessionId, message, userMessage, session, selectedModel, autoExecuteSQL)
+        }
       } else if (response.includes('SCHEMA_INFO')) {
         // É uma pergunta sobre schema - retornar informações das tabelas
         return await this.processSchemaInfo(sessionId, message, userMessage, session)
@@ -387,6 +426,90 @@ RESPOSTA:`
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erro no processamento SQL',
+        userMessage
+      }
+    }
+  }
+
+  /**
+   * Processa consultas SQL em modo paralelo (3 IAs)
+   */
+  private async processSQLQueryParallel(
+    sessionId: string,
+    question: string,
+    userMessage: Message,
+    session: ChatSession,
+    selectedModel: string,
+    autoExecuteSQL?: boolean,
+    io?: Server,
+    socketSessionId?: string
+  ): Promise<{
+    success: boolean
+    userMessage?: Message
+    assistantMessage?: Message
+    session?: ChatSession
+    error?: string
+  }> {
+    try {
+      console.log(`🚀 Processando SQL Query em MODO PARALELO (3 IAs)`)
+
+      // Emitir evento informando que está gerando em paralelo
+      if (io && socketSessionId) {
+        io.to(socketSessionId).emit('sql-parallel-generating', {
+          status: 'Gerando SQL com 3 modelos de IA simultaneamente...'
+        })
+      }
+
+      // Usar o SQLGenerationService para gerar em paralelo
+      const parallelResult = await this.sqlGenerationService.generateSQLParallel({
+        question,
+        model: 'parallel', // Não usado, mas necessário para a interface
+        sessionId,
+        conversationHistory: session.mensagens
+      })
+
+      // Emitir resultados parciais via WebSocket
+      if (io && socketSessionId && parallelResult.results) {
+        io.to(socketSessionId).emit('sql-parallel-generating', {
+          status: 'Resultados obtidos',
+          results: parallelResult.results
+        })
+      }
+
+      if (!parallelResult.success || !parallelResult.bestResult) {
+        // Tentar obter erro de algum resultado
+        const errorMsg = parallelResult.results?.find(r => r.error)?.error || 'Nenhum resultado válido'
+
+        const errorMessageData = await this.addMessage(sessionId, {
+          type: 'assistant',
+          content: `Não foi possível gerar a consulta SQL: ${errorMsg}`
+        })
+
+        return {
+          success: false,
+          error: errorMsg,
+          userMessage,
+          assistantMessage: mapMessage(errorMessageData)
+        }
+      }
+
+      console.log(`✅ Resultados paralelos enviados ao frontend. Aguardando seleção do usuário.`)
+
+      // NO MODO PARALELO: NÃO salvar mensagem ainda!
+      // O frontend vai mostrar o preview e quando o usuário selecionar
+      // um resultado, ele vai chamar um endpoint específico para salvar
+      return {
+        success: true,
+        userMessage,
+        // NÃO retornar assistantMessage - isso evita que o WebSocket envie a mensagem
+        session
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao processar SQL em modo paralelo:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro no processamento SQL paralelo',
         userMessage
       }
     }

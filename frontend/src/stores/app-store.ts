@@ -486,23 +486,45 @@ export const useAppStore = create<AppStore>()(
 
           // 3. TERCEIRO: Obter configurações do usuário do localStorage
           let autoExecuteSQL = true // Default
+          let useParallelMode = false // Default
+
           try {
             const settingsStr = localStorage.getItem('querylab-user-settings')
+
             if (settingsStr) {
               const settings = JSON.parse(settingsStr)
               autoExecuteSQL = settings.autoExecuteSQL !== false
+              useParallelMode = settings.useParallelMode === true
+
+              console.log('⚙️ Configurações lidas do localStorage:', {
+                autoExecuteSQL,
+                useParallelMode,
+                rawSettings: settings
+              })
+            } else {
+              console.warn('⚠️ Nenhuma configuração encontrada no localStorage')
             }
           } catch (error) {
             console.warn('Erro ao ler configurações do usuário:', error)
           }
 
-          // 4. QUARTO: Enviar via WebSocket para processar resposta
+          console.log('📤 Enviando mensagem via WebSocket:', {
+            sessionId: state.currentSession.id,
+            message: content.substring(0, 50) + '...',
+            model: state.selectedModel.id,
+            userId,
+            autoExecuteSQL,
+            useParallelMode
+          })
+
+          // 5. QUINTO: Enviar via WebSocket para processar resposta
           websocketService.sendMessage({
             sessionId: state.currentSession.id,
             message: content,
             model: state.selectedModel.id,
             userId: userId,
-            autoExecuteSQL
+            autoExecuteSQL,
+            useParallelMode
           } as any)
         } catch (error) {
           console.error('Erro ao enviar mensagem:', error)
@@ -630,6 +652,11 @@ export const useAppStore = create<AppStore>()(
 
         websocketService.onQueryExecuting(() => {
           // Query sendo executada - pode adicionar indicador se necessário
+        })
+
+        websocketService.onSQLParallelGenerating((data: { status: string, results?: any[] }) => {
+          console.log('🚀 SQL Paralelo sendo gerado:', data)
+          // O preview é gerenciado diretamente no chat-interface.tsx
         })
 
         websocketService.onQueryError((error: string) => {

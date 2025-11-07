@@ -162,7 +162,7 @@ export interface ChatResponse {
 export interface WebSocketEvents {
   // Client to Server
   'join-session': (sessionId: string) => void
-  'send-message': (data: ChatRequest) => void
+  'send-message': (data: ChatRequest & { useParallelMode?: boolean }) => void
   'execute-query': (data: { messageId: string, sessionId: string }) => void
   'disconnect-session': (sessionId: string) => void
 
@@ -170,6 +170,7 @@ export interface WebSocketEvents {
   'message-received': (message: Message) => void
   'message-updated': (message: Message) => void
   'message-processing': (status: string) => void
+  'sql-parallel-generating': (data: { status: string, results?: any[] }) => void
   'query-executing': (status: string) => void
   'query-error': (error: string) => void
   'session-joined': (sessionId: string) => void
