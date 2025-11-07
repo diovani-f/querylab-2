@@ -48,6 +48,157 @@ export class CloudflareAIService {
   }
 
   /**
+   * Usa Gemini para criar um prompt otimizado para SQLCoder
+   * Analisa a pergunta, identifica tabelas relevantes e gera schema mínimo + instruções precisas
+   */
+  async optimizePromptForSQLCoder(question: string, fullSchema: string): Promise<{
+    success: boolean
+    optimizedPrompt?: string
+    error?: string
+    reasoning?: string
+  }> {
+    try {
+      console.log('🧠 Usando Gemini para otimizar prompt para SQLCoder...')
+
+      const geminiPrompt = `
+Você é um especialista em otimização de prompts para modelos SQL especializados.
+
+TAREFA: Analise a pergunta do usuário e crie um prompt ULTRA-COMPACTO para o modelo SQLCoder-7B.
+
+PERGUNTA DO USUÁRIO: ${question}
+
+SCHEMA COMPLETO DISPONÍVEL:
+${fullSchema}
+
+INSTRUÇÕES:
+1. Identifique APENAS as 1-3 tabelas essenciais para responder a pergunta
+2. Para cada tabela, liste APENAS as colunas que serão usadas (máximo 5-8 colunas por tabela)
+3. **CRÍTICO**: Use EXATAMENTE os nomes de colunas do schema fornecido - NÃO invente, NÃO abrevie, NÃO modifique
+4. Inclua AVISOS EXPLÍCITOS sobre colunas que NÃO existem mas que o modelo pode tentar usar
+5. Gere um exemplo de SQL correto similar à pergunta usando os nomes EXATOS das colunas
+
+REGRAS CRÍTICAS SOBRE NOMES DE COLUNAS (USE EXATAMENTE ESTES NOMES):
+- emec_instituicoes: co_ies (INT), no_ies (TEXT), no_municipio (TEXT), sg_uf (CHAR)
+- censo_cursos: cod_curso (INT), nome_curso (VARCHAR), cod_ies (INT), cod_municipio (CHAR)
+- municipios_ibge: cod_ibge (CHAR), nome_municipio (VARCHAR)
+- uf_ibge: uf_ibge (CHAR PK), nome_uf_ibge (VARCHAR), cod_regiao_ibge (INT)
+
+COLUNAS QUE NÃO EXISTEM (NÃO USE):
+- ❌ emec_instituicoes.co_municipio (use no_municipio)
+- ❌ censo_cursos.co_ies (use cod_ies)
+- ❌ censo_cursos.no_curso (use nome_curso)
+- ❌ censo_cursos.co_curso (use cod_curso)
+- ❌ municipios_ibge.no_municipio (use nome_municipio)
+
+JOINS CORRETOS:
+- emec_instituicoes.co_ies = censo_cursos.cod_ies
+- emec_instituicoes.sg_uf = uf_ibge.uf_ibge
+- NUNCA faça JOIN entre emec_instituicoes e municipios_ibge (não há coluna comum!)
+
+FORMATO DE SAÍDA (seja EXTREMAMENTE conciso):
+---
+### Task
+Generate SQL for: [reformule a pergunta em inglês, 1 linha]
+
+### Schema (only relevant tables)
+inep.emec_instituicoes: co_ies:int, no_ies:text, no_municipio:text, sg_uf:char
+inep.censo_cursos: cod_curso:int, nome_curso:varchar, cod_ies:int
+
+### Critical Rules
+- USE EXACTLY: cod_ies (NOT co_ies), nome_curso (NOT no_curso), cod_curso (NOT co_curso)
+- JOIN: emec_instituicoes.co_ies = censo_cursos.cod_ies
+- For city search: WHERE no_municipio ILIKE '%city%'
+- NEVER use: co_municipio, no_curso, co_curso
+
+### Example
+SELECT COUNT(DISTINCT c.cod_curso)
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE e.sg_uf = 'SP' AND c.nome_curso ILIKE '%Administração%'
+LIMIT 100
+
+### SQL Query
+---
+
+Retorne APENAS o conteúdo entre as linhas ---, sem explicações adicionais.
+`
+
+      const result = await this.geminiService.generateResponse({
+        prompt: geminiPrompt,
+        model: 'gemini-2.5-flash-lite',
+        context: { conversationHistory: [] }
+      })
+
+      if (!result.success) {
+        console.log('⚠️ Gemini falhou na otimização, usando fallback...')
+        return this.fallbackOptimization(question, fullSchema)
+      }
+
+      const optimizedPrompt = result.content?.trim() || ''
+
+      console.log('✅ Prompt otimizado gerado pelo Gemini')
+      console.log('📏 Tamanho do prompt otimizado:', optimizedPrompt.length, 'bytes')
+      console.log('📊 Redução:', Math.round((1 - optimizedPrompt.length / fullSchema.length) * 100), '%')
+
+      return {
+        success: true,
+        optimizedPrompt,
+        reasoning: `Prompt otimizado pelo Gemini (${result.model}) com ${Math.round((1 - optimizedPrompt.length / fullSchema.length) * 100)}% de redução`
+      }
+
+    } catch (error) {
+      console.error('❌ Erro na otimização com Gemini:', error)
+      return this.fallbackOptimization(question, fullSchema)
+    }
+  }
+
+  /**
+   * Fallback: cria prompt otimizado manualmente
+   */
+  private fallbackOptimization(question: string, fullSchema: string): {
+    success: boolean
+    optimizedPrompt?: string
+    error?: string
+  } {
+    console.log('⚠️ Usando otimização manual de fallback...')
+
+    // Criar versão ultra-compacta do schema
+    const compactSchema = this.truncateSchemaForLLM(fullSchema)
+
+    const optimizedPrompt = `
+### Task
+Generate SQL for: ${question}
+
+### Schema
+${compactSchema}
+
+### Critical Rules
+- USE EXACTLY: cod_ies (NOT co_ies), nome_curso (NOT no_curso), cod_curso (NOT co_curso)
+- emec_instituicoes: co_ies, no_ies, no_municipio, sg_uf
+- censo_cursos: cod_curso, nome_curso, cod_ies
+- municipios_ibge: cod_ibge, nome_municipio
+- JOIN: emec_instituicoes.co_ies = censo_cursos.cod_ies
+- For city search: WHERE no_municipio ILIKE '%city%'
+- NEVER use: co_municipio, no_curso, co_curso, no_municipio in municipios_ibge
+- NEVER JOIN emec_instituicoes with municipios_ibge (no common column!)
+
+### Example
+SELECT COUNT(DISTINCT c.cod_curso)
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE e.sg_uf = 'SP' AND c.nome_curso ILIKE '%Administração%'
+LIMIT 100
+
+### SQL Query
+`
+
+    return {
+      success: true,
+      optimizedPrompt
+    }
+  }
+
+  /**
    * Reduz schema de forma inteligente usando Gemini AI
    * Envia o schema completo para o Gemini e pede uma versão reduzida otimizada para Cloudflare
    */
@@ -377,36 +528,24 @@ SCHEMA REDUZIDO:
     const startTime = Date.now()
 
     try {
-      // Primeiro, reduzir o schema
-      const schemaReduction = await this.reduceSchema(question, fullSchema)
+      // Usar Gemini para otimizar o prompt especificamente para SQLCoder
+      console.log('🎯 Otimizando prompt para SQLCoder com Gemini...')
+      const optimization = await this.optimizePromptForSQLCoder(question, fullSchema)
 
-      if (!schemaReduction.success) {
+      if (!optimization.success) {
         return {
           success: false,
-          error: `Erro ao reduzir schema: ${schemaReduction.error}`,
+          error: `Erro ao otimizar prompt: ${optimization.error}`,
           processingTime: Date.now() - startTime
         }
       }
 
-      // Construir prompt para o sqlcoder
-      const prompt = `
-### Task
-Generate a SQL query to answer this question: ${question}
+      // Usar o prompt otimizado pelo Gemini
+      const prompt = optimization.optimizedPrompt!
 
-### Database Schema
-${schemaReduction.reducedSchema}
+      console.log('📝 Prompt otimizado para SQLCoder:', prompt.substring(0, 200) + '...')
 
-### Important Rules
-- Return ONLY clean SQL code without semicolon at the end
-- ALWAYS prefix table names with "inep." (e.g., inep.censo_cursos, inep.censo_modalidades_ensino)
-- ALWAYS add LIMIT 100 to SELECT * queries to prevent database overload
-- Use LIMIT 50 for complex queries with JOINs
-- Optimize for performance and safety
-
-### SQL Query
-`
-
-      // Chamar o Cloudflare AI
+      // Chamar o Cloudflare AI com o prompt otimizado
       const sqlResponse = await this.generateSQL({ prompt })
 
       if (!sqlResponse.success) {
@@ -423,7 +562,7 @@ ${schemaReduction.reducedSchema}
       return {
         success: true,
         sql,
-        reducedSchema: schemaReduction.reducedSchema,
+        reducedSchema: optimization.optimizedPrompt,
         processingTime: Date.now() - startTime
       }
 
@@ -442,32 +581,41 @@ ${schemaReduction.reducedSchema}
   public extractSQL(response: string): string {
     console.log('🔍 Extraindo SQL da resposta:', response)
 
+    let extracted = ''
+
     // Procurar por blocos SQL
     const sqlBlockMatch = response.match(/```sql\s*([\s\S]*?)\s*```/i)
     if (sqlBlockMatch) {
-      const extracted = sqlBlockMatch[1].trim()
+      extracted = sqlBlockMatch[1].trim()
       console.log('✅ SQL extraído de bloco:', extracted)
-      return extracted
     }
-
     // Procurar por SELECT, INSERT, UPDATE, DELETE no início de linhas (multiline)
-    const sqlMatch = response.match(/^\s*(SELECT|INSERT|UPDATE|DELETE|WITH)[\s\S]*$/im)
-    if (sqlMatch) {
-      const extracted = sqlMatch[0].trim()
-      console.log('✅ SQL extraído por regex:', extracted)
-      return extracted
+    else {
+      const sqlMatch = response.match(/^\s*(SELECT|INSERT|UPDATE|DELETE|WITH)[\s\S]*$/im)
+      if (sqlMatch) {
+        extracted = sqlMatch[0].trim()
+        console.log('✅ SQL extraído por regex:', extracted)
+      }
+      // Procurar por SQL em qualquer lugar da resposta (mais flexível)
+      else {
+        const flexibleSqlMatch = response.match(/(SELECT|INSERT|UPDATE|DELETE|WITH)[\s\S]*?(?=\n\n|\n[A-Z]|$)/i)
+        if (flexibleSqlMatch) {
+          extracted = flexibleSqlMatch[0].trim()
+          console.log('✅ SQL extraído flexível:', extracted)
+        } else {
+          console.log('⚠️ Usando fallback - resposta completa:', response.trim())
+          extracted = response.trim()
+        }
+      }
     }
 
-    // Procurar por SQL em qualquer lugar da resposta (mais flexível)
-    const flexibleSqlMatch = response.match(/(SELECT|INSERT|UPDATE|DELETE|WITH)[\s\S]*?(?=\n\n|\n[A-Z]|$)/i)
-    if (flexibleSqlMatch) {
-      const extracted = flexibleSqlMatch[0].trim()
-      console.log('✅ SQL extraído flexível:', extracted)
-      return extracted
-    }
+    // Limpar o SQL: remover ponto e vírgula antes de LIMIT, ORDER BY, etc.
+    extracted = extracted
+      .replace(/;\s*(LIMIT|ORDER BY|GROUP BY|HAVING)/gi, ' $1')  // Remove ; antes de cláusulas
+      .replace(/;\s*$/, '')  // Remove ; no final
+      .trim()
 
-    // Fallback: retornar a resposta limpa
-    console.log('⚠️ Usando fallback - resposta completa:', response.trim())
-    return response.trim()
+    console.log('🧹 SQL limpo:', extracted)
+    return extracted
   }
 }

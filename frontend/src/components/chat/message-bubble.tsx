@@ -37,6 +37,19 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
   const [executionStatus, setExecutionStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [isCopied, setIsCopied] = useState(false)
 
+  // Log para debug
+  console.log('🔍 MessageBubble renderizando:', {
+    messageId: messageData.id,
+    tipo: messageData.tipo,
+    hasSql: !!messageData.sql,
+    hasSqlQuery: !!messageData.sqlQuery,
+    hasQueryResult: !!messageData.queryResult,
+    queryResultSuccess: messageData.queryResult?.success,
+    hasRows: !!messageData.queryResult?.rows,
+    rowsLength: messageData.queryResult?.rows?.length,
+    rowCount: messageData.queryResult?.rowCount
+  })
+
   const getIcon = useCallback((type: Message['tipo']) => {
     switch (type) {
       case 'user':

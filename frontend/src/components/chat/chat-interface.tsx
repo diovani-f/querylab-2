@@ -10,18 +10,23 @@ import { Send, MessageSquare, ArrowLeft } from "lucide-react"
 import { MessageBubble } from "./message-bubble"
 import { TypingIndicator, SQLExecutionIndicator } from "./typing-indicator"
 import { MessageSearch } from "./message-search"
+import { ParallelSQLDialog } from "./parallel-sql-dialog"
+import { ParallelResultsPreview } from "./parallel-results-preview"
 import { websocketService } from "@/lib/websocket"
 import { PulseLoader } from "react-spinners"
 import { useUserSettings } from "@/hooks/use-user-settings"
 import { useErrorHandler } from "@/lib/error-handler"
+import { useParallelSQL } from "@/hooks/use-parallel-sql"
 
 export function ChatInterface() {
   const [inputValue, setInputValue] = useState("")
   const [isHydrated, setIsHydrated] = useState(false)
+  const [showParallelResults, setShowParallelResults] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { settings } = useUserSettings()
   const { handleError } = useErrorHandler()
+  const { generateParallelSQL, results: parallelResults, isLoading: isParallelLoading, reset: resetParallelSQL } = useParallelSQL()
 
   const {
     isProcessing,
@@ -100,6 +105,13 @@ export function ChatInterface() {
     }
   }, [currentSession])
 
+  // Limpar resultados paralelos ao trocar de sessão
+  useEffect(() => {
+    // Resetar estado de resultados paralelos
+    setShowParallelResults(false)
+    resetParallelSQL()
+  }, [currentSession?.id, resetParallelSQL])
+
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return
 
@@ -113,13 +125,130 @@ export function ChatInterface() {
     setInputValue("")
 
     try {
-      await sendMessage(userMessage)
+      // Se modo paralelo está ativado, usar geração paralela
+      if (settings.useParallelMode) {
+        console.log('🚀 Modo paralelo ativado - gerando com 3 IAs...')
+
+        // Adicionar mensagem do usuário
+        addMessage({
+          tipo: 'user',
+          conteudo: userMessage
+        })
+
+        // Mostrar preview dos resultados paralelos
+        setShowParallelResults(true)
+
+        // Gerar SQL com 3 modelos em paralelo
+        try {
+          await generateParallelSQL(currentSession.id, userMessage)
+          console.log('✅ Geração paralela concluída com sucesso')
+        } catch (parallelError) {
+          console.error('❌ Erro na geração paralela:', parallelError)
+          // Não lançar erro - os resultados já estão no estado do hook
+          // O preview mostrará os erros individuais de cada modelo
+        }
+
+      } else {
+        // Modo normal - usar apenas 1 modelo
+        await sendMessage(userMessage)
+      }
     } catch (error) {
+      console.error('❌ Erro no handleSendMessage:', error)
       const userFriendlyMessage = handleError(error, 'message_send')
       addMessage({
         tipo: 'error',
         conteudo: userFriendlyMessage
       })
+      setShowParallelResults(false)
+    }
+  }
+
+  const handleSelectParallelResult = async (result: any) => {
+    console.log('✅ Resultado selecionado:', result.provider)
+    console.log('📊 Dados do resultado:', {
+      hasData: !!result.data,
+      dataLength: result.data?.length,
+      rowCount: result.rowCount,
+      executionTime: result.executionTime,
+      firstRow: result.data?.[0],
+      columns: result.columns
+    })
+
+    // Ocultar preview
+    setShowParallelResults(false)
+
+    // Converter data (array de objetos) para rows (array de arrays)
+    // Backend retorna: [{col1: val1, col2: val2}]
+    // Frontend precisa: [[val1, val2]] + columns: ['col1', 'col2']
+    const columns = result.columns || []
+    const rows = result.data && result.data.length > 0
+      ? result.data.map((obj: any) => columns.map((col: string) => obj[col]))
+      : []
+
+    console.log('🔄 Dados convertidos:', {
+      columns,
+      rowsLength: rows.length,
+      firstRow: rows[0]
+    })
+
+    // Adicionar mensagem temporária (será atualizada com o resumo)
+    const tempMessage = {
+      tipo: 'assistant' as const,
+      conteudo: result.explanation || `SQL gerado pelo ${result.provider}`,
+      sql: result.sql,
+      sqlQuery: result.sql,
+      explanation: result.explanation,
+      queryResult: {
+        success: true,
+        rows,
+        columns,
+        rowCount: result.rowCount || 0,
+        executionTime: result.executionTime || 0
+      }
+    }
+
+    addMessage(tempMessage)
+
+    // Gerar resumo analítico em background (se houver dados)
+    if (result.executionSuccess && result.data && result.data.length > 0) {
+      try {
+        console.log('🔄 Gerando resumo analítico dos resultados...')
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/generate-summary`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sql: result.sql,
+            result: {
+              success: true,
+              rows,
+              columns,
+              rowCount: result.rowCount,
+              executionTime: result.executionTime
+            },
+            originalPrompt: inputValue // Usar a pergunta original do usuário
+          })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.reverseTranslation) {
+            console.log('✅ Resumo analítico gerado:', data.reverseTranslation.substring(0, 100) + '...')
+
+            // Atualizar a última mensagem com o resumo
+            const { updateMessage } = useAppStore.getState()
+            const lastMessage = useAppStore.getState().currentSession?.mensagens.slice(-1)[0]
+
+            if (lastMessage) {
+              updateMessage(lastMessage.id, {
+                reverseTranslation: data.reverseTranslation
+              })
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erro ao gerar resumo:', error)
+        // Não bloquear o fluxo se falhar
+      }
     }
   }
 
@@ -312,8 +441,31 @@ export function ChatInterface() {
             ))
           )}
 
-          {isProcessing && (
+          {isProcessing && !showParallelResults && (
             <TypingIndicator />
+          )}
+
+          {/* Preview de Resultados Paralelos */}
+          {showParallelResults && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {isParallelLoading && parallelResults.length === 0 ? (
+                <div className="text-center py-8">
+                  <SQLExecutionIndicator />
+                  <p className="text-muted-foreground mt-4">
+                    Gerando SQL com 3 modelos simultaneamente...
+                  </p>
+                </div>
+              ) : (
+                <ParallelResultsPreview
+                  results={parallelResults}
+                  onSelectResult={handleSelectParallelResult}
+                  onClose={() => {
+                    setShowParallelResults(false)
+                    resetParallelSQL()
+                  }}
+                />
+              )}
+            </div>
           )}
 
           {/* Elemento invisível para scroll automático */}
@@ -323,7 +475,20 @@ export function ChatInterface() {
 
       {/* Input de Mensagem */}
       <div className="border-t p-2 sm:p-4">
-        <div className="w-full">
+        <div className="w-full space-y-2">
+          {/* Botão de Modo Paralelo - DESATIVADO TEMPORARIAMENTE (experimental) */}
+          {false && inputValue.trim() && !isProcessing && !isCreatingSession && (
+            <div className="flex justify-end">
+              <ParallelSQLDialog
+                question={inputValue}
+                onSelectSQL={(sql, provider) => {
+                  console.log(`SQL selecionado do ${provider}:`, sql)
+                  // Aqui você pode adicionar lógica para usar o SQL selecionado
+                }}
+              />
+            </div>
+          )}
+
           <div className="flex items-end space-x-2">
             <Textarea
               value={inputValue}

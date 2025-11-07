@@ -88,6 +88,56 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
+        {/* Configurações de IA */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Geração de SQL com IA
+              {settings.useParallelMode && (
+                <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-800">
+                  Modo Paralelo
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription>
+              Configure como a IA gera consultas SQL
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="parallel-mode" className="text-sm font-medium">
+                  Modo Paralelo (3 IAs)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Gera SQL com 3 modelos simultaneamente (Gemini, Groq, Cloudflare) para comparação
+                </p>
+              </div>
+              <Switch
+                id="parallel-mode"
+                checked={settings.useParallelMode}
+                onCheckedChange={(checked) => updateSettings({ useParallelMode: checked })}
+              />
+            </div>
+
+            {settings.useParallelMode && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Zap className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-yellow-900">Modo Paralelo Ativo</h4>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Todas as consultas serão geradas por 3 modelos de IA diferentes simultaneamente.
+                      Você poderá comparar os resultados e escolher o melhor SQL.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Configurações de Desenvolvimento */}
         <Card>
           <CardHeader>
@@ -145,7 +195,7 @@ export default function ProfilePage() {
                   <div>
                     <h4 className="text-sm font-medium text-blue-900">Modo Desenvolvedor Ativo</h4>
                     <p className="text-sm text-blue-700 mt-1">
-                      Você terá controle total sobre quando executar as consultas SQL. 
+                      Você terá controle total sobre quando executar as consultas SQL.
                       Isso é útil para revisar e validar o SQL antes da execução.
                     </p>
                   </div>
@@ -160,7 +210,7 @@ export default function ProfilePage() {
                   <div>
                     <h4 className="text-sm font-medium text-green-900">Modo Automático Ativo</h4>
                     <p className="text-sm text-green-700 mt-1">
-                      As consultas SQL serão geradas e executadas automaticamente, 
+                      As consultas SQL serão geradas e executadas automaticamente,
                       proporcionando uma experiência mais fluida.
                     </p>
                   </div>

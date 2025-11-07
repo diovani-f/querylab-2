@@ -3,12 +3,14 @@ import { ChatRequest, ChatResponse } from '../types'
 import { ChatService } from '../services/chat-service'
 import { SessionService } from '../services/session-service'
 import { LLMService } from '../services/llm-service'
+import { SQLGenerationService } from '../services/sql-generation-service'
 
 const router = Router()
 
 // Instâncias dos serviços
 const chatService = ChatService.getInstance()
 const sessionService = SessionService.getInstance()
+const sqlGenerationService = SQLGenerationService.getInstance()
 
 router.post('/message', async (req, res) => {
   try {
@@ -127,6 +129,100 @@ router.patch('/execute', async(req, res) => {
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
+    })
+  }
+})
+
+// Endpoint para geração paralela de SQL com 3 modelos
+router.post('/generate-sql-parallel', async (req, res) => {
+  try {
+    const { sessionId, question } = req.body
+
+    if (!sessionId || !question) {
+      return res.status(400).json({
+        success: false,
+        error: 'sessionId e question são obrigatórios'
+      })
+    }
+
+    // Obter histórico da sessão
+    const session = await sessionService.getSession(sessionId)
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Sessão não encontrada'
+      })
+    }
+
+    const conversationHistory = session.mensagens || []
+
+    // Gerar SQL em paralelo
+    console.log('📡 Chamando generateSQLParallel...', { question, sessionId })
+    const result = await sqlGenerationService.generateSQLParallel({
+      question,
+      model: 'parallel', // Não usado, mas necessário para a interface
+      sessionId,
+      conversationHistory
+    })
+
+    console.log('📤 Retornando resultado:', {
+      success: result.success,
+      resultsCount: result.results?.length,
+      hasResults: !!result.results
+    })
+
+    res.json(result)
+
+  } catch (error) {
+    console.error('Erro ao gerar SQL paralelo:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+      results: []
+    })
+  }
+})
+
+// Endpoint para gerar resumo analítico (reverse translation)
+router.post('/generate-summary', async (req, res) => {
+  try {
+    const { sql, result, originalPrompt } = req.body
+
+    if (!sql || !result) {
+      return res.status(400).json({
+        success: false,
+        error: 'sql e result são obrigatórios'
+      })
+    }
+
+    console.log('🔄 Gerando resumo analítico...', {
+      hasSql: !!sql,
+      hasResult: !!result,
+      rowCount: result.rowCount
+    })
+
+    const llmService = LLMService.getInstance()
+
+    // Gerar reverse translation
+    const reverseTranslation = await llmService.generateReverseTranslation({
+      sql,
+      result,
+      originalPrompt: originalPrompt || 'Consulta SQL'
+    })
+
+    console.log('✅ Resumo analítico gerado:', reverseTranslation.substring(0, 100) + '...')
+
+    res.json({
+      success: true,
+      reverseTranslation
+    })
+
+  } catch (error) {
+    console.error('❌ Erro ao gerar resumo:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao gerar resumo analítico'
     })
   }
 })

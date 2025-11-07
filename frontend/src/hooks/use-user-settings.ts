@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 export interface UserSettings {
   developerMode: boolean
   autoExecuteSQL: boolean
+  useParallelMode: boolean
   theme: 'light' | 'dark' | 'system'
   defaultModel: string
 }
@@ -12,6 +13,7 @@ export interface UserSettings {
 const DEFAULT_SETTINGS: UserSettings = {
   developerMode: false,
   autoExecuteSQL: true,
+  useParallelMode: true, // Modo paralelo ATIVADO por padrão - gera com 3 IAs
   theme: 'system',
   defaultModel: 'groq-llama3-70b'
 }
@@ -41,7 +43,7 @@ export function useUserSettings() {
   const updateSettings = (newSettings: Partial<UserSettings>) => {
     const updatedSettings = { ...settings, ...newSettings }
     setSettings(updatedSettings)
-    
+
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSettings))
     } catch (error) {
@@ -61,7 +63,7 @@ export function useUserSettings() {
 
   // Alternar modo desenvolvedor
   const toggleDeveloperMode = () => {
-    updateSettings({ 
+    updateSettings({
       developerMode: !settings.developerMode,
       autoExecuteSQL: !settings.developerMode ? false : true // Se ativar dev mode, desativar auto-execute
     })

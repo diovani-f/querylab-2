@@ -32,6 +32,7 @@ interface AppStore extends AppState {
   setCurrentSession: (session: ChatSession | null) => void
   setSessions: (sessions: ChatSession[]) => void
   addMessage: (message: Partial<Message> & Pick<Message, 'tipo' | 'conteudo'>) => void
+  updateMessage: (messageId: string, updates: Partial<Message>) => void
   updateMessageEvaluation: (messageId: string, evaluation: QueryEvaluation) => void
   createNewSession: (title?: string) => Promise<void>
   updateSessionTitle: (sessionId: string, title: string) => void
@@ -132,6 +133,33 @@ export const useAppStore = create<AppStore>()(
           const updatedSession = {
             ...state.currentSession,
             mensagens: [...state.currentSession.mensagens, message],
+            updatedAt: new Date()
+          }
+
+          const updatedSessions = state.sessions.map(session =>
+            session.id === updatedSession.id ? updatedSession : session
+          )
+
+          return {
+            currentSession: updatedSession,
+            sessions: updatedSessions
+          }
+        })
+      },
+
+      updateMessage: (messageId, updates) => {
+        set((state) => {
+          if (!state.currentSession) return state
+
+          const updatedMessages = state.currentSession.mensagens.map(message =>
+            message.id === messageId
+              ? { ...message, ...updates }
+              : message
+          )
+
+          const updatedSession = {
+            ...state.currentSession,
+            mensagens: updatedMessages,
             updatedAt: new Date()
           }
 

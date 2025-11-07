@@ -1,6 +1,6 @@
 {
   "schemaName": "inep",
-  "totalTables": 50,
+  "totalTables": 87,
   "tables": [
     {
       "name": "capes_cursos_bruto",
@@ -147,7 +147,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 72501
     },
     {
       "name": "capes_programas_bruto",
@@ -324,7 +325,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 47265
     },
     {
       "name": "censo_categorias_administrativas",
@@ -348,7 +350,8 @@
       ],
       "primaryKeys": [
         "id_categoria_administrativa"
-      ]
+      ],
+      "estimatedRows": 8
     },
     {
       "name": "censo_cine_area_detalhada",
@@ -372,7 +375,33 @@
       ],
       "primaryKeys": [
         "cod_cine_area_detalhada"
-      ]
+      ],
+      "estimatedRows": 89
+    },
+    {
+      "name": "censo_cine_area_especifica",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "cod_cine_area_especifica",
+          "dataType": "character",
+          "nullable": false
+        },
+        {
+          "name": "descr_cine_area_especifica",
+          "dataType": "character varying",
+          "nullable": true
+        },
+        {
+          "name": "cod_cine_area_geral",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [
+        "cod_cine_area_especifica"
+      ],
+      "estimatedRows": 37
     },
     {
       "name": "censo_cine_area_geral",
@@ -391,7 +420,8 @@
       ],
       "primaryKeys": [
         "cod_cine_area_geral"
-      ]
+      ],
+      "estimatedRows": 11
     },
     {
       "name": "censo_cine_rotulo",
@@ -425,7 +455,8 @@
       ],
       "primaryKeys": [
         "cod_cine_rotulo"
-      ]
+      ],
+      "estimatedRows": 372
     },
     {
       "name": "censo_curso_vagas_bruto",
@@ -1442,7 +1473,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 3079438
     },
     {
       "name": "censo_cursos",
@@ -1556,7 +1588,8 @@
       ],
       "primaryKeys": [
         "cod_curso"
-      ]
+      ],
+      "estimatedRows": 65392
     },
     {
       "name": "censo_cursos_bkp",
@@ -1670,7 +1703,8 @@
       ],
       "primaryKeys": [
         "cod_curso"
-      ]
+      ],
+      "estimatedRows": 60000
     },
     {
       "name": "censo_graus_academicos",
@@ -1689,7 +1723,8 @@
       ],
       "primaryKeys": [
         "id_grau_academico"
-      ]
+      ],
+      "estimatedRows": 4
     },
     {
       "name": "censo_ies",
@@ -1738,7 +1773,8 @@
       ],
       "primaryKeys": [
         "cod_ies"
-      ]
+      ],
+      "estimatedRows": 3473
     },
     {
       "name": "censo_ies_bruto",
@@ -2180,7 +2216,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 34488
     },
     {
       "name": "censo_modalidades_ensino",
@@ -2199,7 +2236,8 @@
       ],
       "primaryKeys": [
         "id_modalidade_ensino"
-      ]
+      ],
+      "estimatedRows": 2
     },
     {
       "name": "censo_niveis_academicos",
@@ -2218,7 +2256,8 @@
       ],
       "primaryKeys": [
         "id_nivel_academico"
-      ]
+      ],
+      "estimatedRows": 2
     },
     {
       "name": "censo_organizacoes_academicas",
@@ -2242,7 +2281,8 @@
       ],
       "primaryKeys": [
         "id_organizacao_academica"
-      ]
+      ],
+      "estimatedRows": 5
     },
     {
       "name": "cesta_dimensoes",
@@ -2261,7 +2301,8 @@
       ],
       "primaryKeys": [
         "id"
-      ]
+      ],
+      "estimatedRows": 5
     },
     {
       "name": "cesta_indicadores",
@@ -2290,7 +2331,8 @@
       ],
       "primaryKeys": [
         "id"
-      ]
+      ],
+      "estimatedRows": 8
     },
     {
       "name": "cesta_indicadores_visualizacoes",
@@ -2314,7 +2356,8 @@
       ],
       "primaryKeys": [
         "id"
-      ]
+      ],
+      "estimatedRows": 36
     },
     {
       "name": "cesta_visualizacao_indicadores",
@@ -2343,7 +2386,8 @@
       ],
       "primaryKeys": [
         "id"
-      ]
+      ],
+      "estimatedRows": 6
     },
     {
       "name": "dados_cpc",
@@ -2495,7 +2539,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 58071
     },
     {
       "name": "dados_cpc_bkp",
@@ -2637,7 +2682,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 58071
     },
     {
       "name": "dados_cpc_brutos",
@@ -2844,7 +2890,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 67883
     },
     {
       "name": "dados_enade",
@@ -2901,7 +2948,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 67888
     },
     {
       "name": "dados_enade_percepcao_respostas",
@@ -2933,7 +2981,129 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 210
+    },
+    {
+      "name": "dados_idd",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "idd_bruta",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "idd_continuo",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "idd_faixa",
+          "dataType": "character varying",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 59765
+    },
+    {
+      "name": "dados_ies_docentes",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano_censo",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_total",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_exe",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_ex_sem_grad",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_ex_grad",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_ex_esp",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_ex_mest",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_ex_dout",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_ex_int",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_ex_int_de",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_ex_int_sem_de",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_ex_parc",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qt_doc_ex_hor",
+          "dataType": "integer",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 31908
     },
     {
       "name": "dados_igc",
@@ -3000,7 +3170,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 17136
     },
     {
       "name": "dados_percepcao_enade",
@@ -3227,7 +3398,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 3775032
     },
     {
       "name": "dados_percepcao_enade_questoes",
@@ -3259,7 +3431,391 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 68
+    },
+    {
+      "name": "dm_aluno",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_categoria_administrativa",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_organizacao_academica",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_nivel_academico",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_modalidade_ensino",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_grau_academico",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_vinculo_aluno_curso",
+          "dataType": "character varying",
+          "nullable": true
+        },
+        {
+          "name": "co_aluno",
+          "dataType": "character varying",
+          "nullable": true
+        },
+        {
+          "name": "co_aluno_situacao",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ing_processo_seletivo",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ing_vestibular",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ing_enem",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ing_outra_forma_selecao",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ing_processo_outras_formas",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ing_convenio_pecg",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ing_outras_formas_ingresso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_apoio_social",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_apoio_alimentacao",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_apoio_moradia",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_apoio_transporte",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_apoio_material_didatico",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_apoio_bolsa_permanencia",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_apoio_bolsa_trabalho",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_aluno_deficiencia",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_cegueira",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_baixa_visao",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_surdez",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_def_auditiva",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_def_fisica",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_surdocegueira",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_def_multipla",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_def_mental",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_reserva_vagas",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_reserva_ensino_publico",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_reserva_etnico",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_reserva_deficiencia",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_reserva_renda_familiar",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_reserva_outros",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_atividade_complementar",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ativ_pesquisa_rem",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ativ_pesquisa_nao_rem",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ativ_extensao_rem",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ativ_extensao_nao_rem",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ativ_monitoria_rem",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ativ_monitoria_nao_rem",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ativ_estag_n_obrig_rem",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ativ_estag_n_obrig_nao_rem",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_estudantil",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_externas",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_externas_reemb",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_ies",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_ies_reemb",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_municipal",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_municipal_reemb",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_estadual",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_estadual_reemb",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_outros",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_financ_outros_reemb",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_prouni_integral",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_prouni_parcial",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_fies",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_sexo_aluno",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_cor_raca_aluno",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_nacionalidade_aluno",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_pais_origem_aluno",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_ano_aluno_nasc",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_dia_aluno_nasc",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_mes_aluno_nasc",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_idade_aluno",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_matricula",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_concluinte",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "in_ingresso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "dt_ingresso_curso",
+          "dataType": "character varying",
+          "nullable": true
+        },
+        {
+          "name": "ano_ingresso",
+          "dataType": "integer",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 0
     },
     {
       "name": "emec_instituicoes",
@@ -3356,7 +3912,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 3059
     },
     {
       "name": "enade_dic_aux",
@@ -3373,7 +3930,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 318
     },
     {
       "name": "enade_dic_aux_tmp",
@@ -3390,7 +3948,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 208
     },
     {
       "name": "fluxo_tda",
@@ -3552,7 +4111,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 1998056
     },
     {
       "name": "ibge_demografia_idade_grupos",
@@ -3574,7 +4134,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 134
     },
     {
       "name": "ibge_demografia_por_idade_bruto",
@@ -3596,7 +4157,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 734944
     },
     {
       "name": "idhms",
@@ -3621,7 +4183,8 @@
       "primaryKeys": [
         "cod_ibge",
         "ano"
-      ]
+      ],
+      "estimatedRows": 16710
     },
     {
       "name": "ies_area_cine_pos",
@@ -3643,7 +4206,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 1950
     },
     {
       "name": "igc_bruto",
@@ -3755,7 +4319,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 27167
     },
     {
       "name": "igc_fatos",
@@ -3817,7 +4382,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 9390
     },
     {
       "name": "ind_fluxo_ies",
@@ -3914,7 +4480,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 1998056
     },
     {
       "name": "ind_fluxo_ies_bkp",
@@ -4011,7 +4578,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 1858056
     },
     {
       "name": "ind_fluxo_ies_tda",
@@ -4148,7 +4716,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 1998056
     },
     {
       "name": "matriculas_municipio",
@@ -4205,7 +4774,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 32012
     },
     {
       "name": "mesoregioes_ibge",
@@ -4239,7 +4809,1312 @@
       ],
       "primaryKeys": [
         "cod_mesoregiao_ibge"
-      ]
+      ],
+      "estimatedRows": 137
+    },
+    {
+      "name": "microdados_enade_arq1",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_ies",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_categad",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_orgacad",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_grupo",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_modalidade",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_munic_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_uf_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_regiao_curso",
+          "dataType": "integer",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq10",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i04",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq11",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i05",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq12",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i06",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq13",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i07",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq14",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i08",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq15",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i09",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq16",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i10",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq17",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i11",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq18",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i12",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq19",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i13",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq2",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "ano_fim_em",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "ano_in_grad",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_turno_graduacao",
+          "dataType": "integer",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq20",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i14",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq21",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i15",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq22",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i16",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq23",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i17",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq24",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i18",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq25",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i19",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq26",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i20",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq27",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i21",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq28",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i22",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq29",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i23",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq3",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_item_ofg",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_item_ofg_z",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_item_ofg_x",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_item_ofg_n",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_item_oce",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_item_oce_z",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_item_oce_x",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_item_oce_n",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "ds_vt_gab_ofg_fin",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "ds_vt_gab_oce_fin",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "ds_vt_esc_ofg",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "ds_vt_ace_ofg",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "ds_vt_esc_oce",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "ds_vt_ace_oce",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "tp_pres",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_pr_ger",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_pr_ob_fg",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_pr_di_fg",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_pr_ob_ce",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_pr_di_ce",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_sfg_d1",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_sfg_d2",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_sce_d1",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_sce_d2",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_sce_d3",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nt_ger",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_fg",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_obj_fg",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_dis_fg",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_fg_d1",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_fg_d1_pt",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_fg_d1_ct",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_fg_d2",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_fg_d2_pt",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_fg_d2_ct",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_ce",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_obj_ce",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_dis_ce",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_ce_d1",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_ce_d2",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "nt_ce_d3",
+          "dataType": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "co_rs_i1",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "co_rs_i2",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "co_rs_i3",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "co_rs_i4",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "co_rs_i5",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "co_rs_i6",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "co_rs_i7",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "co_rs_i8",
+          "dataType": "character",
+          "nullable": true
+        },
+        {
+          "name": "co_rs_i9",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 1924103
+    },
+    {
+      "name": "microdados_enade_arq30",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i24",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq31",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i25",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq32",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i26",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq33",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i69",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i70",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i71",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i72",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i73",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i74",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i75",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i76",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i77",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i78",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i79",
+          "dataType": "integer",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 1083879
+    },
+    {
+      "name": "microdados_enade_arq4",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i27",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i28",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i29",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i30",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i31",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i32",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i33",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i34",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i35",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i36",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i37",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i38",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i39",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i40",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i41",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i42",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i43",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i44",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i45",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i46",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i47",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i48",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i49",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i50",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i51",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i52",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i53",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i54",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i55",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i56",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i57",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i58",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i59",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i60",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i61",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i62",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i63",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i64",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i65",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i66",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i67",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i68",
+          "dataType": "integer",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq5",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "tp_sexo",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq6",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "nu_idade",
+          "dataType": "integer",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq7",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i01",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq8",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i02",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
+    },
+    {
+      "name": "microdados_enade_arq9",
+      "type": "TABLE",
+      "columns": [
+        {
+          "name": "nu_ano",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "co_curso",
+          "dataType": "integer",
+          "nullable": true
+        },
+        {
+          "name": "qe_i03",
+          "dataType": "character",
+          "nullable": true
+        }
+      ],
+      "primaryKeys": [],
+      "estimatedRows": 2472225
     },
     {
       "name": "microdados_enade_questoes",
@@ -4266,7 +6141,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 569
     },
     {
       "name": "microdados_enade_respostas",
@@ -4298,7 +6174,8 @@
           "nullable": true
         }
       ],
-      "primaryKeys": []
+      "primaryKeys": [],
+      "estimatedRows": 3304
     },
     {
       "name": "microregioes_ibge",
@@ -4332,7 +6209,8 @@
       ],
       "primaryKeys": [
         "cod_microregiao_ibge"
-      ]
+      ],
+      "estimatedRows": 558
     },
     {
       "name": "municipios_ibge",
@@ -4386,7 +6264,8 @@
       ],
       "primaryKeys": [
         "cod_ibge"
-      ]
+      ],
+      "estimatedRows": 5570
     },
     {
       "name": "pibs_per_capita",
@@ -4411,7 +6290,8 @@
       "primaryKeys": [
         "cod_ibge",
         "ano"
-      ]
+      ],
+      "estimatedRows": 61270
     },
     {
       "name": "regioes_ibge",
@@ -4435,7 +6315,8 @@
       ],
       "primaryKeys": [
         "cod_regiao_ibge"
-      ]
+      ],
+      "estimatedRows": 5
     },
     {
       "name": "uf_ibge",
@@ -4479,7 +6360,8 @@
       ],
       "primaryKeys": [
         "uf_ibge"
-      ]
+      ],
+      "estimatedRows": 27
     },
     {
       "name": "variaveis_pib_municipios_ibge",
@@ -4525,8 +6407,9 @@
         "cod_ibge",
         "ano",
         "cod_variavel"
-      ]
+      ],
+      "estimatedRows": 4868180
     }
   ],
-  "discoveredAt": "2025-11-06T22:57:27.590Z"
+  "discoveredAt": "2025-09-27T15:16:23.165Z"
 }
