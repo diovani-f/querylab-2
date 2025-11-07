@@ -41,7 +41,6 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
   console.log('🔍 MessageBubble renderizando:', {
     messageId: messageData.id,
     tipo: messageData.tipo,
-    hasSql: !!messageData.sql,
     hasSqlQuery: !!messageData.sqlQuery,
     hasQueryResult: !!messageData.queryResult,
     queryResultSuccess: messageData.queryResult?.success,
