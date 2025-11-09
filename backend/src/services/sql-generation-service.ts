@@ -276,7 +276,7 @@ export class SQLGenerationService {
 
           // Converter rows (array de arrays) para data (array de objetos)
           const data = execResult.rows && execResult.columns
-            ? execResult.rows.slice(0, 10).map(row => {
+            ? execResult.rows.map(row => {
                 const obj: any = {}
                 execResult.columns!.forEach((col, i) => {
                   obj[col] = row[i]

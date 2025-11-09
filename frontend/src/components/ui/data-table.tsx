@@ -61,6 +61,10 @@ export function DataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
   const [globalFilter, setGlobalFilter] = React.useState("")
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 10, // Padrão de 10 linhas por página
+  })
 
   const table = useReactTable({
     data,
@@ -74,6 +78,7 @@ export function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
     globalFilterFn: "includesString",
     state: {
       sorting,
@@ -81,6 +86,7 @@ export function DataTable<TData, TValue>({
       columnVisibility,
       rowSelection,
       globalFilter,
+      pagination,
     },
   })
 
@@ -217,8 +223,22 @@ export function DataTable<TData, TValue>({
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0 sm:space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} de{" "}
-          {table.getFilteredRowModel().rows.length} linha(s) selecionada(s).
+          {table.getFilteredSelectedRowModel().rows.length > 0 ? (
+            <>
+              {table.getFilteredSelectedRowModel().rows.length} de{" "}
+              {table.getFilteredRowModel().rows.length} linha(s) selecionada(s).
+            </>
+          ) : (
+            <>
+              Exibindo {table.getRowModel().rows.length} de{" "}
+              {table.getFilteredRowModel().rows.length} resultado(s)
+              {data.length > table.getRowModel().rows.length && (
+                <span className="ml-1 text-primary font-medium">
+                  (total: {data.length})
+                </span>
+              )}
+            </>
+          )}
         </div>
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2">
@@ -230,7 +250,7 @@ export function DataTable<TData, TValue>({
               }}
               className="h-8 w-[70px] rounded border border-input bg-background px-3 py-1 text-sm"
             >
-              {[10, 20, 30, 40, 50].map((pageSize) => (
+              {[10, 25, 50, 100, 200].map((pageSize) => (
                 <option key={pageSize} value={pageSize}>
                   {pageSize}
                 </option>

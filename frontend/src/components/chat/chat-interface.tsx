@@ -106,6 +106,15 @@ export function ChatInterface() {
     }
   }, [currentSession])
 
+  // Resetar estados de resultados paralelos quando a sessão muda
+  useEffect(() => {
+    console.log('🔄 Sessão mudou - resetando estados de resultados paralelos')
+    setShowParallelResults(false)
+    setParallelResults([])
+    setIsParallelLoading(false)
+    setIsProcessing(false)
+  }, [currentSession?.id, setIsProcessing])
+
   // Listener para geração paralela de SQL
   useEffect(() => {
     const handleParallelGenerating = (data: { status: string, results?: any[] }) => {
@@ -200,6 +209,7 @@ export function ChatInterface() {
             conteudo: result.explanation || `SQL gerado pelo ${result.provider}`,
             sqlQuery: result.sql,
             explanation: result.explanation,
+            reverseTranslation: response.message.reverseTranslation || null,
             queryResult: {
               success: true,
               rows,

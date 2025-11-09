@@ -203,6 +203,35 @@ router.post('/save-parallel-result', async (req, res) => {
       hasData: !!result.data
     })
 
+    // Gerar reverse translation se a execução foi bem-sucedida
+    let reverseTranslation = ''
+    if (result.executionSuccess && result.sql) {
+      try {
+        console.log('🔄 Gerando reverse translation para resultado paralelo...')
+        const llmService = LLMService.getInstance()
+
+        // Converter dados para formato QueryResult
+        const queryResult = {
+          success: true,
+          columns: result.columns || [],
+          rows: result.data ? result.data.map((obj: any) =>
+            (result.columns || []).map((col: string) => obj[col])
+          ) : [],
+          rowCount: result.rowCount || 0,
+          executionTime: result.executionTime || 0
+        }
+
+        reverseTranslation = await llmService.generateReverseTranslation({
+          sql: result.sql,
+          result: queryResult,
+          originalPrompt: result.explanation || 'Consulta SQL'
+        })
+        console.log('✅ Reverse translation gerada:', reverseTranslation.substring(0, 100) + '...')
+      } catch (error) {
+        console.error('❌ Erro ao gerar reverse translation:', error)
+      }
+    }
+
     // Salvar mensagem do assistente no banco
     const messageData = await chatService.addMessage(
       sessionId,
@@ -213,6 +242,7 @@ router.post('/save-parallel-result', async (req, res) => {
       {
         sqlQuery: result.sql,
         explanation: result.explanation,
+        reverseTranslation: reverseTranslation || null,
         queryResult: {
           success: result.executionSuccess || false,
           columns: result.columns || [],
