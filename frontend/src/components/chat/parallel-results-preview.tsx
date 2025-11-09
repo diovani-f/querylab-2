@@ -250,6 +250,19 @@ export function ParallelResultsPreview({ results, onSelectResult, onClose }: Par
                       )}
                     </div>
                   )}
+
+                  {/* Botão para usar este resultado mesmo com erro - permite "liberar" o chat */}
+                  {result.sql && (
+                    <Button
+                      onClick={() => onSelectResult(result)}
+                      className="w-full flex-shrink-0"
+                      variant="outline"
+                      size="sm"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                      Usar SQL (mesmo com erro)
+                    </Button>
+                  )}
                 </CardContent>
               )}
             </Card>

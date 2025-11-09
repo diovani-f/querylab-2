@@ -51,7 +51,7 @@ export class CloudflareAIService {
    * Usa Gemini para criar um prompt otimizado para SQLCoder
    * Analisa a pergunta, identifica tabelas relevantes e gera schema mínimo + instruções precisas
    */
-  async optimizePromptForSQLCoder(question: string, fullSchema: string): Promise<{
+  async optimizePromptForSQLCoder(question: string, fullSchema: string, conversationContext: string = ""): Promise<{
     success: boolean
     optimizedPrompt?: string
     error?: string
@@ -65,7 +65,12 @@ Você é um especialista em otimização de prompts para modelos SQL especializa
 
 TAREFA: Analise a pergunta do usuário e crie um prompt ULTRA-COMPACTO para o modelo SQLCoder-7B.
 
-PERGUNTA DO USUÁRIO: ${question}
+${conversationContext ? `CONTEXTO DA CONVERSA ANTERIOR:
+${conversationContext}
+
+⚠️ CRÍTICO: A pergunta atual é DIFERENTE das perguntas anteriores. Você DEVE gerar SQL APENAS para a pergunta atual abaixo, NÃO reutilize SQL de perguntas anteriores.
+
+` : ''}PERGUNTA ATUAL DO USUÁRIO: ${question}
 
 SCHEMA COMPLETO DISPONÍVEL:
 ${fullSchema}
@@ -86,20 +91,28 @@ ESCOLHA DA TABELA DE INSTITUIÇÕES:
   * ⚠️ NÃO tem: in_capital, cod_municipio (código), categoria administrativa
 
 REGRAS CRÍTICAS SOBRE NOMES DE COLUNAS:
-- censo_ies: cod_ies (INT), nome_ies (VARCHAR), sigla_ies (VARCHAR), in_capital (INT), cod_municipio (CHAR)
+- censo_ies: cod_ies (INT), nome_ies (VARCHAR), sigla_ies (VARCHAR), in_capital (INT), cod_municipio (CHAR), id_categoria_administrativa (INT)
+- censo_categorias_administrativas: id_categoria_administrativa (INT PK), descr_categoria_administrativa (VARCHAR)
 - censo_cursos: cod_curso (INT), nome_curso (VARCHAR), cod_ies (INT)
-- municipios_ibge: cod_ibge (CHAR), nome_municipio (VARCHAR)
+- municipios_ibge: cod_ibge (CHAR PK), nome_municipio (VARCHAR), cod_microregiao_ibge (CHAR)
+- microregioes_ibge: cod_microregiao_ibge (CHAR PK), cod_mesoregiao_ibge (CHAR)
+- mesoregioes_ibge: cod_mesoregiao_ibge (CHAR PK), cod_uf_ibge (CHAR)
 - uf_ibge: uf_ibge (CHAR PK), nome_uf_ibge (VARCHAR), cod_regiao_ibge (INT)
+- regioes_ibge: cod_regiao_ibge (INT PK), descr_regiao_ibge (VARCHAR)
 
 COLUNAS QUE NÃO EXISTEM (NÃO USE):
+- ❌ municipios_ibge.cod_uf_ibge (use a cadeia: microregioes → mesoregioes → uf)
+- ❌ municipios_ibge.cod_mesoregiao_ibge (use microregioes.cod_mesoregiao_ibge)
+- ❌ censo_ies.cod_categoria_administrativa (use id_categoria_administrativa)
+- ❌ uf_ibge.nome_uf (use nome_uf_ibge)
+- ❌ uf_ibge.sigla_uf (use uf_ibge - que é a PK)
 - ❌ emec_instituicoes.in_capital (use censo_ies.in_capital)
-- ❌ emec_instituicoes.cod_municipio (use censo_ies.cod_municipio)
 - ❌ censo_cursos.co_ies (use cod_ies)
-- ❌ censo_cursos.no_curso (use nome_curso)
 
-JOINS CORRETOS:
+JOINS CORRETOS (cadeia completa obrigatória):
 - censo_ies.cod_ies = censo_cursos.cod_ies
 - censo_ies.cod_municipio = municipios_ibge.cod_ibge
+- censo_ies.id_categoria_administrativa = censo_categorias_administrativas.id_categoria_administrativa
 - municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge
 - microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge
 - mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge
@@ -111,21 +124,31 @@ FORMATO DE SAÍDA (seja EXTREMAMENTE conciso):
 Generate SQL for: [reformule a pergunta em inglês, 1 linha]
 
 ### Schema (only relevant tables)
-inep.censo_ies: cod_ies:int, nome_ies:varchar, sigla_ies:varchar, in_capital:int, cod_municipio:char
-inep.censo_cursos: cod_curso:int, nome_curso:varchar, cod_ies:int
-inep.municipios_ibge: cod_ibge:char, nome_municipio:varchar
+inep.censo_ies: cod_ies:int, nome_ies:varchar, sigla_ies:varchar, in_capital:int, cod_municipio:char, id_categoria_administrativa:int
+inep.censo_categorias_administrativas: id_categoria_administrativa:int, descr_categoria_administrativa:varchar
+inep.municipios_ibge: cod_ibge:char, nome_municipio:varchar, cod_microregiao_ibge:char
+inep.microregioes_ibge: cod_microregiao_ibge:char, cod_mesoregiao_ibge:char
+inep.mesoregioes_ibge: cod_mesoregiao_ibge:char, cod_uf_ibge:char
+inep.uf_ibge: uf_ibge:char, nome_uf_ibge:varchar, cod_regiao_ibge:int
+inep.regioes_ibge: cod_regiao_ibge:int, descr_regiao_ibge:varchar
 
 ### Critical Rules
-- USE censo_ies for: capitals (in_capital), geography JOINs
-- USE EXACTLY: cod_ies, nome_ies, nome_curso, cod_curso
-- JOIN: censo_ies.cod_municipio = municipios_ibge.cod_ibge
+- USE censo_ies for: capitals (in_capital), geography JOINs, administrative category
+- USE EXACTLY: id_categoria_administrativa (NOT cod_categoria_administrativa), nome_uf_ibge (NOT nome_uf or sigla_uf)
+- Geography chain: municipios → microregioes → mesoregioes → uf → regioes (COMPLETE chain required)
+- NEVER use: municipios_ibge.cod_uf_ibge, municipios_ibge.cod_mesoregiao_ibge, censo_ies.cod_categoria_administrativa
 - in_capital is INT: WHERE in_capital = 1 (capital) or = 0 (not capital)
-- NEVER use: emec_instituicoes.in_capital, co_ies, no_curso
 
 ### Example
-SELECT COUNT(*) AS total
-FROM inep.censo_ies
-WHERE in_capital = 1
+SELECT u.nome_uf_ibge, ca.descr_categoria_administrativa, COUNT(DISTINCT c.cod_ies) AS total
+FROM inep.censo_ies c
+JOIN inep.censo_categorias_administrativas ca ON c.id_categoria_administrativa = ca.id_categoria_administrativa
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
+GROUP BY u.nome_uf_ibge, ca.descr_categoria_administrativa
+LIMIT 50
 
 ### SQL Query
 ---
@@ -528,7 +551,7 @@ SCHEMA REDUZIDO:
    *
    * USADA POR: ChatService.processSQLQuery() quando selectedModel é 'cloudflare-sqlcoder-7b-2'
    */
-  async processSQL(question: string, fullSchema: string): Promise<{
+  async processSQL(question: string, fullSchema: string, conversationContext: string = ""): Promise<{
     success: boolean
     sql?: string
     reducedSchema?: string
@@ -540,7 +563,7 @@ SCHEMA REDUZIDO:
     try {
       // Usar Gemini para otimizar o prompt especificamente para SQLCoder
       console.log('🎯 Otimizando prompt para SQLCoder com Gemini...')
-      const optimization = await this.optimizePromptForSQLCoder(question, fullSchema)
+      const optimization = await this.optimizePromptForSQLCoder(question, fullSchema, conversationContext)
 
       if (!optimization.success) {
         return {

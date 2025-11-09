@@ -167,7 +167,7 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
         {/* Conteúdo da mensagem */}
         {messageData.conteudo && (
           <div className="text-sm whitespace-pre-wrap break-words overflow-hidden select-text">
-            <ReactMarkdown>{message.reverseTranslation || messageData.conteudo}</ReactMarkdown>
+            <ReactMarkdown>{messageData.reverseTranslation || messageData.conteudo}</ReactMarkdown>
           </div>
         )}
 
@@ -409,10 +409,16 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
                                 {messageData.queryResult.rowCount} linha{messageData.queryResult.rowCount !== 1 ? 's' : ''}
                               </Badge>
                             )}
-                            {messageData.queryResult?.success !== false && (
+                            {messageData.queryResult?.success === true && (
                               <Badge variant="default" className="gap-1 bg-green-600">
                                 <span>✅</span>
                                 Executado com sucesso
+                              </Badge>
+                            )}
+                            {messageData.queryResult?.success === false && (
+                              <Badge variant="destructive" className="gap-1">
+                                <span>❌</span>
+                                Erro na execução
                               </Badge>
                             )}
                           </div>
@@ -431,14 +437,23 @@ export const MessageBubble = memo(function MessageBubble({ message, sessionId }:
                           )}
 
                           {/* Detalhes do Erro */}
-                          {messageData.explanation && messageData.queryResult && messageData.queryResult.success === false && (
+                          {messageData.queryResult && messageData.queryResult.success === false && (
                             <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-lg p-4">
                               <div className="flex items-center gap-2 mb-3">
                                 <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                                 <span className="text-sm font-medium text-red-800 dark:text-red-200">🚨 Detalhes do Erro</span>
                               </div>
-                              <div className="text-sm text-red-700 dark:text-red-300 leading-relaxed max-w-none">
-                                <ReactMarkdown>{messageData.explanation}</ReactMarkdown>
+                              <div className="text-sm text-red-700 dark:text-red-300 leading-relaxed max-w-none space-y-2">
+                                {messageData.queryResult.error && (
+                                  <div className="font-mono text-xs bg-red-100 dark:bg-red-900/20 p-2 rounded">
+                                    {messageData.queryResult.error}
+                                  </div>
+                                )}
+                                {messageData.explanation && (
+                                  <div>
+                                    <ReactMarkdown>{messageData.explanation}</ReactMarkdown>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
