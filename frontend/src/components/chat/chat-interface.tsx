@@ -23,6 +23,7 @@ export function ChatInterface() {
   const [showParallelResults, setShowParallelResults] = useState(false)
   const [parallelResults, setParallelResults] = useState<any[]>([])
   const [isParallelLoading, setIsParallelLoading] = useState(false)
+  const [isSavingParallelResult, setIsSavingParallelResult] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { settings } = useUserSettings()
@@ -180,13 +181,8 @@ export function ChatInterface() {
   const handleSelectParallelResult = async (result: any) => {
     console.log('✅ Resultado selecionado:', result.provider)
 
-    // Ocultar preview
-    setShowParallelResults(false)
-    setIsParallelLoading(false)
-    setParallelResults([])
-
-    // IMPORTANTE: Resetar estado de processamento para desbloquear o chat
-    setIsProcessing(false)
+    // Ativar loading
+    setIsSavingParallelResult(true)
 
     try {
       // Salvar resultado no banco de dados via API
@@ -252,9 +248,18 @@ export function ChatInterface() {
         tipo: 'error',
         conteudo: `Aviso: ${userFriendlyMessage}. O resultado foi adicionado localmente mas pode não persistir após recarregar a página.`
       })
-    }
+    } finally {
+      // Ocultar preview e loading
+      setShowParallelResults(false)
+      setIsParallelLoading(false)
+      setParallelResults([])
+      setIsSavingParallelResult(false)
 
-    console.log('✅ Chat desbloqueado - isProcessing resetado para false')
+      // IMPORTANTE: Resetar estado de processamento para desbloquear o chat
+      setIsProcessing(false)
+
+      console.log('✅ Chat desbloqueado - isProcessing resetado para false')
+    }
   }
 
   const handleCardClick = async (question: string) => {
@@ -452,7 +457,7 @@ export function ChatInterface() {
 
           {/* Preview de Resultados Paralelos */}
           {showParallelResults && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
               {isParallelLoading && parallelResults.length === 0 ? (
                 <div className="text-center py-8">
                   <SQLExecutionIndicator />
@@ -461,18 +466,32 @@ export function ChatInterface() {
                   </p>
                 </div>
               ) : (
-                <ParallelResultsPreview
-                  results={parallelResults}
-                  onSelectResult={handleSelectParallelResult}
-                  onClose={() => {
-                    setShowParallelResults(false)
-                    setParallelResults([])
-                    setIsParallelLoading(false)
-                    // Resetar estado de processamento ao fechar sem selecionar
-                    setIsProcessing(false)
-                    console.log('✅ Preview fechado - chat desbloqueado')
-                  }}
-                />
+                <>
+                  {/* Overlay de loading ao salvar resultado */}
+                  {isSavingParallelResult && (
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
+                      <div className="text-center">
+                        <PulseLoader color="#3b82f6" size={10} />
+                        <p className="text-sm text-muted-foreground mt-4">
+                          Salvando resultado...
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <ParallelResultsPreview
+                    results={parallelResults}
+                    onSelectResult={handleSelectParallelResult}
+                    onClose={() => {
+                      setShowParallelResults(false)
+                      setParallelResults([])
+                      setIsParallelLoading(false)
+                      // Resetar estado de processamento ao fechar sem selecionar
+                      setIsProcessing(false)
+                      console.log('✅ Preview fechado - chat desbloqueado')
+                    }}
+                  />
+                </>
               )}
             </div>
           )}

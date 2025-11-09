@@ -220,6 +220,50 @@ export function ParallelResultsPreview({ results, onSelectResult, onClose }: Par
                 </CardContent>
               )}
 
+              {/* Caso: Execução bem-sucedida mas sem resultados (0 linhas) */}
+              {result.executionSuccess && (!result.data || result.data.length === 0) && (
+                <CardContent className="space-y-3 flex-grow flex flex-col">
+                  <div className="text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded flex-grow">
+                    <strong>Aviso:</strong> A consulta foi executada com sucesso, mas não retornou nenhum resultado (0 linhas).
+                  </div>
+
+                  {/* SQL expandível */}
+                  {result.sql && (
+                    <div className="flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleExpand(result.provider)}
+                        className="w-full justify-between text-xs h-8"
+                      >
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          {isExpanded ? 'Ocultar SQL' : 'Ver SQL'}
+                        </span>
+                        {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </Button>
+
+                      {isExpanded && (
+                        <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto max-h-32">
+                          <code>{result.sql}</code>
+                        </pre>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Botão para usar este resultado */}
+                  <Button
+                    onClick={() => onSelectResult(result)}
+                    className="w-full flex-shrink-0"
+                    variant="outline"
+                    size="sm"
+                  >
+                    <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                    Usar Resultado (0 linhas)
+                  </Button>
+                </CardContent>
+              )}
+
               {/* Mostrar erro se houver */}
               {(result.error || result.executionError) && (
                 <CardContent className="space-y-3 flex-grow flex flex-col">
