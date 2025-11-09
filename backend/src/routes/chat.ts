@@ -184,6 +184,61 @@ router.post('/generate-sql-parallel', async (req, res) => {
   }
 })
 
+// Endpoint para salvar resultado paralelo selecionado
+router.post('/save-parallel-result', async (req, res) => {
+  try {
+    const { sessionId, result } = req.body
+
+    if (!sessionId || !result) {
+      return res.status(400).json({
+        success: false,
+        error: 'sessionId e result são obrigatórios'
+      })
+    }
+
+    console.log('💾 Salvando resultado paralelo selecionado:', {
+      sessionId,
+      provider: result.provider,
+      hasSql: !!result.sql,
+      hasData: !!result.data
+    })
+
+    // Salvar mensagem do assistente no banco
+    const messageData = await chatService.addMessage(
+      sessionId,
+      {
+        type: 'assistant',
+        content: result.explanation || `SQL gerado pelo ${result.provider}`
+      },
+      {
+        sqlQuery: result.sql,
+        explanation: result.explanation,
+        queryResult: {
+          success: result.executionSuccess || false,
+          columns: result.columns || [],
+          data: result.data || [],
+          rowCount: result.rowCount || 0,
+          executionTime: result.executionTime || 0
+        }
+      }
+    )
+
+    console.log('✅ Mensagem salva no banco:', messageData.id)
+
+    res.json({
+      success: true,
+      message: messageData
+    })
+
+  } catch (error) {
+    console.error('❌ Erro ao salvar resultado paralelo:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao salvar resultado paralelo'
+    })
+  }
+})
+
 // Endpoint para gerar resumo analítico (reverse translation)
 router.post('/generate-summary', async (req, res) => {
   try {

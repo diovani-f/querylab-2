@@ -486,7 +486,7 @@ export const useAppStore = create<AppStore>()(
 
           // 3. TERCEIRO: Obter configurações do usuário do localStorage
           let autoExecuteSQL = true // Default
-          let useParallelMode = false // Default
+          let useParallelMode = true // Default - SEMPRE usar modo paralelo por padrão
 
           try {
             const settingsStr = localStorage.getItem('querylab-user-settings')
@@ -494,7 +494,7 @@ export const useAppStore = create<AppStore>()(
             if (settingsStr) {
               const settings = JSON.parse(settingsStr)
               autoExecuteSQL = settings.autoExecuteSQL !== false
-              useParallelMode = settings.useParallelMode === true
+              useParallelMode = settings.useParallelMode !== false // Default true, só false se explicitamente definido
 
               console.log('⚙️ Configurações lidas do localStorage:', {
                 autoExecuteSQL,
@@ -502,7 +502,17 @@ export const useAppStore = create<AppStore>()(
                 rawSettings: settings
               })
             } else {
-              console.warn('⚠️ Nenhuma configuração encontrada no localStorage')
+              // Se não existe configuração, criar com defaults
+              console.log('⚠️ Nenhuma configuração encontrada no localStorage - criando com defaults')
+              const defaultSettings = {
+                developerMode: false,
+                autoExecuteSQL: true,
+                useParallelMode: true, // Modo paralelo ATIVADO por padrão
+                theme: 'system',
+                defaultModel: 'groq-llama3-70b'
+              }
+              localStorage.setItem('querylab-user-settings', JSON.stringify(defaultSettings))
+              console.log('✅ Configurações padrão criadas:', defaultSettings)
             }
           } catch (error) {
             console.warn('Erro ao ler configurações do usuário:', error)

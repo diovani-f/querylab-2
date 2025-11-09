@@ -77,23 +77,33 @@ INSTRUÇÕES:
 4. Inclua AVISOS EXPLÍCITOS sobre colunas que NÃO existem mas que o modelo pode tentar usar
 5. Gere um exemplo de SQL correto similar à pergunta usando os nomes EXATOS das colunas
 
-REGRAS CRÍTICAS SOBRE NOMES DE COLUNAS (USE EXATAMENTE ESTES NOMES):
-- emec_instituicoes: co_ies (INT), no_ies (TEXT), no_municipio (TEXT), sg_uf (CHAR)
-- censo_cursos: cod_curso (INT), nome_curso (VARCHAR), cod_ies (INT), cod_municipio (CHAR)
+ESCOLHA DA TABELA DE INSTITUIÇÕES:
+- **CENSO_IES** (PRINCIPAL): Use para capitais (in_capital), categoria administrativa, organização acadêmica, JOINs com geografia
+  * Colunas: cod_ies (INT), nome_ies (VARCHAR), sigla_ies (VARCHAR), cod_municipio (CHAR), in_capital (INT)
+  * JOIN com geografia: censo_ies.cod_municipio = municipios_ibge.cod_ibge
+- **EMEC_INSTITUICOES** (AUXILIAR): Use APENAS para dados de contato (telefone, email, site), IGC, CI
+  * Colunas: co_ies (INT), no_ies (TEXT), no_municipio (TEXT), sg_uf (CHAR)
+  * ⚠️ NÃO tem: in_capital, cod_municipio (código), categoria administrativa
+
+REGRAS CRÍTICAS SOBRE NOMES DE COLUNAS:
+- censo_ies: cod_ies (INT), nome_ies (VARCHAR), sigla_ies (VARCHAR), in_capital (INT), cod_municipio (CHAR)
+- censo_cursos: cod_curso (INT), nome_curso (VARCHAR), cod_ies (INT)
 - municipios_ibge: cod_ibge (CHAR), nome_municipio (VARCHAR)
 - uf_ibge: uf_ibge (CHAR PK), nome_uf_ibge (VARCHAR), cod_regiao_ibge (INT)
 
 COLUNAS QUE NÃO EXISTEM (NÃO USE):
-- ❌ emec_instituicoes.co_municipio (use no_municipio)
+- ❌ emec_instituicoes.in_capital (use censo_ies.in_capital)
+- ❌ emec_instituicoes.cod_municipio (use censo_ies.cod_municipio)
 - ❌ censo_cursos.co_ies (use cod_ies)
 - ❌ censo_cursos.no_curso (use nome_curso)
-- ❌ censo_cursos.co_curso (use cod_curso)
-- ❌ municipios_ibge.no_municipio (use nome_municipio)
 
 JOINS CORRETOS:
-- emec_instituicoes.co_ies = censo_cursos.cod_ies
-- emec_instituicoes.sg_uf = uf_ibge.uf_ibge
-- NUNCA faça JOIN entre emec_instituicoes e municipios_ibge (não há coluna comum!)
+- censo_ies.cod_ies = censo_cursos.cod_ies
+- censo_ies.cod_municipio = municipios_ibge.cod_ibge
+- municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge
+- microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge
+- mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge
+- uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge
 
 FORMATO DE SAÍDA (seja EXTREMAMENTE conciso):
 ---
@@ -101,21 +111,21 @@ FORMATO DE SAÍDA (seja EXTREMAMENTE conciso):
 Generate SQL for: [reformule a pergunta em inglês, 1 linha]
 
 ### Schema (only relevant tables)
-inep.emec_instituicoes: co_ies:int, no_ies:text, no_municipio:text, sg_uf:char
+inep.censo_ies: cod_ies:int, nome_ies:varchar, sigla_ies:varchar, in_capital:int, cod_municipio:char
 inep.censo_cursos: cod_curso:int, nome_curso:varchar, cod_ies:int
+inep.municipios_ibge: cod_ibge:char, nome_municipio:varchar
 
 ### Critical Rules
-- USE EXACTLY: cod_ies (NOT co_ies), nome_curso (NOT no_curso), cod_curso (NOT co_curso)
-- JOIN: emec_instituicoes.co_ies = censo_cursos.cod_ies
-- For city search: WHERE no_municipio ILIKE '%city%'
-- NEVER use: co_municipio, no_curso, co_curso
+- USE censo_ies for: capitals (in_capital), geography JOINs
+- USE EXACTLY: cod_ies, nome_ies, nome_curso, cod_curso
+- JOIN: censo_ies.cod_municipio = municipios_ibge.cod_ibge
+- in_capital is INT: WHERE in_capital = 1 (capital) or = 0 (not capital)
+- NEVER use: emec_instituicoes.in_capital, co_ies, no_curso
 
 ### Example
-SELECT COUNT(DISTINCT c.cod_curso)
-FROM inep.censo_cursos c
-JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
-WHERE e.sg_uf = 'SP' AND c.nome_curso ILIKE '%Administração%'
-LIMIT 100
+SELECT COUNT(*) AS total
+FROM inep.censo_ies
+WHERE in_capital = 1
 
 ### SQL Query
 ---

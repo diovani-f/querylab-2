@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/stores/app-store"
@@ -13,6 +12,7 @@ import { MessageSearch } from "./message-search"
 import { ParallelSQLDialog } from "./parallel-sql-dialog"
 import { ParallelResultsPreview } from "./parallel-results-preview"
 import { websocketService } from "@/lib/websocket"
+import { apiService } from "@/lib/api"
 import { PulseLoader } from "react-spinners"
 import { useUserSettings } from "@/hooks/use-user-settings"
 import { useErrorHandler } from "@/lib/error-handler"
@@ -38,7 +38,8 @@ export function ChatInterface() {
     initializeWebSocket,
     disconnectWebSocket,
     isLoadingMessages,
-    isCreatingSession
+    isCreatingSession,
+    setIsProcessing
   } = useAppStore()
 
   // Função para scroll suave para o final
@@ -172,27 +173,78 @@ export function ChatInterface() {
 
     // Ocultar preview
     setShowParallelResults(false)
+    setIsParallelLoading(false)
+    setParallelResults([])
 
-    // Converter data (array de objetos) para rows (array de arrays)
-    const columns = result.columns || []
-    const rows = result.data && result.data.length > 0
-      ? result.data.map((obj: any) => columns.map((col: string) => obj[col]))
-      : []
+    // IMPORTANTE: Resetar estado de processamento para desbloquear o chat
+    setIsProcessing(false)
 
-    // Adicionar mensagem com o resultado selecionado
-    addMessage({
-      tipo: 'assistant' as const,
-      conteudo: result.explanation || `SQL gerado pelo ${result.provider}`,
-      sqlQuery: result.sql,
-      explanation: result.explanation,
-      queryResult: {
-        success: true,
-        rows,
-        columns,
-        rowCount: result.rowCount || 0,
-        executionTime: result.executionTime || 0
+    try {
+      // Salvar resultado no banco de dados via API
+      if (currentSession?.id) {
+        console.log('💾 Salvando resultado no banco de dados...')
+        const response = await apiService.saveParallelResult(currentSession.id, result)
+
+        if (response.success && response.message) {
+          console.log('✅ Resultado salvo no banco:', response.message.id)
+
+          // Adicionar mensagem com o ID real do banco
+          const columns = result.columns || []
+          const rows = result.data && result.data.length > 0
+            ? result.data.map((obj: any) => columns.map((col: string) => obj[col]))
+            : []
+
+          addMessage({
+            id: response.message.id, // Usar ID real do banco
+            tipo: 'assistant' as const,
+            conteudo: result.explanation || `SQL gerado pelo ${result.provider}`,
+            sqlQuery: result.sql,
+            explanation: result.explanation,
+            queryResult: {
+              success: true,
+              rows,
+              columns,
+              rowCount: result.rowCount || 0,
+              executionTime: result.executionTime || 0
+            },
+            timestamp: new Date(response.message.timestamp)
+          })
+        } else {
+          throw new Error('Falha ao salvar resultado no banco')
+        }
       }
-    })
+    } catch (error) {
+      console.error('❌ Erro ao salvar resultado paralelo:', error)
+
+      // Mesmo com erro, adicionar mensagem localmente para não perder o resultado
+      const columns = result.columns || []
+      const rows = result.data && result.data.length > 0
+        ? result.data.map((obj: any) => columns.map((col: string) => obj[col]))
+        : []
+
+      addMessage({
+        tipo: 'assistant' as const,
+        conteudo: result.explanation || `SQL gerado pelo ${result.provider}`,
+        sqlQuery: result.sql,
+        explanation: result.explanation,
+        queryResult: {
+          success: true,
+          rows,
+          columns,
+          rowCount: result.rowCount || 0,
+          executionTime: result.executionTime || 0
+        }
+      })
+
+      // Mostrar erro ao usuário
+      const userFriendlyMessage = handleError(error, 'message_save')
+      addMessage({
+        tipo: 'error',
+        conteudo: `Aviso: ${userFriendlyMessage}. O resultado foi adicionado localmente mas pode não persistir após recarregar a página.`
+      })
+    }
+
+    console.log('✅ Chat desbloqueado - isProcessing resetado para false')
   }
 
   const handleCardClick = async (question: string) => {
@@ -406,6 +458,9 @@ export function ChatInterface() {
                     setShowParallelResults(false)
                     setParallelResults([])
                     setIsParallelLoading(false)
+                    // Resetar estado de processamento ao fechar sem selecionar
+                    setIsProcessing(false)
+                    console.log('✅ Preview fechado - chat desbloqueado')
                   }}
                 />
               )}

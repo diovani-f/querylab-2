@@ -584,7 +584,36 @@ ${reducedSchema}
 
 REGRAS CRÍTICAS - LEIA COM ATENÇÃO:
 
-1. **NOMES DE COLUNAS**: Use EXATAMENTE os nomes que aparecem ANTES dos dois pontos (:) no schema
+1. **ESCOLHA DA TABELA DE INSTITUIÇÕES** - MUITO IMPORTANTE:
+
+   Existem DUAS tabelas de instituições com propósitos diferentes:
+
+   a) **CENSO_IES** (TABELA PRINCIPAL - USE ESTA NA MAIORIA DOS CASOS):
+      - Colunas: cod_ies, nome_ies, sigla_ies, cod_municipio, in_capital, id_categoria_administrativa, id_organizacao_academica
+      - ✅ USE quando a pergunta mencionar:
+        * Capitais ou "in_capital" (CENSO_IES tem in_capital, EMEC_INSTITUICOES NÃO tem)
+        * Categoria administrativa (pública/privada)
+        * Organização acadêmica (universidade/faculdade/centro universitário)
+        * Relacionamento com municipios_ibge (CENSO_IES.cod_municipio = municipios_ibge.cod_ibge)
+        * Relacionamento com cursos (censo_cursos.cod_ies = censo_ies.cod_ies)
+      - JOIN com geografia: censo_ies.cod_municipio = municipios_ibge.cod_ibge
+
+   b) **EMEC_INSTITUICOES** (TABELA AUXILIAR - USE APENAS QUANDO NECESSÁRIO):
+      - Colunas: co_ies, no_ies, sg_ies, sg_uf, no_municipio (texto), cnpj, telefone, site, email
+      - ✅ USE APENAS quando a pergunta mencionar:
+        * Dados de contato (telefone, email, site, CNPJ)
+        * Indicadores IGC ou CI
+      - ⚠️ NÃO tem: in_capital, cod_municipio (código), categoria administrativa, organização acadêmica
+      - ⚠️ JOIN com geografia: DIFÍCIL - só tem no_municipio como texto, não tem código
+
+   **EXEMPLOS DE ESCOLHA:**
+   - "Quantas instituições estão em capitais?" → USE CENSO_IES (tem in_capital)
+   - "A instituição X está em uma capital?" → USE CENSO_IES (tem in_capital)
+   - "Instituições públicas/privadas" → USE CENSO_IES (tem id_categoria_administrativa)
+   - "Qual o telefone da instituição X?" → USE EMEC_INSTITUICOES (tem telefone)
+   - "Instituições por região/estado/município" → USE CENSO_IES (JOIN fácil com geografia)
+
+2. **NOMES DE COLUNAS**: Use EXATAMENTE os nomes que aparecem ANTES dos dois pontos (:) no schema
    - Exemplo: Se o schema mostra "cod_curso:int", use "cod_curso" (NÃO "co_curso")
    - Exemplo: Se o schema mostra "nome_curso:varchar", use "nome_curso" (NÃO "no_curso")
    - Exemplo: Se o schema mostra "cod_ies:int", use "cod_ies" (NÃO "co_ies")
@@ -592,85 +621,119 @@ REGRAS CRÍTICAS - LEIA COM ATENÇÃO:
    - NUNCA invente, abrevie ou modifique nomes de colunas
    - Se uma coluna não existe no schema, NÃO a use
 
-2. **TIPOS DE DADOS**: Respeite os tipos das colunas
+3. **TIPOS DE DADOS**: Respeite os tipos das colunas
    - Se a coluna é INT: WHERE id_grau_academico = 2 (número sem aspas)
    - Se a coluna é VARCHAR: WHERE nome_curso LIKE '%Licenciatura%' (texto com aspas)
+   - in_capital é INT: WHERE in_capital = 1 (para capital) ou WHERE in_capital = 0 (para não-capital)
 
-3. **PREFIXO DE SCHEMA**: SEMPRE use "inep." antes do nome da tabela
+4. **PREFIXO DE SCHEMA**: SEMPRE use "inep." antes do nome da tabela
    - ✅ CORRETO: FROM inep.censo_cursos
    - ❌ ERRADO: FROM censo_cursos
 
-4. **JOINS ENTRE TABELAS** - Use estas relações corretas:
+5. **JOINS ENTRE TABELAS** - Use estas relações corretas:
+
+   **CENSO_IES (tabela principal):**
+   - censo_ies.cod_ies = censo_cursos.cod_ies (instituições → cursos)
+   - censo_ies.cod_municipio = municipios_ibge.cod_ibge (instituições → municípios)
+   - censo_ies.id_categoria_administrativa = censo_categorias_administrativas.id_categoria_administrativa
+   - censo_ies.id_organizacao_academica = censo_organizacoes_academicas.id_organizacao_academica
+
+   **EMEC_INSTITUICOES (tabela auxiliar):**
    - emec_instituicoes.co_ies = censo_cursos.cod_ies (instituições → cursos)
    - emec_instituicoes.sg_uf = uf_ibge.uf_ibge (instituições → estados)
-   - uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge (estados → regiões)
-   - municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge (municípios → microrregiões)
+
+   **Geografia (IBGE):**
+   - municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge
+   - microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge
+   - mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge
+   - uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge
 
    **ATENÇÃO - COLUNAS QUE NÃO EXISTEM (NÃO USE!):**
    - ❌ censo_cursos.co_ies (use cod_ies)
    - ❌ censo_cursos.no_curso (use nome_curso)
    - ❌ censo_cursos.co_curso (use cod_curso)
-   - ❌ emec_instituicoes.co_municipio (só tem no_municipio como texto)
-   - ❌ emec_instituicoes.tp_ies (não existe)
+   - ❌ emec_instituicoes.in_capital (NÃO EXISTE - use censo_ies.in_capital)
+   - ❌ emec_instituicoes.cod_municipio (só tem no_municipio como texto)
+   - ❌ emec_instituicoes.id_categoria_administrativa (NÃO EXISTE - use censo_ies)
    - ❌ municipios_ibge.no_municipio (use nome_municipio)
-   - ❌ municipios_ibge.uf_ibge (não existe)
    - ❌ regioes_ibge.nome_regiao (use descr_regiao_ibge)
-   - ❌ uf_ibge.regiao_ibge (use cod_regiao_ibge)
 
-   **IMPORTANTE - BUSCA POR MUNICÍPIO:**
-   - Para buscar instituições por município, use WHERE com ILIKE no campo no_municipio
-   - Exemplo: WHERE e.no_municipio ILIKE '%Santa Maria%' AND e.sg_uf = 'RS'
-   - NÃO tente fazer JOIN com municipios_ibge usando co_municipio (não existe!)
-
-5. **PERFORMANCE**:
+6. **PERFORMANCE**:
    - Adicione LIMIT 50 em queries com JOINs
    - Adicione LIMIT 100 em queries simples
 
-6. **FORMATO**: Retorne APENAS o SQL limpo, sem:
+7. **FORMATO**: Retorne APENAS o SQL limpo, sem:
    - Ponto e vírgula no final
    - Explicações ou comentários
    - Formatação markdown (sem \`\`\`sql)
 
 EXEMPLOS DE QUERIES CORRETAS:
 
-Exemplo 1 - Instituições de uma cidade específica (SEM JOIN com municipios_ibge):
-SELECT
-  e.no_ies AS nome_instituicao,
-  e.no_municipio AS municipio,
-  e.sg_uf AS estado
-FROM inep.emec_instituicoes e
-WHERE e.no_municipio ILIKE '%Santa Maria%' AND e.sg_uf = 'RS'
-ORDER BY e.no_ies
-LIMIT 100
+Exemplo 1 - Sigla de uma instituição (busca simples):
+SELECT sigla_ies
+FROM inep.censo_ies
+WHERE nome_ies = 'FACULDADE QUIRINÓPOLIS'
+LIMIT 1
 
-Exemplo 2 - Instituições por região:
+Exemplo 2 - Nome de instituição por sigla:
+SELECT nome_ies
+FROM inep.censo_ies
+WHERE sigla_ies = 'FAREC'
+LIMIT 1
+
+Exemplo 3 - Instituições em capitais (USA CENSO_IES - tem in_capital):
+SELECT COUNT(*) AS total
+FROM inep.censo_ies
+WHERE in_capital = 1
+
+Exemplo 4 - Verificar se instituição está em capital:
+SELECT in_capital
+FROM inep.censo_ies
+WHERE nome_ies = 'UNIVERSIDADE FEDERAL DE PERNAMBUCO'
+LIMIT 1
+
+Exemplo 5 - Instituições por região (JOIN completo com geografia):
 SELECT
   r.descr_regiao_ibge AS regiao,
-  COUNT(DISTINCT e.co_ies) AS total_instituicoes
-FROM inep.emec_instituicoes e
-JOIN inep.uf_ibge u ON e.sg_uf = u.uf_ibge
+  COUNT(DISTINCT c.cod_ies) AS total_instituicoes
+FROM inep.censo_ies c
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
 JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
 GROUP BY r.descr_regiao_ibge
 ORDER BY total_instituicoes DESC
 LIMIT 50
 
-Exemplo 3 - Instituições por estado:
+Exemplo 6 - Instituições por estado:
 SELECT
   u.nome_uf_ibge AS estado,
-  COUNT(e.co_ies) AS total_instituicoes
-FROM inep.emec_instituicoes e
-JOIN inep.uf_ibge u ON e.sg_uf = u.uf_ibge
+  COUNT(c.cod_ies) AS total_instituicoes
+FROM inep.censo_ies c
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
 GROUP BY u.nome_uf_ibge
 ORDER BY total_instituicoes DESC
 LIMIT 50
 
-Exemplo 4 - Cursos de Administração em São Paulo:
+Exemplo 7 - Instituições em uma cidade específica:
 SELECT
-  COUNT(DISTINCT c.cod_curso) AS total_cursos
-FROM inep.censo_cursos c
-JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
-WHERE e.sg_uf = 'SP' AND c.nome_curso ILIKE '%Administração%'
+  c.nome_ies,
+  m.nome_municipio
+FROM inep.censo_ies c
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+WHERE m.nome_municipio = 'Campinas'
+ORDER BY c.nome_ies
 LIMIT 100
+
+Exemplo 8 - Cursos por instituição:
+SELECT COUNT(*) AS total
+FROM inep.censo_cursos cu
+JOIN inep.censo_ies c ON cu.cod_ies = c.cod_ies
+WHERE c.nome_ies = 'FACULDADE DE RONDÔNIA'
 
 SQL:`
 
@@ -722,59 +785,55 @@ SCHEMA DO BANCO DE DADOS:
 ${reducedSchema}
 
 REGRAS IMPORTANTES:
-- Retorne APENAS código SQL limpo, sem ponto e vírgula no final
-- SEMPRE prefixe nomes de tabelas com "inep." (ex: inep.emec_instituicoes, inep.uf_ibge)
-- Use EXATAMENTE os nomes que aparecem ANTES dos dois pontos (:) no schema
-  * "cod_curso:int" → use "cod_curso" (NÃO "co_curso")
-  * "nome_curso:varchar" → use "nome_curso" (NÃO "no_curso")
-  * "cod_ies:int" → use "cod_ies" (NÃO "co_ies")
-- NÃO invente nomes de tabelas como DIM_INSTITUICAO, DIM_MUNICIPIO, DIM_UF - elas NÃO existem
-- NÃO invente, abrevie ou modifique nomes de colunas
-- SEMPRE adicione LIMIT 100 em queries SELECT * para evitar sobrecarga
-- Use LIMIT 50 para queries complexas com JOINs
-- Considere o contexto da conversa ao gerar a query
-- Otimize para performance e segurança
 
-JOINS CORRETOS:
-- emec_instituicoes.co_ies = censo_cursos.cod_ies (instituições → cursos)
-- emec_instituicoes.sg_uf = uf_ibge.uf_ibge (instituições → estados)
-- uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge (estados → regiões)
+1. **ESCOLHA DA TABELA DE INSTITUIÇÕES**:
+   - USE **CENSO_IES** (tabela principal) para: capitais (in_capital), categoria administrativa, organização acadêmica, JOINs com geografia
+   - USE **EMEC_INSTITUICOES** (auxiliar) APENAS para: dados de contato (telefone, email, site), IGC, CI
+   - ⚠️ CENSO_IES tem in_capital, EMEC_INSTITUICOES NÃO tem
+   - ⚠️ CENSO_IES.cod_municipio = municipios_ibge.cod_ibge (JOIN fácil)
 
-COLUNAS QUE NÃO EXISTEM (NÃO USE!):
-- ❌ censo_cursos.co_ies (use cod_ies)
-- ❌ censo_cursos.no_curso (use nome_curso)
-- ❌ censo_cursos.co_curso (use cod_curso)
-- ❌ emec_instituicoes.co_municipio (use no_municipio)
-- ❌ emec_instituicoes.tp_ies (NÃO existe)
-- ❌ municipios_ibge.no_municipio (use nome_municipio)
-- ❌ municipios_ibge.uf_ibge (NÃO existe)
-- ❌ regioes_ibge.nome_regiao (use descr_regiao_ibge)
+2. **NOMES DE COLUNAS**: Use EXATAMENTE os nomes do schema
+   - "cod_curso:int" → use "cod_curso" (NÃO "co_curso")
+   - "nome_ies:varchar" → use "nome_ies" (NÃO "no_ies")
+   - in_capital é INT: WHERE in_capital = 1 (capital) ou = 0 (não-capital)
 
-BUSCA POR MUNICÍPIO:
-- Para buscar por município, use WHERE com ILIKE: WHERE e.no_municipio ILIKE '%Santa Maria%' AND e.sg_uf = 'RS'
-- NÃO tente fazer JOIN com municipios_ibge (emec_instituicoes não tem co_municipio)
+3. **PREFIXO**: SEMPRE use "inep." antes da tabela
 
-EXEMPLO 1 (instituições de uma cidade):
-SELECT e.no_ies, e.no_municipio, e.sg_uf
-FROM inep.emec_instituicoes e
-WHERE e.no_municipio ILIKE '%Santa Maria%' AND e.sg_uf = 'RS'
-LIMIT 100
+4. **JOINS CORRETOS**:
+   - censo_ies.cod_ies = censo_cursos.cod_ies
+   - censo_ies.cod_municipio = municipios_ibge.cod_ibge
+   - municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge
+   - microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge
+   - mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge
+   - uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge
 
-EXEMPLO 2 (instituições por região):
-SELECT r.descr_regiao_ibge, COUNT(DISTINCT e.co_ies) AS total
-FROM inep.emec_instituicoes e
-JOIN inep.uf_ibge u ON e.sg_uf = u.uf_ibge
+5. **COLUNAS QUE NÃO EXISTEM**:
+   - ❌ emec_instituicoes.in_capital (use censo_ies.in_capital)
+   - ❌ emec_instituicoes.id_categoria_administrativa (use censo_ies)
+
+6. **PERFORMANCE**: LIMIT 50 para JOINs, LIMIT 100 para queries simples
+
+EXEMPLO 1 (instituições em capitais - USA CENSO_IES):
+SELECT COUNT(*) AS total
+FROM inep.censo_ies
+WHERE in_capital = 1
+
+EXEMPLO 2 (instituições por região - USA CENSO_IES):
+SELECT r.descr_regiao_ibge, COUNT(DISTINCT c.cod_ies) AS total
+FROM inep.censo_ies c
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
 JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
 GROUP BY r.descr_regiao_ibge
-ORDER BY total DESC
 LIMIT 50
 
-EXEMPLO 3 (cursos de Administração em SP):
-SELECT COUNT(DISTINCT c.cod_curso) AS total_cursos
-FROM inep.censo_cursos c
-JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
-WHERE e.sg_uf = 'SP' AND c.nome_curso ILIKE '%Administração%'
-LIMIT 100
+EXEMPLO 3 (verificar se instituição está em capital):
+SELECT in_capital
+FROM inep.censo_ies
+WHERE nome_ies = 'UNIVERSIDADE FEDERAL DE PERNAMBUCO'
+LIMIT 1
 
 SQL:`
 
@@ -867,59 +926,55 @@ SCHEMA DO BANCO DE DADOS:
 ${reducedSchema}
 
 REGRAS IMPORTANTES:
-- Retorne APENAS código SQL limpo, sem ponto e vírgula no final
-- SEMPRE prefixe nomes de tabelas com "inep." (ex: inep.emec_instituicoes, inep.uf_ibge)
-- Use EXATAMENTE os nomes que aparecem ANTES dos dois pontos (:) no schema
-  * "cod_curso:int" → use "cod_curso" (NÃO "co_curso")
-  * "nome_curso:varchar" → use "nome_curso" (NÃO "no_curso")
-  * "cod_ies:int" → use "cod_ies" (NÃO "co_ies")
-- NÃO invente nomes de tabelas como DIM_INSTITUICAO, DIM_MUNICIPIO, DIM_UF - elas NÃO existem
-- NÃO invente, abrevie ou modifique nomes de colunas
-- SEMPRE adicione LIMIT 100 em queries SELECT * para evitar sobrecarga
-- Use LIMIT 50 para queries complexas com JOINs
-- Considere o contexto da conversa ao gerar a query
-- Otimize para performance e segurança
 
-JOINS CORRETOS:
-- emec_instituicoes.co_ies = censo_cursos.cod_ies (instituições → cursos)
-- emec_instituicoes.sg_uf = uf_ibge.uf_ibge (instituições → estados)
-- uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge (estados → regiões)
+1. **ESCOLHA DA TABELA DE INSTITUIÇÕES**:
+   - USE **CENSO_IES** (tabela principal) para: capitais (in_capital), categoria administrativa, organização acadêmica, JOINs com geografia
+   - USE **EMEC_INSTITUICOES** (auxiliar) APENAS para: dados de contato (telefone, email, site), IGC, CI
+   - ⚠️ CENSO_IES tem in_capital, EMEC_INSTITUICOES NÃO tem
+   - ⚠️ CENSO_IES.cod_municipio = municipios_ibge.cod_ibge (JOIN fácil)
 
-COLUNAS QUE NÃO EXISTEM (NÃO USE!):
-- ❌ censo_cursos.co_ies (use cod_ies)
-- ❌ censo_cursos.no_curso (use nome_curso)
-- ❌ censo_cursos.co_curso (use cod_curso)
-- ❌ emec_instituicoes.co_municipio (use no_municipio)
-- ❌ emec_instituicoes.tp_ies (NÃO existe)
-- ❌ municipios_ibge.no_municipio (use nome_municipio)
-- ❌ municipios_ibge.uf_ibge (NÃO existe)
-- ❌ regioes_ibge.nome_regiao (use descr_regiao_ibge)
+2. **NOMES DE COLUNAS**: Use EXATAMENTE os nomes do schema
+   - "cod_curso:int" → use "cod_curso" (NÃO "co_curso")
+   - "nome_ies:varchar" → use "nome_ies" (NÃO "no_ies")
+   - in_capital é INT: WHERE in_capital = 1 (capital) ou = 0 (não-capital)
 
-BUSCA POR MUNICÍPIO:
-- Para buscar por município, use WHERE com ILIKE: WHERE e.no_municipio ILIKE '%Santa Maria%' AND e.sg_uf = 'RS'
-- NÃO tente fazer JOIN com municipios_ibge (emec_instituicoes não tem co_municipio)
+3. **PREFIXO**: SEMPRE use "inep." antes da tabela
 
-EXEMPLO 1 (instituições de uma cidade):
-SELECT e.no_ies, e.no_municipio, e.sg_uf
-FROM inep.emec_instituicoes e
-WHERE e.no_municipio ILIKE '%Santa Maria%' AND e.sg_uf = 'RS'
-LIMIT 100
+4. **JOINS CORRETOS**:
+   - censo_ies.cod_ies = censo_cursos.cod_ies
+   - censo_ies.cod_municipio = municipios_ibge.cod_ibge
+   - municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge
+   - microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge
+   - mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge
+   - uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge
 
-EXEMPLO 2 (instituições por região):
-SELECT r.descr_regiao_ibge, COUNT(DISTINCT e.co_ies) AS total
-FROM inep.emec_instituicoes e
-JOIN inep.uf_ibge u ON e.sg_uf = u.uf_ibge
+5. **COLUNAS QUE NÃO EXISTEM**:
+   - ❌ emec_instituicoes.in_capital (use censo_ies.in_capital)
+   - ❌ emec_instituicoes.id_categoria_administrativa (use censo_ies)
+
+6. **PERFORMANCE**: LIMIT 50 para JOINs, LIMIT 100 para queries simples
+
+EXEMPLO 1 (instituições em capitais - USA CENSO_IES):
+SELECT COUNT(*) AS total
+FROM inep.censo_ies
+WHERE in_capital = 1
+
+EXEMPLO 2 (instituições por região - USA CENSO_IES):
+SELECT r.descr_regiao_ibge, COUNT(DISTINCT c.cod_ies) AS total
+FROM inep.censo_ies c
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
 JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
 GROUP BY r.descr_regiao_ibge
-ORDER BY total DESC
 LIMIT 50
 
-EXEMPLO 3 (cursos de Administração em SP):
-SELECT COUNT(DISTINCT c.cod_curso) AS total_cursos
-FROM inep.censo_cursos c
-JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
-WHERE e.sg_uf = 'SP' AND c.nome_curso ILIKE '%Administração%'
-LIMIT 100
+EXEMPLO 3 (verificar se instituição está em capital):
+SELECT in_capital
+FROM inep.censo_ies
+WHERE nome_ies = 'UNIVERSIDADE FEDERAL DE PERNAMBUCO'
+LIMIT 1
 
 SQL:`
 

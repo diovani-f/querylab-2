@@ -155,6 +155,11 @@ class ApiService {
     return this.patch('/chat/execute', executionQueryData)
   }
 
+  // Salvar resultado paralelo selecionado
+  async saveParallelResult(sessionId: string, result: any) {
+    return this.post('/chat/save-parallel-result', { sessionId, result })
+  }
+
   // Método para buscar status dos serviços (sem autenticação)
   async getSystemStatus() {
     return this.getPublic('/health/status')
