@@ -9,7 +9,7 @@ const prisma = new PrismaClient()
 // Buscar histórico do usuário
 router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { userId } = req.params
+    const userId = req.params.userId as string
 
     if (req.user?.id !== userId && req.user?.role !== 'admin') {
       return res.status(403).json({
@@ -78,7 +78,7 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
 // Marcar/desmarcar como favorito
 router.patch('/:historyId/favorite', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { historyId } = req.params
+    const historyId = req.params.historyId as string
     const { isFavorito } = req.body
 
     const historyItem = await prisma.historico.findUnique({
@@ -120,7 +120,7 @@ router.patch('/:historyId/favorite', authMiddleware, async (req: AuthRequest, re
 // Deletar item do histórico
 router.delete('/:historyId', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { historyId } = req.params
+    const historyId = req.params.historyId as string
 
     const historyItem = await prisma.historico.findUnique({
       where: { id: parseInt(historyId) }
@@ -160,7 +160,8 @@ router.delete('/:historyId', authMiddleware, async (req: AuthRequest, res) => {
 // Buscar no histórico
 router.get('/search/:userId/:query', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { userId, query } = req.params
+    const userId = req.params.userId as string
+    const query = req.params.query as string
 
     if (req.user?.id !== userId && req.user?.role !== 'admin') {
       return res.status(403).json({

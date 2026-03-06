@@ -29,7 +29,7 @@ const proxyClient = axios.create({
  */
 router.post('/discover/:schemaName', authMiddleware, async (req, res) => {
   try {
-    const { schemaName } = req.params
+    const schemaName = req.params.schemaName as string
     const { saveToFile = true } = req.body
 
     console.log(`🔍 Iniciando descoberta do schema ${schemaName}...`)
@@ -154,7 +154,7 @@ router.get('/saved', authMiddleware, async (req, res) => {
  */
 router.get('/saved/:schemaName', authMiddleware, async (req, res) => {
   try {
-    const { schemaName } = req.params
+    const schemaName = req.params.schemaName as string
     const { type = 'summary' } = req.query
 
     const outputDir = path.join(__dirname, '..', 'data', 'schema-discovery')
@@ -268,7 +268,7 @@ function findPotentialRelationships(tables: any[]) {
  */
 router.get('/llm/:schemaName', authMiddleware, async (req, res) => {
   try {
-    const { schemaName } = req.params
+    const schemaName = req.params.schemaName as string
 
     const schema = await schemaService.getSchemaForLLM(schemaName)
 
@@ -298,7 +298,7 @@ router.get('/llm/:schemaName', authMiddleware, async (req, res) => {
  */
 router.get('/stats/:schemaName', authMiddleware, async (req, res) => {
   try {
-    const { schemaName } = req.params
+    const schemaName = req.params.schemaName as string
 
     const stats = await schemaService.getSchemaStats(schemaName)
 
@@ -328,7 +328,7 @@ router.get('/stats/:schemaName', authMiddleware, async (req, res) => {
  */
 router.get('/search/:schemaName', authMiddleware, async (req, res) => {
   try {
-    const { schemaName } = req.params
+    const schemaName = req.params.schemaName as string
     const { pattern } = req.query
 
     if (!pattern || typeof pattern !== 'string') {
@@ -387,7 +387,7 @@ router.get('/available', async (req, res) => {
  */
 router.post('/reload/:schemaName', authMiddleware, async (req, res) => {
   try {
-    const { schemaName } = req.params
+    const schemaName = req.params.schemaName as string
 
     const success = await schemaService.reloadSchema(schemaName)
 

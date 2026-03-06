@@ -11,7 +11,7 @@ const prisma = new PrismaClient()
 // Listar sessões do usuário autenticado
 router.get('/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { userId } = req.params
+    const userId = req.params.userId as string
     const authenticatedUserIdStr = req.user?.id
 
     if (authenticatedUserIdStr !== userId && req.user?.role !== 'admin') {
@@ -113,7 +113,7 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
 // Obter sessão específica
 router.get('/:sessionId', async (req, res) => {
   try {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const session = await prisma.sessao.findUnique({
       where: { id: sessionId },
       include: {
@@ -145,7 +145,7 @@ router.get('/:sessionId', async (req, res) => {
 // Nova rota para obter mensagens de uma sessão com avaliações
 router.get('/:sessionId/messages', async (req, res) => {
   try {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
 
     // Buscar mensagens da sessão
     const mensagens = await prisma.mensagem.findMany({
@@ -189,7 +189,7 @@ router.get('/:sessionId/messages', async (req, res) => {
 // Atualizar sessão
 router.put('/:sessionId', async (req, res) => {
   try {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const updates = req.body
 
     // Mapeamento para os campos do Prisma
@@ -229,7 +229,7 @@ router.put('/:sessionId', async (req, res) => {
 // Deletar sessão
 router.delete('/:sessionId', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
 
     if (!req.user) {
       return res.status(401).json({
@@ -275,7 +275,7 @@ router.delete('/:sessionId', authMiddleware, async (req: AuthRequest, res) => {
 // Obter mensagens de uma sessão
 router.get('/:sessionId/messages', async (req, res) => {
   try {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const messages = await prisma.mensagem.findMany({
       where: { sessaoId: sessionId },
       orderBy: { timestamp: 'asc' }
@@ -298,7 +298,7 @@ router.get('/:sessionId/messages', async (req, res) => {
 // Buscar sessões
 router.get('/search/:query', async (req, res) => {
   try {
-    const { query } = req.params
+    const query = req.params.query as string
     const sessions = await prisma.sessao.findMany({
       where: {
         OR: [
@@ -331,7 +331,7 @@ router.get('/search/:query', async (req, res) => {
 // Rotas para histórico de consultas
 router.get('/history/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { userId } = req.params
+    const userId = req.params.userId as string
 
     if (req.user?.id !== userId && req.user?.role !== 'admin') {
       return res.status(403).json({
@@ -345,9 +345,9 @@ router.get('/history/user/:userId', authMiddleware, async (req: AuthRequest, res
     })
 
     const mappedHistory = history.map(h => ({
-        ...h,
-        id: h.id.toString(), // Converter o ID para string
-        isFavorita: h.isFavorito
+      ...h,
+      id: h.id.toString(), // Converter o ID para string
+      isFavorita: h.isFavorito
     }));
 
     res.json({
@@ -367,7 +367,7 @@ router.get('/history/user/:userId', authMiddleware, async (req: AuthRequest, res
 // Rotas para favoritos
 router.get('/favorites/user/:userId', authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId as string;
 
     if (req.user?.id !== userId && req.user?.role !== 'admin') {
       return res.status(403).json({
