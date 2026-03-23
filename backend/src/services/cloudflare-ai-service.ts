@@ -80,45 +80,41 @@ INSTRUÇÕES:
 2. Para cada tabela, liste APENAS as colunas que serão usadas (máximo 5-8 colunas por tabela)
 3. **CRÍTICO**: Use EXATAMENTE os nomes de colunas do schema fornecido - NÃO invente, NÃO abrevie, NÃO modifique
 4. Inclua AVISOS EXPLÍCITOS sobre colunas que NÃO existem mas que o modelo pode tentar usar
-5. Gere um exemplo de SQL correto similar à pergunta usando os nomes EXATOS das colunas
+5. Gere um exemplo de SQL correto similar à pergunta usando os nomes EXATOS das colunas e tabelas reais
 
 ESCOLHA DA TABELA DE INSTITUIÇÕES:
-- **CENSO_IES** (PRINCIPAL): Use para capitais (in_capital), categoria administrativa, organização acadêmica, JOINs com geografia
-  * Colunas: cod_ies (INT), nome_ies (VARCHAR), sigla_ies (VARCHAR), cod_municipio (CHAR), in_capital (INT)
+- **CENSO_IES** (PRINCIPAL): Use para capitais (in_capital), categoria administrativa, organização acadêmica, JOINs numéricos com geografia
+  * Colunas chave: cod_ies, nome_ies, sigla_ies, cod_municipio, in_capital, id_categoria_administrativa
   * JOIN com geografia: censo_ies.cod_municipio = municipios_ibge.cod_ibge
-- **EMEC_INSTITUICOES** (AUXILIAR): Use APENAS para dados de contato (telefone, email, site), IGC, CI
-  * Colunas: co_ies (INT), no_ies (TEXT), no_municipio (TEXT), sg_uf (CHAR)
-  * ⚠️ NÃO tem: in_capital, cod_municipio (código), categoria administrativa
+- **EMEC_INSTITUICOES** (AUXILIAR): Use APENAS para dados de contato (telefone, email, site), CNPJ, IGC, CI
+  * Colunas chave: co_ies, no_ies, no_municipio (texto), sg_uf, telefone, email, site, cnpj
+  * ⚠️ NÃO TEM: in_capital, cod_municipio, id_categoria_administrativa
 
 REGRAS CRÍTICAS SOBRE NOMES DE COLUNAS:
-- censo_ies: cod_ies (INT), nome_ies (VARCHAR), sigla_ies (VARCHAR), in_capital (INT), cod_municipio (CHAR), id_categoria_administrativa (INT)
-- censo_categorias_administrativas: id_categoria_administrativa (INT PK), descr_categoria_administrativa (VARCHAR)
-- censo_cursos: cod_curso (INT), nome_curso (VARCHAR), cod_ies (INT)
-- municipios_ibge: cod_ibge (CHAR PK), nome_municipio (VARCHAR), cod_microregiao_ibge (CHAR)
-- microregioes_ibge: cod_microregiao_ibge (CHAR PK), cod_mesoregiao_ibge (CHAR)
-- mesoregioes_ibge: cod_mesoregiao_ibge (CHAR PK), cod_uf_ibge (CHAR)
-- uf_ibge: uf_ibge (CHAR PK), nome_uf_ibge (VARCHAR), cod_regiao_ibge (INT)
-- regioes_ibge: cod_regiao_ibge (INT PK), descr_regiao_ibge (VARCHAR)
+- censo_ies: cod_ies, nome_ies, sigla_ies, in_capital, cod_municipio, id_categoria_administrativa
+- censo_categorias_administrativas: id_categoria_administrativa, descr_categoria_administrativa
+- censo_cursos: cod_curso, nome_curso, cod_ies
+- municipios_ibge: cod_ibge, nome_municipio, cod_microregiao_ibge
+- microregioes_ibge: cod_microregiao_ibge, cod_mesoregiao_ibge
+- mesoregioes_ibge: cod_mesoregiao_ibge, cod_uf_ibge
+- uf_ibge: uf_ibge, nome_uf_ibge, cod_regiao_ibge
+- regioes_ibge: cod_regiao_ibge, descr_regiao_ibge
 
-COLUNAS QUE NÃO EXISTEM (NÃO USE):
-- ❌ municipios_ibge.cod_uf_ibge (use a cadeia: microregioes → mesoregioes → uf)
-- ❌ municipios_ibge.cod_mesoregiao_ibge (use microregioes.cod_mesoregiao_ibge)
-- ❌ censo_ies.cod_categoria_administrativa (use id_categoria_administrativa)
-- ❌ uf_ibge.nome_uf (use nome_uf_ibge)
-- ❌ uf_ibge.sigla_uf (use uf_ibge - que é a PK)
-- ❌ emec_instituicoes.in_capital (use censo_ies.in_capital)
-- ❌ censo_cursos.co_ies (use cod_ies)
+COLUNAS QUE NÃO EXISTEM (PROIBIDAS):
+- ❌ municipios_ibge.cod_uf_ibge 
+- ❌ municipios_ibge.cod_mesoregiao_ibge
+- ❌ censo_ies.cod_categoria_administrativa
+- ❌ uf_ibge.nome_uf
+- ❌ uf_ibge.sigla_uf
+- ❌ emec_instituicoes.in_capital
+- ❌ censo_cursos.co_ies
 
-JOINS CORRETOS (cadeia completa obrigatória):
+JOINS OBRIGATÓRIOS E CADEIA GEOGRÁFICA:
 - censo_ies.cod_ies = censo_cursos.cod_ies
-- censo_ies.cod_municipio = municipios_ibge.cod_ibge
-- censo_ies.id_categoria_administrativa = censo_categorias_administrativas.id_categoria_administrativa
-- municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge
-- microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge
-- mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge
-- uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge
+- emec_instituicoes.co_ies = censo_cursos.cod_ies
+- Cadeia completa (não pule tabelas): censo_ies.cod_municipio = municipios_ibge.cod_ibge -> municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge -> microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge -> mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge -> uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge
 
-FORMATO DE SAÍDA (seja EXTREMAMENTE conciso):
+FORMATO DE SAÍDA OBRIGATÓRIO (seja EXTREMAMENTE conciso e use inglês na Task e Rules, pois o SQLCoder entende melhor em inglês):
 ---
 ### Task
 Generate SQL for: [reformule a pergunta em inglês, 1 linha]
@@ -127,17 +123,15 @@ Generate SQL for: [reformule a pergunta em inglês, 1 linha]
 inep.censo_ies: cod_ies:int, nome_ies:varchar, sigla_ies:varchar, in_capital:int, cod_municipio:char, id_categoria_administrativa:int
 inep.censo_categorias_administrativas: id_categoria_administrativa:int, descr_categoria_administrativa:varchar
 inep.municipios_ibge: cod_ibge:char, nome_municipio:varchar, cod_microregiao_ibge:char
-inep.microregioes_ibge: cod_microregiao_ibge:char, cod_mesoregiao_ibge:char
-inep.mesoregioes_ibge: cod_mesoregiao_ibge:char, cod_uf_ibge:char
-inep.uf_ibge: uf_ibge:char, nome_uf_ibge:varchar, cod_regiao_ibge:int
-inep.regioes_ibge: cod_regiao_ibge:int, descr_regiao_ibge:varchar
+[etc...]
 
 ### Critical Rules
-- USE censo_ies for: capitals (in_capital), geography JOINs, administrative category
-- USE EXACTLY: id_categoria_administrativa (NOT cod_categoria_administrativa), nome_uf_ibge (NOT nome_uf or sigla_uf)
-- Geography chain: municipios → microregioes → mesoregioes → uf → regioes (COMPLETE chain required)
-- NEVER use: municipios_ibge.cod_uf_ibge, municipios_ibge.cod_mesoregiao_ibge, censo_ies.cod_categoria_administrativa
-- in_capital is INT: WHERE in_capital = 1 (capital) or = 0 (not capital)
+- USE censo_ies for: capitals, administrative category, geography joins
+- USE emec_instituicoes for: contact info (phone, email, cnpj)
+- USE EXACTLY: id_categoria_administrativa (NOT cod_categoria_administrativa), nome_uf_ibge (NOT nome_uf)
+- Geography MUST chain: censo_ies -> municipios -> microregioes -> mesoregioes -> uf -> regioes 
+- NEVER use: municipios_ibge.cod_uf_ibge, municipios_ibge.cod_mesoregiao_ibge
+- LIMIT 50 for joins, LIMIT 100 for simple queries
 
 ### Example
 SELECT u.nome_uf_ibge, ca.descr_categoria_administrativa, COUNT(DISTINCT c.cod_ies) AS total
@@ -153,7 +147,7 @@ LIMIT 50
 ### SQL Query
 ---
 
-Retorne APENAS o conteúdo entre as linhas ---, sem explicações adicionais.
+Retorne APENAS o conteúdo entre as linhas ---, sem marcações markdown ou explicações.
 `
 
       const result = await this.geminiService.generateResponse({

@@ -277,12 +277,12 @@ export class SQLGenerationService {
           // Converter rows (array de arrays) para data (array de objetos)
           const data = execResult.rows && execResult.columns
             ? execResult.rows.map(row => {
-                const obj: any = {}
-                execResult.columns!.forEach((col, i) => {
-                  obj[col] = row[i]
-                })
-                return obj
+              const obj: any = {}
+              execResult.columns!.forEach((col, i) => {
+                obj[col] = row[i]
               })
+              return obj
+            })
             : []
 
           const executedResult = {
@@ -560,6 +560,86 @@ ${contextLines.join('\n')}
   }
 
   /**
+   * Constrói o prompt otimizado unificado usando técnica de Chain of Thought
+   */
+  private buildSQLGenerationPrompt(
+    question: string,
+    reducedSchema: string,
+    conversationContext: string = ""
+  ): string {
+    return `Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+${conversationContext || "Nenhum contexto anterior."}
+${conversationContext ? `\n⚠️ ATENÇÃO CRÍTICA: A pergunta abaixo é NOVA e DIFERENTE das perguntas anteriores mostradas no contexto. Você DEVE gerar SQL APENAS para esta pergunta específica, NUNCA reutilize ou adapte SQL de perguntas anteriores.\n` : ""}
+🎯 PERGUNTA ATUAL: ${question}
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+${reducedSchema}
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE \`CENSO_IES\` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (\`in_capital\`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: \`censo_ies.cod_municipio = municipios_ibge.cod_ibge\`
+   - ⚠️ **USE \`EMEC_INSTITUICOES\` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag \`in_capital\`.
+     * Cursos cruzam com ela via: \`emec_instituicoes.co_ies = censo_cursos.cod_ies\`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   \`censo_ies\` ➔ \`municipios_ibge\` ➔ \`microregioes_ibge\` ➔ \`mesoregioes_ibge\` ➔ \`uf_ibge\` ➔ \`regioes_ibge\`
+   - Joins corretos:
+     \`\`\`sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     \`\`\`
+
+3. **RESTRIÇÕES DE COLUNAS (NÃO INVENTE ESTAS COLUNAS)**:
+   - ❌ NUNCA USE: \`municipios_ibge.cod_uf_ibge\` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: \`censo_ies.cod_categoria_administrativa\` (O nome correto no schema é \`id_categoria_administrativa\`).
+   - ❌ NUNCA USE: \`uf_ibge.nome_uf\` ou \`uf_ibge.sigla_uf\` (O nome correto é \`nome_uf_ibge\` e o código/sigla é \`uf_ibge\`).
+   - ❌ NUNCA USE: \`emec_instituicoes.in_capital\` (Só existe na \`censo_ies\`).
+   - Use os tipos de dados originais. Para strings, sempre utilize \`ILIKE\` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo \`inep.\` em todas as tabelas no \`FROM\` e \`JOIN\`. (Ex: \`FROM inep.censo_ies\`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: \`LIMIT 50\` em queries com JOINs abertos, ou \`LIMIT 100\` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo 1 (Uso correto da censo_ies para capitais):
+\`\`\`sql
+SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
+\`\`\`
+Exemplo 2 (Uso obrigatório da emec_instituicoes para contatos):
+\`\`\`sql
+SELECT no_ies, telefone, email FROM inep.emec_instituicoes WHERE no_ies ILIKE '%Pernambuco%' LIMIT 50
+\`\`\`
+Exemplo 3 (Cadeia geográfica completa):
+\`\`\`sql
+SELECT r.descr_regiao_ibge AS regiao, COUNT(DISTINCT c.cod_ies) AS total_instituicoes
+FROM inep.censo_ies c
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
+JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
+WHERE r.descr_regiao_ibge ILIKE 'Nordeste'
+GROUP BY r.descr_regiao_ibge
+\`\`\`
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que, baseado nas regras.
+2. Em seguida, dê a resposta final em formato SQL padrão isolado por \`\`\`sql. Não coloque \`;\` após a query, não adicione comentários adicionais dentro do bloco da query.`;
+  }
+
+  /**
    * Gera SQL usando LLM (Gemini com fallback para Groq)
    */
   private async generateWithLLM(
@@ -572,181 +652,7 @@ ${contextLines.join('\n')}
     sql?: string
     error?: string
   }> {
-    const prompt = `
-Você é um especialista em SQL PostgreSQL e dados educacionais do INEP (Brasil).
-
-${conversationContext}
-
-${conversationContext ? `⚠️ ATENÇÃO CRÍTICA: A pergunta abaixo é NOVA e DIFERENTE das perguntas anteriores mostradas no contexto. Você DEVE gerar SQL APENAS para esta pergunta específica, NÃO reutilize ou adapte SQL de perguntas anteriores.
-
-` : ''}PERGUNTA ATUAL: ${question}
-
-SCHEMA DO BANCO DE DADOS:
-${reducedSchema}
-
-REGRAS CRÍTICAS - LEIA COM ATENÇÃO:
-
-1. **ESCOLHA DA TABELA DE INSTITUIÇÕES** - MUITO IMPORTANTE:
-
-   Existem DUAS tabelas de instituições com propósitos diferentes:
-
-   a) **CENSO_IES** (TABELA PRINCIPAL - USE ESTA NA MAIORIA DOS CASOS):
-      - Colunas: cod_ies, nome_ies, sigla_ies, cod_municipio, in_capital, id_categoria_administrativa, id_organizacao_academica
-      - ✅ USE quando a pergunta mencionar:
-        * Capitais ou "in_capital" (CENSO_IES tem in_capital, EMEC_INSTITUICOES NÃO tem)
-        * Categoria administrativa (pública/privada)
-        * Organização acadêmica (universidade/faculdade/centro universitário)
-        * Relacionamento com municipios_ibge (CENSO_IES.cod_municipio = municipios_ibge.cod_ibge)
-        * Relacionamento com cursos (censo_cursos.cod_ies = censo_ies.cod_ies)
-      - JOIN com geografia: censo_ies.cod_municipio = municipios_ibge.cod_ibge
-
-   b) **EMEC_INSTITUICOES** (TABELA AUXILIAR - USE APENAS QUANDO NECESSÁRIO):
-      - Colunas: co_ies, no_ies, sg_ies, sg_uf, no_municipio (texto), cnpj, telefone, site, email
-      - ✅ USE APENAS quando a pergunta mencionar:
-        * Dados de contato (telefone, email, site, CNPJ)
-        * Indicadores IGC ou CI
-      - ⚠️ NÃO tem: in_capital, cod_municipio (código), categoria administrativa, organização acadêmica
-      - ⚠️ JOIN com geografia: DIFÍCIL - só tem no_municipio como texto, não tem código
-
-   **EXEMPLOS DE ESCOLHA:**
-   - "Quantas instituições estão em capitais?" → USE CENSO_IES (tem in_capital)
-   - "A instituição X está em uma capital?" → USE CENSO_IES (tem in_capital)
-   - "Instituições públicas/privadas" → USE CENSO_IES (tem id_categoria_administrativa)
-   - "Qual o telefone da instituição X?" → USE EMEC_INSTITUICOES (tem telefone)
-   - "Instituições por região/estado/município" → USE CENSO_IES (JOIN fácil com geografia)
-
-2. **NOMES DE COLUNAS**: Use EXATAMENTE os nomes que aparecem ANTES dos dois pontos (:) no schema
-   - Exemplo: Se o schema mostra "cod_curso:int", use "cod_curso" (NÃO "co_curso")
-   - Exemplo: Se o schema mostra "nome_curso:varchar", use "nome_curso" (NÃO "no_curso")
-   - Exemplo: Se o schema mostra "cod_ies:int", use "cod_ies" (NÃO "co_ies")
-   - Exemplo: Se o schema mostra "no_ies:varchar", use "no_ies" (NÃO "nome_ies")
-   - NUNCA invente, abrevie ou modifique nomes de colunas
-   - Se uma coluna não existe no schema, NÃO a use
-
-3. **TIPOS DE DADOS**: Respeite os tipos das colunas
-   - Se a coluna é INT: WHERE id_grau_academico = 2 (número sem aspas)
-   - Se a coluna é VARCHAR: WHERE nome_curso LIKE '%Licenciatura%' (texto com aspas)
-   - in_capital é INT: WHERE in_capital = 1 (para capital) ou WHERE in_capital = 0 (para não-capital)
-
-4. **PREFIXO DE SCHEMA**: SEMPRE use "inep." antes do nome da tabela
-   - ✅ CORRETO: FROM inep.censo_cursos
-   - ❌ ERRADO: FROM censo_cursos
-
-5. **JOINS ENTRE TABELAS** - Use estas relações corretas:
-
-   **CENSO_IES (tabela principal):**
-   - censo_ies.cod_ies = censo_cursos.cod_ies (instituições → cursos)
-   - censo_ies.cod_municipio = municipios_ibge.cod_ibge (instituições → municípios)
-   - censo_ies.id_categoria_administrativa = censo_categorias_administrativas.id_categoria_administrativa
-   - censo_ies.id_organizacao_academica = censo_organizacoes_academicas.id_organizacao_academica
-
-   **EMEC_INSTITUICOES (tabela auxiliar):**
-   - emec_instituicoes.co_ies = censo_cursos.cod_ies (instituições → cursos)
-   - emec_instituicoes.sg_uf = uf_ibge.uf_ibge (instituições → estados)
-
-   **Geografia (IBGE) - CADEIA COMPLETA OBRIGATÓRIA:**
-   - municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge
-   - microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge
-   - mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge
-   - uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge
-
-   **⚠️ IMPORTANTE - ESTRUTURA DE JOINS GEOGRÁFICOS:**
-   - municipios_ibge NÃO tem cod_uf_ibge nem cod_mesoregiao_ibge diretamente
-   - Para chegar em UF: municipios → microregioes → mesoregioes → uf
-   - Para chegar em Região: municipios → microregioes → mesoregioes → uf → regioes
-
-   **ATENÇÃO - COLUNAS QUE NÃO EXISTEM (NÃO USE!):**
-   - ❌ municipios_ibge.cod_uf_ibge (NÃO EXISTE - use a cadeia: microregioes → mesoregioes → uf)
-   - ❌ municipios_ibge.cod_mesoregiao_ibge (NÃO EXISTE - use microregioes.cod_mesoregiao_ibge)
-   - ❌ censo_ies.cod_categoria_administrativa (use id_categoria_administrativa)
-   - ❌ uf_ibge.nome_uf (use nome_uf_ibge)
-   - ❌ uf_ibge.sigla_uf (use uf_ibge - que é a PK)
-   - ❌ censo_cursos.co_ies (use cod_ies)
-   - ❌ censo_cursos.no_curso (use nome_curso)
-   - ❌ emec_instituicoes.in_capital (NÃO EXISTE - use censo_ies.in_capital)
-   - ❌ municipios_ibge.no_municipio (use nome_municipio)
-   - ❌ regioes_ibge.nome_regiao (use descr_regiao_ibge)
-
-6. **PERFORMANCE**:
-   - Adicione LIMIT 50 em queries com JOINs
-   - Adicione LIMIT 100 em queries simples
-
-7. **FORMATO**: Retorne APENAS o SQL limpo, sem:
-   - Ponto e vírgula no final
-   - Explicações ou comentários
-   - Formatação markdown (sem \`\`\`sql)
-
-EXEMPLOS DE QUERIES CORRETAS:
-
-Exemplo 1 - Sigla de uma instituição (busca simples):
-SELECT sigla_ies
-FROM inep.censo_ies
-WHERE nome_ies = 'FACULDADE QUIRINÓPOLIS'
-LIMIT 1
-
-Exemplo 2 - Nome de instituição por sigla:
-SELECT nome_ies
-FROM inep.censo_ies
-WHERE sigla_ies = 'FAREC'
-LIMIT 1
-
-Exemplo 3 - Instituições em capitais (USA CENSO_IES - tem in_capital):
-SELECT COUNT(*) AS total
-FROM inep.censo_ies
-WHERE in_capital = 1
-
-Exemplo 4 - Verificar se instituição está em capital:
-SELECT in_capital
-FROM inep.censo_ies
-WHERE nome_ies = 'UNIVERSIDADE FEDERAL DE PERNAMBUCO'
-LIMIT 1
-
-Exemplo 5 - Instituições por estado com categoria administrativa:
-SELECT
-  u.nome_uf_ibge AS estado,
-  ca.descr_categoria_administrativa AS tipo_administracao,
-  COUNT(DISTINCT c.cod_ies) AS total_instituicoes
-FROM inep.censo_ies c
-JOIN inep.censo_categorias_administrativas ca ON c.id_categoria_administrativa = ca.id_categoria_administrativa
-JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
-JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
-JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
-GROUP BY u.nome_uf_ibge, ca.descr_categoria_administrativa
-ORDER BY u.nome_uf_ibge, ca.descr_categoria_administrativa
-LIMIT 50
-
-Exemplo 6 - Instituições por região (cadeia completa de JOINs):
-SELECT
-  r.descr_regiao_ibge AS regiao,
-  COUNT(DISTINCT c.cod_ies) AS total_instituicoes
-FROM inep.censo_ies c
-JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
-JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
-JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
-JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
-GROUP BY r.descr_regiao_ibge
-ORDER BY total_instituicoes DESC
-LIMIT 50
-
-Exemplo 7 - Instituições em uma cidade específica:
-SELECT
-  c.nome_ies,
-  m.nome_municipio
-FROM inep.censo_ies c
-JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
-WHERE m.nome_municipio = 'Campinas'
-ORDER BY c.nome_ies
-LIMIT 100
-
-Exemplo 8 - Cursos por instituição:
-SELECT COUNT(*) AS total
-FROM inep.censo_cursos cu
-JOIN inep.censo_ies c ON cu.cod_ies = c.cod_ies
-WHERE c.nome_ies = 'FACULDADE DE RONDÔNIA'
-
-SQL:`
+    const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext)
 
     const result = await this.llmService.handlePrompt({
       prompt,
@@ -787,81 +693,7 @@ SQL:`
     const startTime = Date.now()
 
     try {
-      const prompt = `
-Você é um especialista em SQL e dados educacionais do INEP. Gere uma consulta SQL otimizada para responder a pergunta sobre dados educacionais.
-
-${conversationContext}
-
-${conversationContext ? `⚠️ ATENÇÃO CRÍTICA: A pergunta abaixo é NOVA e DIFERENTE das perguntas anteriores. Você DEVE gerar SQL APENAS para esta pergunta específica, NÃO reutilize SQL de perguntas anteriores.
-
-` : ''}PERGUNTA ATUAL: ${question}
-
-SCHEMA DO BANCO DE DADOS:
-${reducedSchema}
-
-REGRAS IMPORTANTES:
-
-1. **ESCOLHA DA TABELA DE INSTITUIÇÕES**:
-   - USE **CENSO_IES** (tabela principal) para: capitais (in_capital), categoria administrativa, organização acadêmica, JOINs com geografia
-   - USE **EMEC_INSTITUICOES** (auxiliar) APENAS para: dados de contato (telefone, email, site), IGC, CI
-   - ⚠️ CENSO_IES tem in_capital, EMEC_INSTITUICOES NÃO tem
-   - ⚠️ CENSO_IES.cod_municipio = municipios_ibge.cod_ibge (JOIN fácil)
-
-2. **NOMES DE COLUNAS**: Use EXATAMENTE os nomes do schema
-   - "cod_curso:int" → use "cod_curso" (NÃO "co_curso")
-   - "nome_ies:varchar" → use "nome_ies" (NÃO "no_ies")
-   - in_capital é INT: WHERE in_capital = 1 (capital) ou = 0 (não-capital)
-
-3. **PREFIXO**: SEMPRE use "inep." antes da tabela
-
-4. **JOINS CORRETOS** (cadeia completa obrigatória):
-   - censo_ies.cod_ies = censo_cursos.cod_ies
-   - censo_ies.cod_municipio = municipios_ibge.cod_ibge
-   - municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge
-   - microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge
-   - mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge
-   - uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge
-   - censo_ies.id_categoria_administrativa = censo_categorias_administrativas.id_categoria_administrativa
-
-5. **COLUNAS QUE NÃO EXISTEM**:
-   - ❌ municipios_ibge.cod_uf_ibge (use a cadeia: microregioes → mesoregioes → uf)
-   - ❌ municipios_ibge.cod_mesoregiao_ibge (use microregioes.cod_mesoregiao_ibge)
-   - ❌ censo_ies.cod_categoria_administrativa (use id_categoria_administrativa)
-   - ❌ uf_ibge.nome_uf (use nome_uf_ibge)
-   - ❌ uf_ibge.sigla_uf (use uf_ibge - que é a PK)
-   - ❌ emec_instituicoes.in_capital (use censo_ies.in_capital)
-   - ❌ emec_instituicoes.id_categoria_administrativa (use censo_ies)
-
-6. **PERFORMANCE**: LIMIT 50 para JOINs, LIMIT 100 para queries simples
-
-EXEMPLO 1 (instituições em capitais):
-SELECT COUNT(*) AS total
-FROM inep.censo_ies
-WHERE in_capital = 1
-
-EXEMPLO 2 (instituições por estado e tipo de administração):
-SELECT u.nome_uf_ibge, ca.descr_categoria_administrativa, COUNT(DISTINCT c.cod_ies) AS total
-FROM inep.censo_ies c
-JOIN inep.censo_categorias_administrativas ca ON c.id_categoria_administrativa = ca.id_categoria_administrativa
-JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
-JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
-JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
-GROUP BY u.nome_uf_ibge, ca.descr_categoria_administrativa
-LIMIT 50
-
-EXEMPLO 3 (instituições por região - cadeia completa):
-SELECT r.descr_regiao_ibge, COUNT(DISTINCT c.cod_ies) AS total
-FROM inep.censo_ies c
-JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
-JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
-JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
-JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
-GROUP BY r.descr_regiao_ibge
-LIMIT 50
-
-SQL:`
+      const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext)
 
       const result = await this.llmService.handlePrompt({
         prompt,
@@ -943,81 +775,7 @@ SQL:`
     }
 
     try {
-      const prompt = `
-Você é um especialista em SQL e dados educacionais do INEP. Gere uma consulta SQL otimizada para responder a pergunta sobre dados educacionais.
-
-${conversationContext}
-
-${conversationContext ? `⚠️ ATENÇÃO CRÍTICA: A pergunta abaixo é NOVA e DIFERENTE das perguntas anteriores. Você DEVE gerar SQL APENAS para esta pergunta específica, NÃO reutilize SQL de perguntas anteriores.
-
-` : ''}PERGUNTA ATUAL: ${question}
-
-SCHEMA DO BANCO DE DADOS:
-${reducedSchema}
-
-REGRAS IMPORTANTES:
-
-1. **ESCOLHA DA TABELA DE INSTITUIÇÕES**:
-   - USE **CENSO_IES** (tabela principal) para: capitais (in_capital), categoria administrativa, organização acadêmica, JOINs com geografia
-   - USE **EMEC_INSTITUICOES** (auxiliar) APENAS para: dados de contato (telefone, email, site), IGC, CI
-   - ⚠️ CENSO_IES tem in_capital, EMEC_INSTITUICOES NÃO tem
-   - ⚠️ CENSO_IES.cod_municipio = municipios_ibge.cod_ibge (JOIN fácil)
-
-2. **NOMES DE COLUNAS**: Use EXATAMENTE os nomes do schema
-   - "cod_curso:int" → use "cod_curso" (NÃO "co_curso")
-   - "nome_ies:varchar" → use "nome_ies" (NÃO "no_ies")
-   - in_capital é INT: WHERE in_capital = 1 (capital) ou = 0 (não-capital)
-
-3. **PREFIXO**: SEMPRE use "inep." antes da tabela
-
-4. **JOINS CORRETOS** (cadeia completa obrigatória):
-   - censo_ies.cod_ies = censo_cursos.cod_ies
-   - censo_ies.cod_municipio = municipios_ibge.cod_ibge
-   - municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge
-   - microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge
-   - mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge
-   - uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge
-   - censo_ies.id_categoria_administrativa = censo_categorias_administrativas.id_categoria_administrativa
-
-5. **COLUNAS QUE NÃO EXISTEM**:
-   - ❌ municipios_ibge.cod_uf_ibge (use a cadeia: microregioes → mesoregioes → uf)
-   - ❌ municipios_ibge.cod_mesoregiao_ibge (use microregioes.cod_mesoregiao_ibge)
-   - ❌ censo_ies.cod_categoria_administrativa (use id_categoria_administrativa)
-   - ❌ uf_ibge.nome_uf (use nome_uf_ibge)
-   - ❌ uf_ibge.sigla_uf (use uf_ibge - que é a PK)
-   - ❌ emec_instituicoes.in_capital (use censo_ies.in_capital)
-   - ❌ emec_instituicoes.id_categoria_administrativa (use censo_ies)
-
-6. **PERFORMANCE**: LIMIT 50 para JOINs, LIMIT 100 para queries simples
-
-EXEMPLO 1 (instituições em capitais):
-SELECT COUNT(*) AS total
-FROM inep.censo_ies
-WHERE in_capital = 1
-
-EXEMPLO 2 (instituições por estado e tipo de administração):
-SELECT u.nome_uf_ibge, ca.descr_categoria_administrativa, COUNT(DISTINCT c.cod_ies) AS total
-FROM inep.censo_ies c
-JOIN inep.censo_categorias_administrativas ca ON c.id_categoria_administrativa = ca.id_categoria_administrativa
-JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
-JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
-JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
-GROUP BY u.nome_uf_ibge, ca.descr_categoria_administrativa
-LIMIT 50
-
-EXEMPLO 3 (instituições por região - cadeia completa):
-SELECT r.descr_regiao_ibge, COUNT(DISTINCT c.cod_ies) AS total
-FROM inep.censo_ies c
-JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
-JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
-JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
-JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
-GROUP BY r.descr_regiao_ibge
-LIMIT 50
-
-SQL:`
+      const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext)
 
       const result = await this.groqService.generateResponse({
         prompt,
