@@ -1,7 +1,7 @@
 {
   "schemaName": "inep",
-  "totalTables": 50,
-  "processedTables": 50,
+  "totalTables": 34,
+  "processedTables": 34,
   "discoveredAt": "2025-11-06T22:57:27.590Z",
   "tables": [
     {
@@ -343,32 +343,6 @@
       ]
     },
     {
-      "name": "censo_cursos_bkp",
-      "columns": [
-        "cod_curso:int!*",
-        "nome_curso:varchar",
-        "cod_ies:int",
-        "cod_municipio:character",
-        "id_grau_academico:int2",
-        "id_modalidade_ensino:int2",
-        "id_nivel_academico:int2",
-        "id_atributo_ingresso:int2",
-        "dt_inicio_funcionamento:date",
-        "cod_area:int",
-        "turno_curso:character",
-        "cc_ano:int2",
-        "cc_faixa:int2",
-        "cod_cine_rotulo:character",
-        "cod_area_tcu:character",
-        "id_centro_ufsm:int",
-        "nome_curso_ajustado:varchar",
-        "id_curso:int",
-        "cod_cine_rotulo_n:varchar",
-        "cod_cine_area_geral:varchar",
-        "tempo_integralizacao_anos:numeric"
-      ]
-    },
-    {
       "name": "censo_graus_academicos",
       "columns": [
         "id_grau_academico:int!*",
@@ -503,39 +477,6 @@
       ]
     },
     {
-      "name": "cesta_dimensoes",
-      "columns": [
-        "id:int!*",
-        "descr_dimensao:varchar!"
-      ]
-    },
-    {
-      "name": "cesta_indicadores",
-      "columns": [
-        "id:int!*",
-        "nome_indicador:varchar!",
-        "descr_indicador:varchar!",
-        "id_dimensao:int!"
-      ]
-    },
-    {
-      "name": "cesta_indicadores_visualizacoes",
-      "columns": [
-        "id:int!*",
-        "id_indicador:int!",
-        "id_visualizacao:int!"
-      ]
-    },
-    {
-      "name": "cesta_visualizacao_indicadores",
-      "columns": [
-        "id:int!*",
-        "descr_visualizacao:varchar!",
-        "tipo_visualizacao:varchar!",
-        "forma:character"
-      ]
-    },
-    {
       "name": "dados_cpc",
       "columns": [
         "id:int",
@@ -567,83 +508,6 @@
         "cpc_faixa:int",
         "n_padronizada_fg:numeric",
         "n_padronizada_ce:numeric"
-      ]
-    },
-    {
-      "name": "dados_cpc_bkp",
-      "columns": [
-        "id:int",
-        "ano:int",
-        "co_ies:int",
-        "co_curso:int",
-        "conc_inscritos:int",
-        "conc_participantes:int",
-        "n_bruta_fg:numeric",
-        "n_bruta_ce:numeric",
-        "enade_continuo:numeric",
-        "conc_part_n_enen:int",
-        "perc_conc_part_n_enem:numeric",
-        "nb_idd:numeric",
-        "np_idd:numeric",
-        "nb_org_did_pedag:numeric",
-        "np_org_did_pedag:numeric",
-        "nb_infra_fisica:numeric",
-        "np_infra_fisica:numeric",
-        "nb_ampliacao_formacao:numeric",
-        "np_ampliacao_formacao:numeric",
-        "nb_mestres:numeric",
-        "np_mestres:numeric",
-        "nb_doutores:numeric",
-        "np_doutores:numeric",
-        "nb_regime_trab:numeric",
-        "np_regime_trab:numeric",
-        "cpc_continuo:numeric",
-        "cpc_faixa:int"
-      ]
-    },
-    {
-      "name": "dados_cpc_brutos",
-      "columns": [
-        "ano:int",
-        "cod_area:varchar",
-        "descr_area:varchar",
-        "cod_ies:varchar",
-        "nome_ies:varchar",
-        "sigla_ies:varchar",
-        "org_academica:varchar",
-        "cat_administrativa:varchar",
-        "cod_curso:varchar",
-        "modalidade:varchar",
-        "cod_municipio:varchar",
-        "nome_municipio:varchar",
-        "uf:varchar",
-        "n_conclu_inscritos:varchar",
-        "n_conclu_participantes:varchar",
-        "nota_bruta_fg:varchar",
-        "nota_padr_fg:varchar",
-        "nota_bruta_ce:varchar",
-        "nota_padr_ce:varchar",
-        "conceito_enade_cont:varchar",
-        "num_conclui_part_nota_enem:varchar",
-        "prop_conclui_part_nota_enem:varchar",
-        "nota_bruta_idd:numeric",
-        "nota_padr_idd:numeric",
-        "nota_bruta_org_did_pegago:numeric",
-        "nota_padr_org_did_pegago:numeric",
-        "nota_bruta_infra:numeric",
-        "nota_padr_infra:numeric",
-        "nota_bruta_oportunidade:numeric",
-        "nota_padr_oportunidade:numeric",
-        "nota_bruta_mestres:numeric",
-        "nota_padr_mestres:numeric",
-        "nota_bruta_doutores:numeric",
-        "nota_padr_doutores:numeric",
-        "nota_bruta_reg_trabalho:numeric",
-        "nota_padr_reg_trabalho:numeric",
-        "cpc_continuo:numeric",
-        "cpc_faixa:varchar",
-        "nr_docentes:int",
-        "grau_academico:varchar"
       ]
     },
     {
@@ -748,43 +612,6 @@
       ]
     },
     {
-      "name": "emec_instituicoes",
-      "columns": [
-        "id:int",
-        "co_ies:int",
-        "no_ies:varchar",
-        "sg_ies:varchar",
-        "cnpj:varchar",
-        "telefone:varchar",
-        "site:varchar",
-        "email:varchar",
-        "endereco:varchar",
-        "no_municipio:varchar",
-        "sg_uf:varchar",
-        "dt_criacao:varchar",
-        "ci:int",
-        "ano_ci:int",
-        "ci_ead:int",
-        "ano_ci_ead:int",
-        "igc:int",
-        "ano_igc:int"
-      ]
-    },
-    {
-      "name": "enade_dic_aux",
-      "columns": [
-        "arquivo:varchar",
-        "variaveis:varchar"
-      ]
-    },
-    {
-      "name": "enade_dic_aux_tmp",
-      "columns": [
-        "arquivo:varchar",
-        "campo:varchar"
-      ]
-    },
-    {
       "name": "fluxo_tda",
       "columns": [
         "co_ies:int",
@@ -853,32 +680,6 @@
       ]
     },
     {
-      "name": "igc_bruto",
-      "columns": [
-        "ano:int",
-        "cod_ies:int",
-        "ies:varchar",
-        "sigla_ies:varchar",
-        "uf_ies:varchar",
-        "municipio:varchar",
-        "dependencia_adm:varchar",
-        "org_academica:varchar",
-        "n_curso_enade_ult_3_anos:int",
-        "n_curso_com_cpc_ult_3_anos:int",
-        "conc_medio_graduacao:varchar",
-        "conc_medio_mestrado:varchar",
-        "conc_medio_doutorado:varchar",
-        "porc_grad_equivalente:varchar",
-        "porc_mestres_equivalente:varchar",
-        "igc_continuo:numeric",
-        "igc_faixa:varchar",
-        "arquivo_origem:varchar",
-        "observacao:varchar",
-        "porc_doutores_equivalente:varchar",
-        "ano_arquivo:int"
-      ]
-    },
-    {
       "name": "igc_fatos",
       "columns": [
         "ano:int2!",
@@ -918,75 +719,6 @@
       ]
     },
     {
-      "name": "ind_fluxo_ies_bkp",
-      "columns": [
-        "periodo:varchar",
-        "co_curso:int",
-        "nu_ano_ingresso:int",
-        "nu_ano_referencia:int",
-        "nu_prazo_integralizacao:int2",
-        "nu_ano_integralizacao:int",
-        "nu_prazo_acompanhamento:int2",
-        "nu_ano_maximo_acompanhamento:int",
-        "qt_ingressante:int",
-        "qt_permanencia:int",
-        "qt_concluinte:int",
-        "qt_desistencia:int",
-        "qt_falecido:int",
-        "taxa_permanencia:numeric",
-        "taxa_conclusao_acumulada:numeric",
-        "taxa_desistencia_acumulada:numeric",
-        "taxa_conclusao_anual:numeric",
-        "taxa_desistencia_anual:numeric"
-      ]
-    },
-    {
-      "name": "ind_fluxo_ies_tda",
-      "columns": [
-        "co_ies:int",
-        "no_ies:varchar",
-        "tp_categoria_administrativa:varchar",
-        "tp_organizacao_academica:varchar",
-        "co_curso:int",
-        "no_curso:varchar",
-        "co_uf:int",
-        "co_municipio:int",
-        "tp_grau_academico:int",
-        "tp_modalidade_ensino:varchar",
-        "co_cine_rotulo:varchar",
-        "no_cine_rotulo:varchar",
-        "nu_ano_ingresso:int",
-        "nu_ano_referencia:int",
-        "qt_ingressante:int",
-        "qt_permanencia:int",
-        "qt_concluinte:int",
-        "qt_desistencia:int",
-        "qt_falecido:int",
-        "tda:numeric",
-        "tp_rede:varchar",
-        "sigla_ies:varchar",
-        "nome_ies:varchar",
-        "nome_curso:varchar",
-        "no_regiao:varchar",
-        "capital:varchar"
-      ]
-    },
-    {
-      "name": "matriculas_municipio",
-      "columns": [
-        "nu_ano_censo:int2",
-        "cod_municipio:varchar",
-        "qt_mat_0_17:int",
-        "qt_mat_18_24:int",
-        "qt_mat_25_29:int",
-        "qt_mat_30_34:int",
-        "qt_mat_35_39:int",
-        "qt_mat_40_49:int",
-        "qt_mat_50_59:int",
-        "qt_mat_60_mais:int"
-      ]
-    },
-    {
       "name": "mesoregioes_ibge",
       "columns": [
         "cod_mesoregiao_ibge:character!*",
@@ -994,25 +726,6 @@
         "nome_mesoregiao_ibge:varchar",
         "cod_uf_ibge:character",
         "nome_mesoregiao_ibge_sem_acento:varchar"
-      ]
-    },
-    {
-      "name": "microdados_enade_questoes",
-      "columns": [
-        "ano:int",
-        "cod_questao:varchar",
-        "questao:varchar",
-        "questao_ajustado:varchar"
-      ]
-    },
-    {
-      "name": "microdados_enade_respostas",
-      "columns": [
-        "ano:int",
-        "cod_questao:varchar",
-        "questao:varchar",
-        "alternativa:varchar",
-        "resposta:varchar"
       ]
     },
     {
