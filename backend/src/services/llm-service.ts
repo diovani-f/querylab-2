@@ -130,7 +130,24 @@ export class LLMService {
    */
   async handlePrompt(request: LLMRequest): Promise<LLMResponse> {
     try {
-      console.log('🔄 Processando prompt com Gemini...')
+      const isGroqModel = request.model?.toLowerCase().includes('llama') ||
+        request.model?.toLowerCase().includes('mixtral') ||
+        request.model?.toLowerCase().includes('gemma');
+
+      if (isGroqModel && this.groqService) {
+        console.log(`🔄 Processando prompt com Groq (modelo: ${request.model})...`)
+        const response = await this.groqService.generateResponse(request)
+
+        if (response.success) {
+          console.log('✅ Resposta bem-sucedida do Groq')
+          return response
+        }
+        console.error('❌ Falha no Groq:', response.error)
+        return response
+      }
+
+      // Fluxo principal para Gemini
+      console.log(`🔄 Processando prompt com Gemini (modelo: ${request.model || 'default'})...`)
       const response = await this.geminiService.generateResponse(request)
 
       if (response.success) {
@@ -139,6 +156,19 @@ export class LLMService {
       }
 
       console.error('❌ Falha no Gemini:', response.error)
+
+      if (response.error && response.error.includes('429') && this.groqService) {
+        console.log('🔄 Rate Limit no Gemini detectado. Fazendo fallback para Groq automático...')
+        const fallbackResponse = await this.groqService.generateResponse({
+          ...request,
+          model: 'llama-3.3-70b-versatile'
+        })
+        if (fallbackResponse.success) {
+          console.log('✅ Resposta bem-sucedida no fallback do Groq')
+          return fallbackResponse
+        }
+      }
+
       return response
 
     } catch (error) {
@@ -253,8 +283,8 @@ RESULTADOS OBTIDOS:
 
 DADOS (primeiras 5 linhas):
 ${result.rows.slice(0, 5).map((row: any[], index: number) =>
-    `${index + 1}. ${result.columns.map((col: string, i: number) => `${col}: ${row[i]}`).join(', ')}`
-  ).join('\n')}
+        `${index + 1}. ${result.columns.map((col: string, i: number) => `${col}: ${row[i]}`).join(', ')}`
+      ).join('\n')}
 
 INSTRUÇÕES:
 1. Responda em português brasileiro.
@@ -655,7 +685,7 @@ Título:`
         // Remover aspas do início e fim se existirem
         let cleanTitle = generatedTitle
         if ((cleanTitle.startsWith('"') && cleanTitle.endsWith('"')) ||
-            (cleanTitle.startsWith("'") && cleanTitle.endsWith("'"))) {
+          (cleanTitle.startsWith("'") && cleanTitle.endsWith("'"))) {
           cleanTitle = cleanTitle.slice(1, -1).trim()
         }
 

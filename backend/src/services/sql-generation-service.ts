@@ -378,17 +378,16 @@ export class SQLGenerationService {
 
       console.log(`✅ Schema obtido: ${fullSchema.tables.length} tabelas`)
 
-      // Criar versão compacta do schema (apenas nome e colunas)
-      const compactSchema = {
-        schema: 'inep',
-        tables: fullSchema.tables.map((table: any) => ({
-          name: table.name,
-          columns: table.columns || []
-        }))
-      }
+      // Criar versão compacta em texto (DDL-like) para otimizar tokens e reduzir alucinações
+      const lines: string[] = []
+      lines.push('SCHEMA: inep')
+      fullSchema.tables.forEach((table: any) => {
+        const cols = table.columns ? table.columns.join(', ') : ''
+        lines.push(`Tabela \`inep.${table.name}\`: Colunas [ ${cols} ]`)
+      })
 
-      const schemaStr = JSON.stringify(compactSchema, null, 2)
-      console.log(`📏 Tamanho do schema: ${(schemaStr.length / 1024).toFixed(1)}KB`)
+      const schemaStr = lines.join('\n')
+      console.log(`📏 Tamanho do schema em texto: ${(schemaStr.length / 1024).toFixed(1)}KB`)
 
       return {
         success: true,
@@ -599,7 +598,10 @@ ${reducedSchema}
      u.cod_regiao_ibge = r.cod_regiao_ibge
      \`\`\`
 
-3. **RESTRIÇÕES DE COLUNAS (NÃO INVENTE ESTAS COLUNAS)**:
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está \`cod_curso\`, não invente e não escreva \`co_curso\`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela \`censo_ies\` e \`censo_cursos\`, a coluna de código da IES é SECAMENTE \`cod_ies\`, NUNCA \`co_ies\`. Na tabela \`emec_instituicoes\` é \`co_ies\`. O banco de dados vai FALHAR se você errar isso.
    - ❌ NUNCA USE: \`municipios_ibge.cod_uf_ibge\` (Siga a cadeia mostrada acima).
    - ❌ NUNCA USE: \`censo_ies.cod_categoria_administrativa\` (O nome correto no schema é \`id_categoria_administrativa\`).
    - ❌ NUNCA USE: \`uf_ibge.nome_uf\` ou \`uf_ibge.sigla_uf\` (O nome correto é \`nome_uf_ibge\` e o código/sigla é \`uf_ibge\`).
@@ -634,9 +636,19 @@ WHERE r.descr_regiao_ibge ILIKE 'Nordeste'
 GROUP BY r.descr_regiao_ibge
 \`\`\`
 
+Exemplo 4 (Cruzamento OBRIGATÓRIO entre censo_cursos e emec_instituicoes):
+\`\`\`sql
+SELECT c.nome_curso, e.site 
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE c.nome_curso ILIKE '%medicina%'
+LIMIT 50
+\`\`\`
+
 🧠 SUA TAREFA (CHAIN OF THOUGHT):
-1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que, baseado nas regras.
-2. Em seguida, dê a resposta final em formato SQL padrão isolado por \`\`\`sql. Não coloque \`;\` após a query, não adicione comentários adicionais dentro do bloco da query.`;
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por \`\`\`sql. Não coloque \`;\` após a query, não adicione comentários adicionais dentro do bloco da query.`;
   }
 
   /**

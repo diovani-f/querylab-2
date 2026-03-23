@@ -108,6 +108,7 @@ COLUNAS QUE NÃO EXISTEM (PROIBIDAS):
 - ❌ uf_ibge.sigla_uf
 - ❌ emec_instituicoes.in_capital
 - ❌ censo_cursos.co_ies
+- ❌ censo_ies.co_ies
 
 JOINS OBRIGATÓRIOS E CADEIA GEOGRÁFICA:
 - censo_ies.cod_ies = censo_cursos.cod_ies
@@ -129,8 +130,10 @@ inep.municipios_ibge: cod_ibge:char, nome_municipio:varchar, cod_microregiao_ibg
 - USE censo_ies for: capitals, administrative category, geography joins
 - USE emec_instituicoes for: contact info (phone, email, cnpj)
 - USE EXACTLY: id_categoria_administrativa (NOT cod_categoria_administrativa), nome_uf_ibge (NOT nome_uf)
+- USE EXACTLY: cod_ies in censo_ies and censo_cursos. NEVER invent co_ies for them!
 - Geography MUST chain: censo_ies -> municipios -> microregioes -> mesoregioes -> uf -> regioes 
 - NEVER use: municipios_ibge.cod_uf_ibge, municipios_ibge.cod_mesoregiao_ibge
+- JOIN: emec_instituicoes.co_ies = censo_cursos.cod_ies
 - LIMIT 50 for joins, LIMIT 100 for simple queries
 
 ### Example

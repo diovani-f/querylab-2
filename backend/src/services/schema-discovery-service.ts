@@ -182,6 +182,7 @@ export class SchemaDiscoveryService {
       keywords: (table.keywords || []).slice(0, 8),
       columnCount: table.columnCount,
       primaryKeys: table.primaryKeys || [],
+      columns: table.columns || [],
 
       // Colunas chave com metadados semânticos
       keyColumns: (table.keyColumns || []).slice(0, 6).map((col: any) => ({
