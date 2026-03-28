@@ -17,6 +17,7 @@ import sessionsRoutes from './routes/sessions'
 import historyRoutes from './routes/history'
 import evaluationRoutes from './routes/evaluation'
 import schemaDiscoveryRoutes from './routes/schema-discovery'
+import testResultsRoutes from './routes/test-results'
 
 // Importar WebSocket handlers
 import { setupWebSocketHandlers } from './websockets/handlers'
@@ -68,6 +69,7 @@ app.use('/api/sessions', sessionsRoutes)
 app.use('/api/history', historyRoutes)
 app.use('/api/evaluation', evaluationRoutes)
 app.use('/api/schema', schemaDiscoveryRoutes)
+app.use('/api/test-results', testResultsRoutes)
 
 // Setup WebSocket handlers
 setupWebSocketHandlers(io)

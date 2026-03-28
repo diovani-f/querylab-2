@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { User, LogOut, Settings, ChevronDown } from "lucide-react"
+import { User, LogOut, Settings, ChevronDown, Activity } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -81,6 +81,14 @@ export function UserMenu() {
         >
           <Settings className="mr-2 h-4 w-4" />
           Configurações
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          onClick={() => router.push("/test-results")}
+          className="cursor-pointer"
+        >
+          <Activity className="mr-2 h-4 w-4" />
+          Resultados de Testes
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

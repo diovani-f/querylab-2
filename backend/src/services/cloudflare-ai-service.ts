@@ -551,6 +551,7 @@ SCHEMA REDUZIDO:
   async processSQL(question: string, fullSchema: string, conversationContext: string = ""): Promise<{
     success: boolean
     sql?: string
+    prompt?: string
     reducedSchema?: string
     error?: string
     processingTime: number
@@ -592,6 +593,7 @@ SCHEMA REDUZIDO:
       return {
         success: true,
         sql,
+        prompt,
         reducedSchema: optimization.optimizedPrompt,
         processingTime: Date.now() - startTime
       }

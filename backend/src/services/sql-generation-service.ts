@@ -25,6 +25,7 @@ export interface ParallelSQLResult {
   provider: 'gemini' | 'groq' | 'cloudflare'
   model: string
   success: boolean
+  prompt?: string
   sql?: string
   explanation?: string
   processingTime: number
@@ -259,9 +260,10 @@ export class SQLGenerationService {
         const execStartTime = Date.now()
         try {
           console.log(`⚡ Executando SQL do ${result.provider}...`)
+          const recommendedTimeout = this.queryExecutionService.getRecommendedTimeout(result.sql)
           const execResult = await this.queryExecutionService.executeWithTimeout(
             result.sql,
-            { timeoutMs: 10000 } // 10 segundos de timeout
+            { timeoutMs: recommendedTimeout } // Timeout dinâmico baseado na complexidade
           )
 
           console.log(`✅ Execução do ${result.provider}:`, {
@@ -521,6 +523,7 @@ ${contextLines.join('\n')}
         model: 'sqlcoder-7b-2',
         success: true,
         status: 'complete',
+        prompt: result.prompt,
         sql: validation.sanitizedSQL!,
         explanation,
         validationWarnings: validation.warnings,
@@ -748,6 +751,7 @@ LIMIT 50
         model: 'gemini-2.5-flash-lite',
         success: true,
         status: 'complete',
+        prompt,
         sql: validation.sanitizedSQL!,
         explanation,
         validationWarnings: validation.warnings,
@@ -829,6 +833,7 @@ LIMIT 50
         model: 'llama-3.3-70b-versatile',
         success: true,
         status: 'complete',
+        prompt,
         sql: validation.sanitizedSQL!,
         explanation,
         validationWarnings: validation.warnings,
