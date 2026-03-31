@@ -30,7 +30,7 @@ router.get('/files', async (req: Request, res: Response) => {
 // Função para ler o conteúdo de um arquivo em específico
 router.get('/data/:filename', async (req: Request, res: Response) => {
     try {
-        const { filename } = req.params;
+        const filename = String(req.params.filename);
 
         // Proteção básica para impedir path traversal
         if (!filename.endsWith('.csv') || filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
