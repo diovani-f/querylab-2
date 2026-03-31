@@ -134,8 +134,8 @@ export class SmartSchemaReducer {
     }
 
     // Extrair palavras-chave relevantes
-    const keywords = words.filter(word => 
-      word.length > 3 && 
+    const keywords = words.filter(word =>
+      word.length > 3 &&
       !this.isStopWord(word) &&
       !this.isCommonWord(word)
     )
@@ -218,9 +218,30 @@ export class SmartSchemaReducer {
       // Score baseado no nome da tabela
       const tableName = table.name.toLowerCase()
       queryIntent.keywords.forEach((keyword: string) => {
-        if (tableName.includes(keyword)) {
+        const cleanKeyword = keyword.replace(/[(),.?]/g, '').toLowerCase()
+        if (cleanKeyword.length < 3) return
+
+        if (tableName.includes(cleanKeyword)) {
           score += 5
-          reasons.push(`Nome da tabela contém: ${keyword}`)
+          reasons.push(`Nome da tabela contém: ${cleanKeyword}`)
+        }
+      })
+
+      // Score baseado nos nomes das colunas
+      const columns = table.columns || [];
+      queryIntent.keywords.forEach((keyword: string) => {
+        const cleanKeyword = keyword.replace(/[(),.?]/g, '').toLowerCase()
+        if (cleanKeyword.length < 4) return
+
+        // As colunas vêm em string "nome_coluna:tipo" ou "nome_coluna". Vamos pegar só o nome.
+        const matchingCols = columns.filter((colStr: string) => {
+          const colName = colStr.split(':')[0].toLowerCase();
+          return colName.includes(cleanKeyword);
+        });
+
+        if (matchingCols.length > 0) {
+          score += 3 * matchingCols.length;
+          reasons.push(`Contém ${matchingCols.length} coluna(s) relacionada(s) a: ${cleanKeyword}`);
         }
       })
 
@@ -271,7 +292,7 @@ export class SmartSchemaReducer {
     // Primeiro, pegar as mais relevantes de cada categoria
     for (const table of sorted) {
       if (selected.length >= maxTables) break
-      
+
       if (!categoriesUsed.has(table.category) || selected.length < maxTables / 2) {
         selected.push(table)
         categoriesUsed.add(table.category)
@@ -281,7 +302,7 @@ export class SmartSchemaReducer {
     // Completar com as mais relevantes restantes
     for (const table of sorted) {
       if (selected.length >= maxTables) break
-      
+
       if (!selected.find(s => s.tableName === table.tableName)) {
         selected.push(table)
       }
@@ -299,7 +320,23 @@ export class SmartSchemaReducer {
     includeRelationships: boolean = true
   ): any {
     const selectedTableNames = new Set(selectedTables.map(t => t.tableName))
-    
+
+    // ---------------------------------------------------------
+    // GARANTIA DE TABELAS CORE E CADEIA GEOGRÁFICA
+    // Isso evita que a IA alucine joins ou falhe na regra de ouro
+    // ---------------------------------------------------------
+    const coreTables = [
+      'censo_ies',
+      'censo_cursos',
+      'municipios_ibge',
+      'microregioes_ibge',
+      'mesoregioes_ibge',
+      'uf_ibge',
+      'regioes_ibge'
+    ];
+
+    coreTables.forEach(t => selectedTableNames.add(t));
+
     const reducedTables = fullSchema.tables.filter((table: any) =>
       selectedTableNames.has(table.name)
     )
@@ -328,12 +365,12 @@ export class SmartSchemaReducer {
    */
   private generateReasoning(selectedTables: TableRelevance[], queryIntent: any): string {
     const topTables = selectedTables.slice(0, 5)
-    
+
     let reasoning = `Selecionei ${selectedTables.length} tabelas baseado na análise da pergunta:\n\n`
-    
+
     reasoning += `**Domínios identificados:** ${queryIntent.domains.join(', ') || 'Nenhum específico'}\n`
     reasoning += `**Palavras-chave:** ${queryIntent.keywords.join(', ')}\n\n`
-    
+
     reasoning += `**Top 5 tabelas mais relevantes:**\n`
     topTables.forEach((table, index) => {
       reasoning += `${index + 1}. **${table.tableName}** (Score: ${table.relevanceScore})\n`

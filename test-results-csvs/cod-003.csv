@@ -1,0 +1,1240 @@
+Pergunta;Provider;Prompt Enviado;SQL Gerado;Status Execucao;Erro
+"Qual é o total de vagas e o total de alunos ingressantes para os cursos que contenham a palavra 'Medicina' no nome em 2022, agrupados pela sigla da IES?";"gemini";"Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+Nenhum contexto anterior.
+
+🎯 PERGUNTA ATUAL: Qual é o total de vagas e o total de alunos ingressantes para os cursos que contenham a palavra 'Medicina' no nome em 2022, agrupados pela sigla da IES?
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+SCHEMA: inep
+Tabela `inep.capes_cursos_bruto`: Colunas [ an_base, nm_grande_area_conhecimento, nm_area_conhecimento, nm_subarea_conhecimento, nm_especialidade, cd_area_avaliacao, nm_area_avaliacao, cd_entidade_capes, cd_entidade_emec, sg_entidade_ensino, nm_entidade_ensino, cs_status_juridico, ds_dependencia_administrativa, ds_organizacao_academica, nm_regiao, sg_uf_programa, nm_municipio_programa_ies, cd_programa_ies, nm_programa_ies, cd_curso_ppg, nm_curso, nm_grau_curso, cd_conceito_curso, an_inicio_previsto, ds_situacao_curso, dt_situacao_curso, id_add_foto_programa_ies, id_add_foto_programa ]
+Tabela `inep.censo_curso_vagas_bruto`: Colunas [ nu_ano_censo, no_regiao, co_regiao, no_uf, sg_uf, co_uf, no_municipio, co_municipio, in_capital (1=Capital, 0=Interior), tp_dimensao, tp_organizacao_academica, tp_rede, tp_categoria_administrativa, in_comunitaria, in_confessional, co_ies, no_curso, co_curso, no_cine_rotulo, co_cine_rotulo, co_cine_area_geral, no_cine_area_geral, co_cine_area_especifica, no_cine_area_especifica, co_cine_area_detalhada, no_cine_area_detalhada, tp_grau_academico, in_gratuito, tp_modalidade_ensino (1=Presencial, 2=EAD), tp_nivel_academico, qt_curso, qt_vg_total, qt_vg_total_diurno, qt_vg_total_noturno, qt_vg_total_ead, qt_vg_nova, qt_vg_proc_seletivo, qt_vg_remanesc, qt_vg_prog_especial, qt_inscrito_total, qt_inscrito_total_diurno, qt_inscrito_total_noturno, qt_inscrito_total_ead, qt_insc_vg_nova, qt_insc_proc_seletivo, qt_insc_vg_remanesc, qt_insc_vg_prog_especial, qt_ing, qt_ing_fem, qt_ing_masc, qt_ing_diurno, qt_ing_noturno, qt_ing_vg_nova, qt_ing_vestibular, qt_ing_enem, qt_ing_avaliacao_seriada, qt_ing_selecao_simplifica, qt_ing_egr, qt_ing_outro_tipo_selecao, qt_ing_proc_seletivo, qt_ing_vg_remanesc, qt_ing_vg_prog_especial, qt_ing_outra_forma, qt_ing_0_17, qt_ing_18_24, qt_ing_25_29, qt_ing_30_34, qt_ing_35_39, qt_ing_40_49, qt_ing_50_59, qt_ing_60_mais, qt_ing_branca, qt_ing_preta, qt_ing_parda, qt_ing_amarela, qt_ing_indigena, qt_ing_cornd, qt_mat, qt_mat_fem, qt_mat_masc, qt_mat_diurno, qt_mat_noturno, qt_mat_0_17, qt_mat_18_24, qt_mat_25_29, qt_mat_30_34, qt_mat_35_39, qt_mat_40_49, qt_mat_50_59, qt_mat_60_mais, qt_mat_branca, qt_mat_preta, qt_mat_parda, qt_mat_amarela, qt_mat_indigena, qt_mat_cornd, qt_conc, qt_conc_fem, qt_conc_masc, qt_conc_diurno, qt_conc_noturno, qt_conc_0_17, qt_conc_18_24, qt_conc_25_29, qt_conc_30_34, qt_conc_35_39, qt_conc_40_49, qt_conc_50_59, qt_conc_60_mais, qt_conc_branca, qt_conc_preta, qt_conc_parda, qt_conc_amarela, qt_conc_indigena, qt_conc_cornd, qt_ing_nacbras, qt_ing_nacestrang, qt_mat_nacbras, qt_mat_nacestrang, qt_conc_nacbras, qt_conc_nacestrang, qt_aluno_deficiente, qt_ing_deficiente, qt_mat_deficiente, qt_conc_deficiente, qt_ing_financ, qt_ing_financ_reemb, qt_ing_fies, qt_ing_rpfies, qt_ing_financ_reemb_outros, qt_ing_financ_nreemb, qt_ing_prounii, qt_ing_prounip, qt_ing_nrpfies, qt_ing_financ_nreemb_outros, qt_mat_financ, qt_mat_financ_reemb, qt_mat_fies, qt_mat_rpfies, qt_mat_financ_reemb_outros, qt_mat_financ_nreemb, qt_mat_prounii, qt_mat_prounip, qt_mat_nrpfies, qt_mat_financ_nreemb_outros, qt_conc_financ, qt_conc_financ_reemb, qt_conc_fies, qt_conc_rpfies, qt_conc_financ_reemb_outros, qt_conc_financ_nreemb, qt_conc_prounii, qt_conc_prounip, qt_conc_nrpfies, qt_conc_financ_nreemb_outros, qt_ing_reserva_vaga, qt_ing_rvredepublica, qt_ing_rvetnico, qt_ing_rvpdef, qt_ing_rvsocial_rf, qt_ing_rvoutros, qt_mat_reserva_vaga, qt_mat_rvredepublica, qt_mat_rvetnico, qt_mat_rvpdef, qt_mat_rvsocial_rf, qt_mat_rvoutros, qt_conc_reserva_vaga, qt_conc_rvredepublica, qt_conc_rvetnico, qt_conc_rvpdef, qt_conc_rvsocial_rf, qt_conc_rvoutros, qt_sit_trancada, qt_sit_desvinculado, qt_sit_transferido, qt_sit_falecido, qt_ing_procescpublica, qt_ing_procescprivada, qt_ing_procnaoinformada, qt_mat_procescpublica, qt_mat_procescprivada, qt_mat_procnaoinformada, qt_conc_procescpublica, qt_conc_procescprivada, qt_conc_procnaoinformada, qt_parfor, qt_ing_parfor, qt_mat_parfor, qt_conc_parfor, qt_apoio_social, qt_ing_apoio_social, qt_mat_apoio_social, qt_conc_apoio_social, qt_ativ_extracurricular, qt_ing_ativ_extracurricular, qt_mat_ativ_extracurricular, qt_conc_ativ_extracurricular, qt_mob_academica, qt_ing_mob_academica, qt_mat_mob_academica, qt_conc_mob_academica ]
+Tabela `inep.censo_cursos`: Colunas [ cod_curso, nome_curso, cod_ies (Código principal de instituição. Na censo_ies é cod_ies, na emec_instituicoes é co_ies. NUNCA invente codigo_ies), cod_municipio, id_grau_academico, id_modalidade_ensino, id_nivel_academico, id_atributo_ingresso, dt_inicio_funcionamento, cod_area, turno_curso, cc_ano, cc_faixa, cod_cine_rotulo, cod_area_tcu, id_centro_ufsm, nome_curso_ajustado, id_curso, cod_cine_rotulo_n, cod_cine_area_geral, tempo_integralizacao_anos ]
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE `CENSO_IES` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (`in_capital`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: `censo_ies.cod_municipio = municipios_ibge.cod_ibge`
+   - ⚠️ **USE `EMEC_INSTITUICOES` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag `in_capital`.
+     * Cursos cruzam com ela via: `emec_instituicoes.co_ies = censo_cursos.cod_ies`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   `censo_ies` ➔ `municipios_ibge` ➔ `microregioes_ibge` ➔ `mesoregioes_ibge` ➔ `uf_ibge` ➔ `regioes_ibge`
+   - Joins corretos:
+     ```sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     ```
+
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está `cod_curso`, não invente e não escreva `co_curso`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela `censo_ies` e `censo_cursos`, a coluna de código da IES é SECAMENTE `cod_ies`, NUNCA `co_ies`. Na tabela `emec_instituicoes` é `co_ies`. O banco de dados vai FALHAR se você errar isso.
+   - ❌ NUNCA USE: `municipios_ibge.cod_uf_ibge` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: `censo_ies.cod_categoria_administrativa` (O nome correto no schema é `id_categoria_administrativa`).
+   - ❌ NUNCA USE: `uf_ibge.nome_uf` ou `uf_ibge.sigla_uf` (O nome correto é `nome_uf_ibge` e o código/sigla é `uf_ibge`).
+   - ❌ NUNCA USE: `emec_instituicoes.in_capital` (Só existe na `censo_ies`).
+   - Use os tipos de dados originais. Para strings, sempre utilize `ILIKE` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo `inep.` em todas as tabelas no `FROM` e `JOIN`. (Ex: `FROM inep.censo_ies`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: `LIMIT 50` em queries com JOINs abertos, ou `LIMIT 100` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo (Cruzamento entre cursos e instituicoes):
+```sql
+SELECT c.nome_curso, e.site 
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE c.nome_curso ILIKE '%medicina%'
+LIMIT 50
+```\n\nExemplo (Uso correto da censo_ies para capitais):
+```sql
+SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
+```
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por ```sql. Não coloque `;` após a query, não adicione comentários adicionais dentro do bloco da query.";"SELECT
+  ccv.sg_uf,
+  SUM(ccv.qt_vg_total) AS total_vagas,
+  SUM(ccv.qt_ing) AS total_ingressantes
+FROM inep.censo_curso_vagas_bruto AS ccv
+JOIN inep.censo_cursos AS cc
+  ON ccv.co_ies = cc.cod_ies AND ccv.co_curso = cc.cod_curso
+WHERE
+  ccv.nu_ano_censo = 2022 AND cc.nome_curso ILIKE '%Medicina%'
+GROUP BY
+  ccv.sg_uf
+ORDER BY
+  ccv.sg_uf
+LIMIT 100";"SUCESSO";
+"Qual é o total de vagas e o total de alunos ingressantes para os cursos que contenham a palavra 'Medicina' no nome em 2022, agrupados pela sigla da IES?";"groq";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'sg_entidade_ensino' não existe na tabela 'censo_cursos'. Tente uma destas: cod_curso, nome_curso, cod_ies, cod_municipio, id_grau_academico., A coluna 'sg_entidade_ensino' não existe na tabela 'censo_cursos'. Tente uma destas: cod_curso, nome_curso, cod_ies, cod_municipio, id_grau_academico."
+"Qual é o total de vagas e o total de alunos ingressantes para os cursos que contenham a palavra 'Medicina' no nome em 2022, agrupados pela sigla da IES?";"cloudflare";"---
+### Task
+Generate SQL for: What is the total number of vacancies and incoming students for courses containing the word 'Medicina' in their name in 2022, grouped by IES acronym?
+
+### Schema (only relevant tables)
+inep.censo_curso_vagas_bruto: nu_ano_censo:int, sg_entidade_ensino:varchar, nm_curso:varchar, qt_vg_total:int, qt_ing:int
+inep.capes_cursos_bruto: an_base:int, nm_curso:varchar, sg_entidade_ensino:varchar
+
+### Critical Rules
+- Use `censo_curso_vagas_bruto` for vacancy and incoming student counts, year, and course name.
+- Use `capes_cursos_bruto` for course name and IES acronym.
+- Filter `nu_ano_censo` and `an_base` for the year 2022.
+- Filter `nm_curso` for courses containing 'Medicina'.
+- Group results by `sg_entidade_ensino`.
+- **WARNING**: The schema does not explicitly provide a direct join key between `censo_curso_vagas_bruto` and `capes_cursos_bruto` for `sg_entidade_ensino` and `nm_curso` in a way that guarantees a perfect match for IES acronym and course name across both tables. A direct join on `sg_entidade_ensino` and `nm_curso` might be the closest approximation, but be aware of potential mismatches.
+- **WARNING**: `sg_entidade_ensino` is present in `capes_cursos_bruto` but `censo_curso_vagas_bruto` uses `sg_uf` for state acronym and `no_curso` for course name. To group by IES acronym, we will assume `sg_entidade_ensino` in `capes_cursos_bruto` represents the IES acronym. However, `censo_curso_vagas_bruto` does not have a direct column for IES acronym. We will use `sg_uf` from `censo_curso_vagas_bruto` as a proxy for grouping if `sg_entidade_ensino` is not available there, but this is not ideal. For this query, we will attempt to join on `nm_curso` and use `sg_entidade_ensino` from `capes_cursos_bruto` for grouping.
+- **WARNING**: `nm_curso` is present in both tables.
+- **WARNING**: `nu_ano_censo` and `an_base` are for the year.
+- **WARNING**: `qt_vg_total` and `qt_ing` are for counts.
+- **WARNING**: `sg_entidade_ensino` is in `capes_cursos_bruto` for IES acronym. `censo_curso_vagas_bruto` does not have a direct IES acronym column. We will use `sg_uf` from `censo_curso_vagas_bruto` as a proxy if `sg_entidade_ensino` is not available there, but this is not ideal. The prompt asks to group by IES acronym, so we will prioritize `sg_entidade_ensino` from `capes_cursos_bruto`.
+
+### Example
+SELECT
+  cc.sg_entidade_ensino,
+  SUM(ccv.qt_vg_total) AS total_vagas,
+  SUM(ccv.qt_ing) AS total_ingressantes
+FROM inep.censo_curso_vagas_bruto AS ccv
+JOIN inep.capes_cursos_bruto AS cc
+  ON ccv.nm_curso = cc.nm_curso
+WHERE
+  ccv.nu_ano_censo = 2022 AND cc.an_base = 2022 AND cc.nm_curso LIKE '%Medicina%'
+GROUP BY
+  cc.sg_entidade_ensino;
+
+### SQL Query
+---
+SELECT
+  cc.sg_entidade_ensino,
+  SUM(ccv.qt_vg_total) AS total_vagas,
+  SUM(ccv.qt_ing) AS total_ingressantes
+FROM inep.censo_curso_vagas_bruto AS ccv
+JOIN inep.capes_cursos_bruto AS cc
+  ON ccv.nm_curso = cc.nm_curso
+WHERE
+  ccv.nu_ano_censo = 2022 AND cc.an_base = 2022 AND cc.nm_curso LIKE '%Medicina%'
+GROUP BY
+  cc.sg_entidade_ensino;
+---";"SELECT
+  cc.sg_entidade_ensino,
+  SUM(ccv.qt_vg_total) AS total_vagas,
+  SUM(ccv.qt_ing) AS total_ingressantes
+FROM inep.censo_curso_vagas_bruto AS ccv
+JOIN inep.capes_cursos_bruto AS cc
+  ON ccv.no_curso = cc.nm_curso
+WHERE
+  ccv.nu_ano_censo = 2022 AND cc.an_base = 2022 AND cc.nm_curso LIKE '%Medicina%'
+GROUP BY
+  cc.sg_entidade_ensino";"SUCESSO";
+"Liste aleatoriamente os nomes de 10 cursos e o nome das instituições que estão localizadas ativamente na cidade de 'São Paulo'.";"gemini";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'nm_entidade_ensino' não existe na tabela 'censo_ies'. Tente uma destas: cod_ies, nome_ies, sigla_ies, cod_mantenedora, id_categoria_administrativa., A coluna 'nm_municipio' não existe na tabela 'municipios_ibge'. Tente uma destas: cod_ibge, ano, cod_variavel, variavel, valor."
+"Liste aleatoriamente os nomes de 10 cursos e o nome das instituições que estão localizadas ativamente na cidade de 'São Paulo'.";"groq";"Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+Nenhum contexto anterior.
+
+🎯 PERGUNTA ATUAL: Liste aleatoriamente os nomes de 10 cursos e o nome das instituições que estão localizadas ativamente na cidade de 'São Paulo'.
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+SCHEMA: inep
+Tabela `inep.capes_cursos_bruto`: Colunas [ an_base, nm_grande_area_conhecimento, nm_area_conhecimento, nm_subarea_conhecimento, nm_especialidade, cd_area_avaliacao, nm_area_avaliacao, cd_entidade_capes, cd_entidade_emec, sg_entidade_ensino, nm_entidade_ensino, cs_status_juridico, ds_dependencia_administrativa, ds_organizacao_academica, nm_regiao, sg_uf_programa, nm_municipio_programa_ies, cd_programa_ies, nm_programa_ies, cd_curso_ppg, nm_curso, nm_grau_curso, cd_conceito_curso, an_inicio_previsto, ds_situacao_curso, dt_situacao_curso, id_add_foto_programa_ies, id_add_foto_programa ]
+Tabela `inep.censo_cursos`: Colunas [ cod_curso, nome_curso, cod_ies (Código principal de instituição. Na censo_ies é cod_ies, na emec_instituicoes é co_ies. NUNCA invente codigo_ies), cod_municipio, id_grau_academico, id_modalidade_ensino, id_nivel_academico, id_atributo_ingresso, dt_inicio_funcionamento, cod_area, turno_curso, cc_ano, cc_faixa, cod_cine_rotulo, cod_area_tcu, id_centro_ufsm, nome_curso_ajustado, id_curso, cod_cine_rotulo_n, cod_cine_area_geral, tempo_integralizacao_anos ]
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE `CENSO_IES` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (`in_capital`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: `censo_ies.cod_municipio = municipios_ibge.cod_ibge`
+   - ⚠️ **USE `EMEC_INSTITUICOES` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag `in_capital`.
+     * Cursos cruzam com ela via: `emec_instituicoes.co_ies = censo_cursos.cod_ies`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   `censo_ies` ➔ `municipios_ibge` ➔ `microregioes_ibge` ➔ `mesoregioes_ibge` ➔ `uf_ibge` ➔ `regioes_ibge`
+   - Joins corretos:
+     ```sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     ```
+
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está `cod_curso`, não invente e não escreva `co_curso`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela `censo_ies` e `censo_cursos`, a coluna de código da IES é SECAMENTE `cod_ies`, NUNCA `co_ies`. Na tabela `emec_instituicoes` é `co_ies`. O banco de dados vai FALHAR se você errar isso.
+   - ❌ NUNCA USE: `municipios_ibge.cod_uf_ibge` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: `censo_ies.cod_categoria_administrativa` (O nome correto no schema é `id_categoria_administrativa`).
+   - ❌ NUNCA USE: `uf_ibge.nome_uf` ou `uf_ibge.sigla_uf` (O nome correto é `nome_uf_ibge` e o código/sigla é `uf_ibge`).
+   - ❌ NUNCA USE: `emec_instituicoes.in_capital` (Só existe na `censo_ies`).
+   - Use os tipos de dados originais. Para strings, sempre utilize `ILIKE` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo `inep.` em todas as tabelas no `FROM` e `JOIN`. (Ex: `FROM inep.censo_ies`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: `LIMIT 50` em queries com JOINs abertos, ou `LIMIT 100` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo (Uso correto da censo_ies para capitais):
+```sql
+SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
+```\n\nExemplo (Cruzamento entre cursos e instituicoes):
+```sql
+SELECT c.nome_curso, e.site 
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE c.nome_curso ILIKE '%medicina%'
+LIMIT 50
+```
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por ```sql. Não coloque `;` após a query, não adicione comentários adicionais dentro do bloco da query.";"SELECT 
+    nm_curso, 
+    nm_entidade_ensino
+FROM 
+    inep.capes_cursos_bruto
+WHERE 
+    nm_municipio_programa_ies ILIKE '%São Paulo%'
+ORDER BY 
+    RANDOM()
+LIMIT 10";"SUCESSO";
+"Liste aleatoriamente os nomes de 10 cursos e o nome das instituições que estão localizadas ativamente na cidade de 'São Paulo'.";"cloudflare";"---
+### Task
+Generate SQL for: List 10 random course names and their institution names for institutions located in 'São Paulo'.
+
+### Schema (only relevant tables)
+inep.capes_cursos_bruto: nm_curso:varchar, nm_entidade_ensino:varchar, nm_municipio_programa_ies:varchar
+inep.censo_cursos: nome_curso:varchar, cod_ies:int
+inep.censo_ies: cod_ies:int, nome_ies:varchar, cod_municipio:char
+inep.municipios_ibge: cod_ibge:char, nome_municipio:varchar
+
+### Critical Rules
+- Use `inep.capes_cursos_bruto` for course and institution names, and municipality.
+- Use `inep.censo_ies` and `inep.municipios_ibge` to filter by municipality name.
+- Use EXACTLY: `nm_curso`, `nm_entidade_ensino`, `nm_municipio_programa_ies`, `nome_ies`, `nome_municipio`.
+- Use `ORDER BY RANDOM()` for random selection.
+- LIMIT to 10.
+- NEVER use: `in_capital`, `id_categoria_administrativa`, `cod_uf_ibge`, `cod_mesoregiao_ibge`.
+- JOIN `inep.censo_ies` with `inep.municipios_ibge` on `cod_municipio` and `cod_ibge`.
+
+### Example
+SELECT
+    cc.nome_curso,
+    ci.nome_ies
+FROM
+    inep.censo_cursos cc
+JOIN
+    inep.censo_ies ci ON cc.cod_ies = ci.cod_ies
+JOIN
+    inep.municipios_ibge mi ON ci.cod_municipio = mi.cod_ibge
+WHERE
+    mi.nome_municipio = 'São Paulo'
+ORDER BY
+    RANDOM()
+LIMIT 10;
+
+### SQL Query
+SELECT
+    cc.nome_curso,
+    ci.nome_ies
+FROM
+    inep.censo_cursos cc
+JOIN
+    inep.censo_ies ci ON cc.cod_ies = ci.cod_ies
+JOIN
+    inep.municipios_ibge mi ON ci.cod_municipio = mi.cod_ibge
+WHERE
+    mi.nome_municipio = 'São Paulo'
+ORDER BY
+    RANDOM()
+LIMIT 10;
+---";"SELECT
+    cc.nome_curso,
+    ci.nome_ies
+FROM
+    inep.censo_cursos cc
+JOIN
+    inep.censo_ies ci ON cc.cod_ies = ci.cod_ies
+JOIN
+    inep.municipios_ibge mi ON ci.cod_municipio = mi.cod_ibge
+WHERE
+    mi.nome_municipio = 'São Paulo'
+ORDER BY
+    RANDOM()
+LIMIT 10";"SUCESSO";
+"Quantas instituições pertencentes à categoria administrativa 'Pública Federal' ou 'Pública Estadual' existem em cada UF no censo? Ordene pelas UFs com mais instituições.";"gemini";"Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+Nenhum contexto anterior.
+
+🎯 PERGUNTA ATUAL: Quantas instituições pertencentes à categoria administrativa 'Pública Federal' ou 'Pública Estadual' existem em cada UF no censo? Ordene pelas UFs com mais instituições.
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+SCHEMA: inep
+Tabela `inep.censo_categorias_administrativas`: Colunas [ id_categoria_administrativa (1=Pública Federal, 2=Pública Estadual, 3=Municipal, 4=Privada Lucros, 5=Privada sem lucros), descr_categoria_administrativa, descr_cat_adm_agrupada ]
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE `CENSO_IES` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (`in_capital`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: `censo_ies.cod_municipio = municipios_ibge.cod_ibge`
+   - ⚠️ **USE `EMEC_INSTITUICOES` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag `in_capital`.
+     * Cursos cruzam com ela via: `emec_instituicoes.co_ies = censo_cursos.cod_ies`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   `censo_ies` ➔ `municipios_ibge` ➔ `microregioes_ibge` ➔ `mesoregioes_ibge` ➔ `uf_ibge` ➔ `regioes_ibge`
+   - Joins corretos:
+     ```sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     ```
+
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está `cod_curso`, não invente e não escreva `co_curso`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela `censo_ies` e `censo_cursos`, a coluna de código da IES é SECAMENTE `cod_ies`, NUNCA `co_ies`. Na tabela `emec_instituicoes` é `co_ies`. O banco de dados vai FALHAR se você errar isso.
+   - ❌ NUNCA USE: `municipios_ibge.cod_uf_ibge` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: `censo_ies.cod_categoria_administrativa` (O nome correto no schema é `id_categoria_administrativa`).
+   - ❌ NUNCA USE: `uf_ibge.nome_uf` ou `uf_ibge.sigla_uf` (O nome correto é `nome_uf_ibge` e o código/sigla é `uf_ibge`).
+   - ❌ NUNCA USE: `emec_instituicoes.in_capital` (Só existe na `censo_ies`).
+   - Use os tipos de dados originais. Para strings, sempre utilize `ILIKE` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo `inep.` em todas as tabelas no `FROM` e `JOIN`. (Ex: `FROM inep.censo_ies`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: `LIMIT 50` em queries com JOINs abertos, ou `LIMIT 100` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo (Uso correto da censo_ies para capitais):
+```sql
+SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
+```\n\nExemplo (Uso obrigatório da emec_instituicoes para contatos):
+```sql
+SELECT no_ies, telefone, email FROM inep.emec_instituicoes WHERE no_ies ILIKE '%Pernambuco%' LIMIT 50
+```
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por ```sql. Não coloque `;` após a query, não adicione comentários adicionais dentro do bloco da query.";"SELECT
+  u.nome_uf_ibge,
+  COUNT(DISTINCT c.cod_ies) AS quantidade_instituicoes
+FROM
+  inep.censo_ies AS c
+JOIN
+  inep.censo_categorias_administrativas AS ca ON c.id_categoria_administrativa = ca.id_categoria_administrativa
+JOIN
+  inep.municipios_ibge AS m ON c.cod_municipio = m.cod_ibge
+JOIN
+  inep.microregioes_ibge AS mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN
+  inep.mesoregioes_ibge AS me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN
+  inep.uf_ibge AS u ON me.cod_uf_ibge = u.uf_ibge
+WHERE
+  ca.descr_categoria_administrativa ILIKE 'Pública Federal' OR ca.descr_categoria_administrativa ILIKE 'Pública Estadual'
+GROUP BY
+  u.nome_uf_ibge
+ORDER BY
+  quantidade_instituicoes DESC
+LIMIT 100";"SUCESSO";
+"Quantas instituições pertencentes à categoria administrativa 'Pública Federal' ou 'Pública Estadual' existem em cada UF no censo? Ordene pelas UFs com mais instituições.";"groq";"Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+Nenhum contexto anterior.
+
+🎯 PERGUNTA ATUAL: Quantas instituições pertencentes à categoria administrativa 'Pública Federal' ou 'Pública Estadual' existem em cada UF no censo? Ordene pelas UFs com mais instituições.
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+SCHEMA: inep
+Tabela `inep.censo_categorias_administrativas`: Colunas [ id_categoria_administrativa (1=Pública Federal, 2=Pública Estadual, 3=Municipal, 4=Privada Lucros, 5=Privada sem lucros), descr_categoria_administrativa, descr_cat_adm_agrupada ]
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE `CENSO_IES` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (`in_capital`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: `censo_ies.cod_municipio = municipios_ibge.cod_ibge`
+   - ⚠️ **USE `EMEC_INSTITUICOES` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag `in_capital`.
+     * Cursos cruzam com ela via: `emec_instituicoes.co_ies = censo_cursos.cod_ies`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   `censo_ies` ➔ `municipios_ibge` ➔ `microregioes_ibge` ➔ `mesoregioes_ibge` ➔ `uf_ibge` ➔ `regioes_ibge`
+   - Joins corretos:
+     ```sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     ```
+
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está `cod_curso`, não invente e não escreva `co_curso`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela `censo_ies` e `censo_cursos`, a coluna de código da IES é SECAMENTE `cod_ies`, NUNCA `co_ies`. Na tabela `emec_instituicoes` é `co_ies`. O banco de dados vai FALHAR se você errar isso.
+   - ❌ NUNCA USE: `municipios_ibge.cod_uf_ibge` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: `censo_ies.cod_categoria_administrativa` (O nome correto no schema é `id_categoria_administrativa`).
+   - ❌ NUNCA USE: `uf_ibge.nome_uf` ou `uf_ibge.sigla_uf` (O nome correto é `nome_uf_ibge` e o código/sigla é `uf_ibge`).
+   - ❌ NUNCA USE: `emec_instituicoes.in_capital` (Só existe na `censo_ies`).
+   - Use os tipos de dados originais. Para strings, sempre utilize `ILIKE` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo `inep.` em todas as tabelas no `FROM` e `JOIN`. (Ex: `FROM inep.censo_ies`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: `LIMIT 50` em queries com JOINs abertos, ou `LIMIT 100` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo (Uso correto da censo_ies para capitais):
+```sql
+SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
+```\n\nExemplo (Uso obrigatório da emec_instituicoes para contatos):
+```sql
+SELECT no_ies, telefone, email FROM inep.emec_instituicoes WHERE no_ies ILIKE '%Pernambuco%' LIMIT 50
+```
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por ```sql. Não coloque `;` após a query, não adicione comentários adicionais dentro do bloco da query.";"SELECT 
+    u.nome_uf_ibge, 
+    COUNT(c.cod_ies) AS quantidade_instituicoes
+FROM 
+    inep.censo_ies c
+JOIN 
+    inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN 
+    inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN 
+    inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN 
+    inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
+WHERE 
+    c.id_categoria_administrativa IN (1, 2)
+GROUP BY 
+    u.nome_uf_ibge
+ORDER BY 
+    quantidade_instituicoes DESC
+LIMIT 50";"SUCESSO";
+"Quantas instituições pertencentes à categoria administrativa 'Pública Federal' ou 'Pública Estadual' existem em cada UF no censo? Ordene pelas UFs com mais instituições.";"cloudflare";"---
+### Task
+Generate SQL for: Count institutions by UF for 'Pública Federal' or 'Pública Estadual' categories, ordered by UF with most institutions.
+
+### Schema (only relevant tables)
+inep.censo_ies: cod_ies:int, nome_ies:varchar, sigla_ies:varchar, in_capital:int, cod_municipio:char, id_categoria_administrativa:int
+inep.censo_categorias_administrativas: id_categoria_administrativa:int, descr_categoria_administrativa:varchar
+inep.municipios_ibge: cod_ibge:char, nome_municipio:varchar, cod_microregiao_ibge:char
+inep.microregioes_ibge: cod_microregiao_ibge:char, cod_mesoregiao_ibge:char
+inep.mesoregioes_ibge: cod_mesoregiao_ibge:char, cod_uf_ibge:char
+inep.uf_ibge: uf_ibge:char, nome_uf_ibge:varchar, cod_regiao_ibge:int
+
+### Critical Rules
+- USE censo_ies for: administrative category, geography joins
+- USE EXACTLY: id_categoria_administrativa (NOT cod_categoria_administrativa), nome_uf_ibge (NOT nome_uf)
+- Geography MUST chain: censo_ies -> municipios -> microregioes -> mesoregioes -> uf
+- NEVER use: municipios_ibge.cod_uf_ibge, municipios_ibge.cod_mesoregiao_ibge, emec_instituicoes
+- Use 'Pública Federal' and 'Pública Estadual' for filtering `descr_categoria_administrativa`.
+- Order by the count of institutions in descending order.
+
+### Example
+SELECT u.nome_uf_ibge, COUNT(DISTINCT c.cod_ies) AS total_instituicoes
+FROM inep.censo_ies c
+JOIN inep.censo_categorias_administrativas ca ON c.id_categoria_administrativa = ca.id_categoria_administrativa
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
+WHERE ca.descr_categoria_administrativa IN ('Pública Federal', 'Pública Estadual')
+GROUP BY u.nome_uf_ibge
+ORDER BY total_instituicoes DESC
+LIMIT 50
+
+### SQL Query
+SELECT T5.nome_uf_ibge, COUNT(T1.cod_ies) FROM inep.censo_ies AS T1 INNER JOIN inep.censo_categorias_administrativas AS T2 ON T1.id_categoria_administrativa = T2.id_categoria_administrativa INNER JOIN inep.municipios_ibge AS T3 ON T1.cod_municipio = T3.cod_ibge INNER JOIN inep.microregioes_ibge AS T4 ON T3.cod_microregiao_ibge = T4.cod_microregiao_ibge INNER JOIN inep.mesoregioes_ibge AS T5 ON T4.cod_mesoregiao_ibge = T5.cod_mesoregiao_ibge INNER JOIN inep.uf_ibge AS T6 ON T5.cod_uf_ibge = T6.uf_ibge WHERE T2.descr_categoria_administrativa = 'Pública Federal' OR T2.descr_categoria_administrativa = 'Pública Estadual' GROUP BY T5.nome_uf_ibge ORDER BY COUNT(T1.cod_ies) DESC
+---";"SELECT u.nome_uf_ibge, COUNT(DISTINCT c.cod_ies) AS total_instituicoes FROM inep.censo_ies c JOIN inep.censo_categorias_administrativas ca ON c.id_categoria_administrativa = ca.id_categoria_administrativa JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge WHERE ca.descr_categoria_administrativa IN ('Pública Federal', 'Pública Estadual') GROUP BY u.nome_uf_ibge ORDER BY total_instituicoes DESC LIMIT 50";"SUCESSO";
+"Qual é a média do conceito Enade Contínuo no ano de 2021 avaliado por grau acadêmico (ex: Bacharelado, Licenciatura)?";"gemini";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'id_grau_academico' não existe na tabela 'dados_enade'. Tente uma destas: id, ano, co_ies, co_curso, enade_continuo."
+"Qual é a média do conceito Enade Contínuo no ano de 2021 avaliado por grau acadêmico (ex: Bacharelado, Licenciatura)?";"groq";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'cod_curso' não existe na tabela 'c'. Tente uma destas: id, ano, co_ies, n_cursos_cpc_trienio, alfa., A coluna 'id_grau_academico' não existe na tabela 'c'. Tente uma destas: id, ano, co_ies, n_cursos_cpc_trienio, alfa."
+"Qual é a média do conceito Enade Contínuo no ano de 2021 avaliado por grau acadêmico (ex: Bacharelado, Licenciatura)?";"cloudflare";"
+### Task
+Generate SQL for: Qual é a média do conceito Enade Contínuo no ano de 2021 avaliado por grau acadêmico (ex: Bacharelado, Licenciatura)?
+
+### Schema
+SCHEMA: inep
+Tabela `inep.censo_graus_academicos`: Colunas [ id_grau_academico, descr_grau_academico ]
+Tabela `inep.dados_enade`: Colunas [ id, ano, co_ies, co_curso, enade_continuo, enade_faixa, n_bruta_fg, n_padronizada_fg, n_bruta_ce, n_padronizada_ce ]
+Tabela `inep.dados_enade_percepcao_respostas`: Colunas [ questao, opcao, resposta, id, questao_aj ]
+Tabela `inep.dados_percepcao_enade`: Colunas [ nu_ano, co_curso, qe_i27, qe_i28, qe_i29, qe_i30, qe_i31, qe_i32, qe_i33, qe_i34, qe_i35, qe_i36, qe_i37, qe_i38, qe_i39, qe_i40, qe_i41, qe_i42, qe_i43, qe_i44, qe_i45, qe_i46, qe_i47, qe_i48, qe_i49, qe_i50, qe_i51, qe_i52, qe_i53, qe_i54, qe_i55, qe_i56, qe_i57, qe_i58, qe_i59, qe_i60, qe_i61, qe_i62, qe_i63, qe_i64, qe_i65, qe_i66, qe_i67, qe_i68 ]
+Tabela `inep.dados_percepcao_enade_questoes`: Colunas [ id_questao, descricao, grupo, questao_aj, questao ]
+
+### Critical Rules
+- USE EXACTLY: cod_ies (NOT co_ies), nome_curso (NOT no_curso), cod_curso (NOT co_curso)
+- emec_instituicoes: co_ies, no_ies, no_municipio, sg_uf
+- censo_cursos: cod_curso, nome_curso, cod_ies
+- municipios_ibge: cod_ibge, nome_municipio
+- JOIN: emec_instituicoes.co_ies = censo_cursos.cod_ies
+- For city search: WHERE no_municipio ILIKE '%city%'
+- NEVER use: co_municipio, no_curso, co_curso, no_municipio in municipios_ibge
+- NEVER JOIN emec_instituicoes with municipios_ibge (no common column!)
+
+### Example
+SELECT COUNT(DISTINCT c.cod_curso)
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE e.sg_uf = 'SP' AND c.nome_curso ILIKE '%Administração%'
+LIMIT 100
+
+### SQL Query
+";"SELECT AVG(d.enade_continuo) AS average_enade_continuo FROM inep.dados_enade d WHERE d.ano = 2021";"SUCESSO";
+"Qual é o curso e a instituição de ensino que obteve o maior número possível de inscritos totais em processos seletivos no ano de 2022, mas que tenha um conceito CPC na faixa de 1 a 2? Exiba o nome do curso e da faculdade.";"gemini";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'cd_conceito_curso' não existe na tabela 'censo_curso_vagas_bruto'. Tente uma destas: nu_ano_censo, no_regiao, co_regiao, no_uf, sg_uf."
+"Qual é o curso e a instituição de ensino que obteve o maior número possível de inscritos totais em processos seletivos no ano de 2022, mas que tenha um conceito CPC na faixa de 1 a 2? Exiba o nome do curso e da faculdade.";"groq";"Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+Nenhum contexto anterior.
+
+🎯 PERGUNTA ATUAL: Qual é o curso e a instituição de ensino que obteve o maior número possível de inscritos totais em processos seletivos no ano de 2022, mas que tenha um conceito CPC na faixa de 1 a 2? Exiba o nome do curso e da faculdade.
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+SCHEMA: inep
+Tabela `inep.capes_cursos_bruto`: Colunas [ an_base, nm_grande_area_conhecimento, nm_area_conhecimento, nm_subarea_conhecimento, nm_especialidade, cd_area_avaliacao, nm_area_avaliacao, cd_entidade_capes, cd_entidade_emec, sg_entidade_ensino, nm_entidade_ensino, cs_status_juridico, ds_dependencia_administrativa, ds_organizacao_academica, nm_regiao, sg_uf_programa, nm_municipio_programa_ies, cd_programa_ies, nm_programa_ies, cd_curso_ppg, nm_curso, nm_grau_curso, cd_conceito_curso, an_inicio_previsto, ds_situacao_curso, dt_situacao_curso, id_add_foto_programa_ies, id_add_foto_programa ]
+Tabela `inep.censo_curso_vagas_bruto`: Colunas [ nu_ano_censo, no_regiao, co_regiao, no_uf, sg_uf, co_uf, no_municipio, co_municipio, in_capital (1=Capital, 0=Interior), tp_dimensao, tp_organizacao_academica, tp_rede, tp_categoria_administrativa, in_comunitaria, in_confessional, co_ies, no_curso, co_curso, no_cine_rotulo, co_cine_rotulo, co_cine_area_geral, no_cine_area_geral, co_cine_area_especifica, no_cine_area_especifica, co_cine_area_detalhada, no_cine_area_detalhada, tp_grau_academico, in_gratuito, tp_modalidade_ensino (1=Presencial, 2=EAD), tp_nivel_academico, qt_curso, qt_vg_total, qt_vg_total_diurno, qt_vg_total_noturno, qt_vg_total_ead, qt_vg_nova, qt_vg_proc_seletivo, qt_vg_remanesc, qt_vg_prog_especial, qt_inscrito_total, qt_inscrito_total_diurno, qt_inscrito_total_noturno, qt_inscrito_total_ead, qt_insc_vg_nova, qt_insc_proc_seletivo, qt_insc_vg_remanesc, qt_insc_vg_prog_especial, qt_ing, qt_ing_fem, qt_ing_masc, qt_ing_diurno, qt_ing_noturno, qt_ing_vg_nova, qt_ing_vestibular, qt_ing_enem, qt_ing_avaliacao_seriada, qt_ing_selecao_simplifica, qt_ing_egr, qt_ing_outro_tipo_selecao, qt_ing_proc_seletivo, qt_ing_vg_remanesc, qt_ing_vg_prog_especial, qt_ing_outra_forma, qt_ing_0_17, qt_ing_18_24, qt_ing_25_29, qt_ing_30_34, qt_ing_35_39, qt_ing_40_49, qt_ing_50_59, qt_ing_60_mais, qt_ing_branca, qt_ing_preta, qt_ing_parda, qt_ing_amarela, qt_ing_indigena, qt_ing_cornd, qt_mat, qt_mat_fem, qt_mat_masc, qt_mat_diurno, qt_mat_noturno, qt_mat_0_17, qt_mat_18_24, qt_mat_25_29, qt_mat_30_34, qt_mat_35_39, qt_mat_40_49, qt_mat_50_59, qt_mat_60_mais, qt_mat_branca, qt_mat_preta, qt_mat_parda, qt_mat_amarela, qt_mat_indigena, qt_mat_cornd, qt_conc, qt_conc_fem, qt_conc_masc, qt_conc_diurno, qt_conc_noturno, qt_conc_0_17, qt_conc_18_24, qt_conc_25_29, qt_conc_30_34, qt_conc_35_39, qt_conc_40_49, qt_conc_50_59, qt_conc_60_mais, qt_conc_branca, qt_conc_preta, qt_conc_parda, qt_conc_amarela, qt_conc_indigena, qt_conc_cornd, qt_ing_nacbras, qt_ing_nacestrang, qt_mat_nacbras, qt_mat_nacestrang, qt_conc_nacbras, qt_conc_nacestrang, qt_aluno_deficiente, qt_ing_deficiente, qt_mat_deficiente, qt_conc_deficiente, qt_ing_financ, qt_ing_financ_reemb, qt_ing_fies, qt_ing_rpfies, qt_ing_financ_reemb_outros, qt_ing_financ_nreemb, qt_ing_prounii, qt_ing_prounip, qt_ing_nrpfies, qt_ing_financ_nreemb_outros, qt_mat_financ, qt_mat_financ_reemb, qt_mat_fies, qt_mat_rpfies, qt_mat_financ_reemb_outros, qt_mat_financ_nreemb, qt_mat_prounii, qt_mat_prounip, qt_mat_nrpfies, qt_mat_financ_nreemb_outros, qt_conc_financ, qt_conc_financ_reemb, qt_conc_fies, qt_conc_rpfies, qt_conc_financ_reemb_outros, qt_conc_financ_nreemb, qt_conc_prounii, qt_conc_prounip, qt_conc_nrpfies, qt_conc_financ_nreemb_outros, qt_ing_reserva_vaga, qt_ing_rvredepublica, qt_ing_rvetnico, qt_ing_rvpdef, qt_ing_rvsocial_rf, qt_ing_rvoutros, qt_mat_reserva_vaga, qt_mat_rvredepublica, qt_mat_rvetnico, qt_mat_rvpdef, qt_mat_rvsocial_rf, qt_mat_rvoutros, qt_conc_reserva_vaga, qt_conc_rvredepublica, qt_conc_rvetnico, qt_conc_rvpdef, qt_conc_rvsocial_rf, qt_conc_rvoutros, qt_sit_trancada, qt_sit_desvinculado, qt_sit_transferido, qt_sit_falecido, qt_ing_procescpublica, qt_ing_procescprivada, qt_ing_procnaoinformada, qt_mat_procescpublica, qt_mat_procescprivada, qt_mat_procnaoinformada, qt_conc_procescpublica, qt_conc_procescprivada, qt_conc_procnaoinformada, qt_parfor, qt_ing_parfor, qt_mat_parfor, qt_conc_parfor, qt_apoio_social, qt_ing_apoio_social, qt_mat_apoio_social, qt_conc_apoio_social, qt_ativ_extracurricular, qt_ing_ativ_extracurricular, qt_mat_ativ_extracurricular, qt_conc_ativ_extracurricular, qt_mob_academica, qt_ing_mob_academica, qt_mat_mob_academica, qt_conc_mob_academica ]
+Tabela `inep.censo_cursos`: Colunas [ cod_curso, nome_curso, cod_ies (Código principal de instituição. Na censo_ies é cod_ies, na emec_instituicoes é co_ies. NUNCA invente codigo_ies), cod_municipio, id_grau_academico, id_modalidade_ensino, id_nivel_academico, id_atributo_ingresso, dt_inicio_funcionamento, cod_area, turno_curso, cc_ano, cc_faixa, cod_cine_rotulo, cod_area_tcu, id_centro_ufsm, nome_curso_ajustado, id_curso, cod_cine_rotulo_n, cod_cine_area_geral, tempo_integralizacao_anos ]
+Tabela `inep.censo_modalidades_ensino`: Colunas [ id_modalidade_ensino, descr_modalidade_ensino ]
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE `CENSO_IES` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (`in_capital`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: `censo_ies.cod_municipio = municipios_ibge.cod_ibge`
+   - ⚠️ **USE `EMEC_INSTITUICOES` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag `in_capital`.
+     * Cursos cruzam com ela via: `emec_instituicoes.co_ies = censo_cursos.cod_ies`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   `censo_ies` ➔ `municipios_ibge` ➔ `microregioes_ibge` ➔ `mesoregioes_ibge` ➔ `uf_ibge` ➔ `regioes_ibge`
+   - Joins corretos:
+     ```sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     ```
+
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está `cod_curso`, não invente e não escreva `co_curso`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela `censo_ies` e `censo_cursos`, a coluna de código da IES é SECAMENTE `cod_ies`, NUNCA `co_ies`. Na tabela `emec_instituicoes` é `co_ies`. O banco de dados vai FALHAR se você errar isso.
+   - ❌ NUNCA USE: `municipios_ibge.cod_uf_ibge` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: `censo_ies.cod_categoria_administrativa` (O nome correto no schema é `id_categoria_administrativa`).
+   - ❌ NUNCA USE: `uf_ibge.nome_uf` ou `uf_ibge.sigla_uf` (O nome correto é `nome_uf_ibge` e o código/sigla é `uf_ibge`).
+   - ❌ NUNCA USE: `emec_instituicoes.in_capital` (Só existe na `censo_ies`).
+   - Use os tipos de dados originais. Para strings, sempre utilize `ILIKE` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo `inep.` em todas as tabelas no `FROM` e `JOIN`. (Ex: `FROM inep.censo_ies`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: `LIMIT 50` em queries com JOINs abertos, ou `LIMIT 100` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo (Cruzamento entre cursos e instituicoes):
+```sql
+SELECT c.nome_curso, e.site 
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE c.nome_curso ILIKE '%medicina%'
+LIMIT 50
+```\n\nExemplo (Uso correto da censo_ies para capitais):
+```sql
+SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
+```
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por ```sql. Não coloque `;` após a query, não adicione comentários adicionais dentro do bloco da query.
+
+[Auto-Correção Aplicada]";"SELECT c.nm_curso, c.nm_entidade_ensino
+FROM inep.capes_cursos_bruto c
+JOIN inep.censo_curso_vagas_bruto v ON c.nm_curso = v.no_curso AND c.nm_entidade_ensino = v.no_municipio
+WHERE c.cd_conceito_curso::integer BETWEEN 1 AND 2 AND v.nu_ano_censo = 2022
+ORDER BY v.qt_inscrito_total DESC
+LIMIT 1";"SUCESSO";
+"Qual é o curso e a instituição de ensino que obteve o maior número possível de inscritos totais em processos seletivos no ano de 2022, mas que tenha um conceito CPC na faixa de 1 a 2? Exiba o nome do curso e da faculdade.";"cloudflare";"### Task
+Generate SQL for: Which course and institution had the highest total number of enrollments in selection processes in 2022, with a CPC concept between 1 and 2? Display the course and institution name.
+
+### Schema (only relevant tables)
+inep.censo_curso_vagas_bruto: nu_ano_censo:int, qt_inscrito_total:int, cd_conceito_curso:int, no_curso:varchar, no_ies:varchar
+inep.censo_cursos: cd_curso:int, nome_curso:varchar, cod_ies:int
+
+### Critical Rules
+- Use `censo_curso_vagas_bruto` for enrollment data and CPC concept.
+- Use `censo_cursos` for course and institution names.
+- Use EXACTLY: `cd_conceito_curso` for CPC concept.
+- Use EXACTLY: `qt_inscrito_total` for total enrollments.
+- Use EXACTLY: `nu_ano_censo` for the year.
+- Use EXACTLY: `no_curso` and `no_ies` from `censo_curso_vagas_bruto` or `nome_curso` and `cod_ies` from `censo_cursos`.
+- JOIN `censo_curso_vagas_bruto` and `censo_cursos` on `cd_curso` (from `censo_cursos`) and `co_curso` (from `censo_curso_vagas_bruto`) is NOT possible as `co_curso` is not in `censo_cursos`. Therefore, use `no_curso` and `no_ies` from `censo_curso_vagas_bruto` directly.
+- Filter for `nu_ano_censo` = 2022.
+- Filter for `cd_conceito_curso` BETWEEN 1 AND 2.
+- Order by `qt_inscrito_total` DESC.
+- Limit to 1 result.
+- ⚠️ `cd_conceito_curso` is used for CPC concept. The schema shows `cd_conceito_curso` in `censo_curso_vagas_bruto`.
+
+### Example
+SELECT no_curso, no_ies, qt_inscrito_total
+FROM inep.censo_curso_vagas_bruto
+WHERE nu_ano_censo = 2022 AND cd_conceito_curso BETWEEN 1 AND 2
+ORDER BY qt_inscrito_total DESC
+LIMIT 1
+
+### SQL Query
+SELECT no_curso, no_ies FROM inep.censo_curso_vagas_bruto WHERE nu_ano_censo = 2022 AND cd_conceito_curso BETWEEN 1 AND 2 ORDER BY qt_inscrito_total DESC LIMIT 1
+
+[Auto-Correção Aplicada]";"SELECT no_curso, no_ies FROM inep.censo_curso_vagas_bruto WHERE nu_ano_censo = 2022 AND cd_conceito_curso BETWEEN 1 AND 2 ORDER BY qt_inscrito_total DESC LIMIT 1";"ERRO";"column ""no_ies"" does not exist"
+"Entre todas as UFs que formaram (concluintes) mais de 10.000 alunos no ano de 2022, quais são as 3 UFs que registram o maior percentual de mulheres concluintes em relação ao total?";"gemini";"Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+Nenhum contexto anterior.
+
+🎯 PERGUNTA ATUAL: Entre todas as UFs que formaram (concluintes) mais de 10.000 alunos no ano de 2022, quais são as 3 UFs que registram o maior percentual de mulheres concluintes em relação ao total?
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+SCHEMA: inep
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE `CENSO_IES` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (`in_capital`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: `censo_ies.cod_municipio = municipios_ibge.cod_ibge`
+   - ⚠️ **USE `EMEC_INSTITUICOES` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag `in_capital`.
+     * Cursos cruzam com ela via: `emec_instituicoes.co_ies = censo_cursos.cod_ies`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   `censo_ies` ➔ `municipios_ibge` ➔ `microregioes_ibge` ➔ `mesoregioes_ibge` ➔ `uf_ibge` ➔ `regioes_ibge`
+   - Joins corretos:
+     ```sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     ```
+
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está `cod_curso`, não invente e não escreva `co_curso`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela `censo_ies` e `censo_cursos`, a coluna de código da IES é SECAMENTE `cod_ies`, NUNCA `co_ies`. Na tabela `emec_instituicoes` é `co_ies`. O banco de dados vai FALHAR se você errar isso.
+   - ❌ NUNCA USE: `municipios_ibge.cod_uf_ibge` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: `censo_ies.cod_categoria_administrativa` (O nome correto no schema é `id_categoria_administrativa`).
+   - ❌ NUNCA USE: `uf_ibge.nome_uf` ou `uf_ibge.sigla_uf` (O nome correto é `nome_uf_ibge` e o código/sigla é `uf_ibge`).
+   - ❌ NUNCA USE: `emec_instituicoes.in_capital` (Só existe na `censo_ies`).
+   - Use os tipos de dados originais. Para strings, sempre utilize `ILIKE` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo `inep.` em todas as tabelas no `FROM` e `JOIN`. (Ex: `FROM inep.censo_ies`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: `LIMIT 50` em queries com JOINs abertos, ou `LIMIT 100` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo (Uso correto da censo_ies para capitais):
+```sql
+SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
+```\n\nExemplo (Uso obrigatório da emec_instituicoes para contatos):
+```sql
+SELECT no_ies, telefone, email FROM inep.emec_instituicoes WHERE no_ies ILIKE '%Pernambuco%' LIMIT 50
+```
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por ```sql. Não coloque `;` após a query, não adicione comentários adicionais dentro do bloco da query.
+
+[Auto-Correção Aplicada]";"WITH ConcluintesPorUF AS (
+    SELECT
+        cc.uf_sigla,
+        COUNT(CASE WHEN cc.tp_sexo = 'Feminino' THEN 1 END) AS mulheres_concluintes,
+        COUNT(*) AS total_concluintes
+    FROM
+        inep.censo_concluintes cc -- Assumindo que esta tabela contém os dados de concluintes
+    WHERE
+        cc.nu_ano_censo = 2022
+    GROUP BY
+        cc.uf_sigla
+    HAVING
+        COUNT(*) > 10000
+)
+SELECT
+    u.nome_uf_ibge,
+    ROUND((CAST(cpu.mulheres_concluintes AS DECIMAL) / cpu.total_concluintes) * 100, 2) AS percentual_mulheres
+FROM
+    ConcluintesPorUF cpu
+JOIN
+    inep.uf_ibge u ON cpu.uf_sigla = u.uf_ibge
+ORDER BY
+    percentual_mulheres DESC
+LIMIT 3";"ERRO";"relation ""censo_concluintes"" does not exist"
+"Entre todas as UFs que formaram (concluintes) mais de 10.000 alunos no ano de 2022, quais são as 3 UFs que registram o maior percentual de mulheres concluintes em relação ao total?";"groq";"Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+Nenhum contexto anterior.
+
+🎯 PERGUNTA ATUAL: Entre todas as UFs que formaram (concluintes) mais de 10.000 alunos no ano de 2022, quais são as 3 UFs que registram o maior percentual de mulheres concluintes em relação ao total?
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+SCHEMA: inep
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE `CENSO_IES` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (`in_capital`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: `censo_ies.cod_municipio = municipios_ibge.cod_ibge`
+   - ⚠️ **USE `EMEC_INSTITUICOES` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag `in_capital`.
+     * Cursos cruzam com ela via: `emec_instituicoes.co_ies = censo_cursos.cod_ies`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   `censo_ies` ➔ `municipios_ibge` ➔ `microregioes_ibge` ➔ `mesoregioes_ibge` ➔ `uf_ibge` ➔ `regioes_ibge`
+   - Joins corretos:
+     ```sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     ```
+
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está `cod_curso`, não invente e não escreva `co_curso`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela `censo_ies` e `censo_cursos`, a coluna de código da IES é SECAMENTE `cod_ies`, NUNCA `co_ies`. Na tabela `emec_instituicoes` é `co_ies`. O banco de dados vai FALHAR se você errar isso.
+   - ❌ NUNCA USE: `municipios_ibge.cod_uf_ibge` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: `censo_ies.cod_categoria_administrativa` (O nome correto no schema é `id_categoria_administrativa`).
+   - ❌ NUNCA USE: `uf_ibge.nome_uf` ou `uf_ibge.sigla_uf` (O nome correto é `nome_uf_ibge` e o código/sigla é `uf_ibge`).
+   - ❌ NUNCA USE: `emec_instituicoes.in_capital` (Só existe na `censo_ies`).
+   - Use os tipos de dados originais. Para strings, sempre utilize `ILIKE` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo `inep.` em todas as tabelas no `FROM` e `JOIN`. (Ex: `FROM inep.censo_ies`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: `LIMIT 50` em queries com JOINs abertos, ou `LIMIT 100` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo (Uso correto da censo_ies para capitais):
+```sql
+SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
+```\n\nExemplo (Uso obrigatório da emec_instituicoes para contatos):
+```sql
+SELECT no_ies, telefone, email FROM inep.emec_instituicoes WHERE no_ies ILIKE '%Pernambuco%' LIMIT 50
+```
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por ```sql. Não coloque `;` após a query, não adicione comentários adicionais dentro do bloco da query.
+
+[Auto-Correção Aplicada]";"WITH concluintes_uf AS (
+  SELECT 
+    u.uf_ibge,
+    SUM(CASE WHEN c.sexo = 'F' THEN c.quantidade_concluintes ELSE 0 END) AS mulheres_concluintes,
+    SUM(c.quantidade_concluintes) AS total_concluintes
+  FROM 
+    inep.censo_ies ci
+  JOIN 
+    inep.municipios_ibge m ON ci.cod_municipio = m.cod_ibge
+  JOIN 
+    inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+  JOIN 
+    inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+  JOIN 
+    inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
+  -- Aqui precisaríamos de uma tabela que contenha informações sobre os concluintes
+  -- JOIN inep.concluintes c ON ci.cod_ies = c.cod_ies
+  -- WHERE c.ano = 2022
+  -- Como não temos essa tabela, vamos considerar uma hipótese para exemplificar
+  JOIN inep.censo_cursos cc ON ci.cod_ies = cc.cod_ies
+  JOIN inep.matriculas mtc ON cc.cod_curso = mtc.cod_curso
+  WHERE mtc.ano = 2022
+  GROUP BY 
+    u.uf_ibge
+  HAVING 
+    SUM(mtc.quantidade_concluintes) > 10000
+)
+SELECT 
+  uf_ibge,
+  (mulheres_concluintes * 100.0 / total_concluintes) AS percentual_mulheres
+FROM 
+  concluintes_uf
+ORDER BY 
+  percentual_mulheres DESC
+LIMIT 3";"ERRO";"relation ""matriculas"" does not exist"
+"Entre todas as UFs que formaram (concluintes) mais de 10.000 alunos no ano de 2022, quais são as 3 UFs que registram o maior percentual de mulheres concluintes em relação ao total?";"cloudflare";"Prompt não retornado";;"ERRO";"Erro ao gerar SQL: Request failed with status code 413"
+"Quais são os 5 estados brasileiros com a maior quantidade de cursos de 'Sistemas de Informação' (considerando o nome do curso) oferecidos por instituições de ensino superior públicas";"gemini";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'ds_dependencia_administrativa' não existe na tabela 'censo_ies'. Tente uma destas: cod_ies, nome_ies, sigla_ies, cod_mantenedora, id_categoria_administrativa."
+"Quais são os 5 estados brasileiros com a maior quantidade de cursos de 'Sistemas de Informação' (considerando o nome do curso) oferecidos por instituições de ensino superior públicas";"groq";"Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+Nenhum contexto anterior.
+
+🎯 PERGUNTA ATUAL: Quais são os 5 estados brasileiros com a maior quantidade de cursos de 'Sistemas de Informação' (considerando o nome do curso) oferecidos por instituições de ensino superior públicas
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+SCHEMA: inep
+Tabela `inep.capes_cursos_bruto`: Colunas [ an_base, nm_grande_area_conhecimento, nm_area_conhecimento, nm_subarea_conhecimento, nm_especialidade, cd_area_avaliacao, nm_area_avaliacao, cd_entidade_capes, cd_entidade_emec, sg_entidade_ensino, nm_entidade_ensino, cs_status_juridico, ds_dependencia_administrativa, ds_organizacao_academica, nm_regiao, sg_uf_programa, nm_municipio_programa_ies, cd_programa_ies, nm_programa_ies, cd_curso_ppg, nm_curso, nm_grau_curso, cd_conceito_curso, an_inicio_previsto, ds_situacao_curso, dt_situacao_curso, id_add_foto_programa_ies, id_add_foto_programa ]
+Tabela `inep.censo_cursos`: Colunas [ cod_curso, nome_curso, cod_ies (Código principal de instituição. Na censo_ies é cod_ies, na emec_instituicoes é co_ies. NUNCA invente codigo_ies), cod_municipio, id_grau_academico, id_modalidade_ensino, id_nivel_academico, id_atributo_ingresso, dt_inicio_funcionamento, cod_area, turno_curso, cc_ano, cc_faixa, cod_cine_rotulo, cod_area_tcu, id_centro_ufsm, nome_curso_ajustado, id_curso, cod_cine_rotulo_n, cod_cine_area_geral, tempo_integralizacao_anos ]
+Tabela `inep.censo_modalidades_ensino`: Colunas [ id_modalidade_ensino, descr_modalidade_ensino ]
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE `CENSO_IES` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (`in_capital`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: `censo_ies.cod_municipio = municipios_ibge.cod_ibge`
+   - ⚠️ **USE `EMEC_INSTITUICOES` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag `in_capital`.
+     * Cursos cruzam com ela via: `emec_instituicoes.co_ies = censo_cursos.cod_ies`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   `censo_ies` ➔ `municipios_ibge` ➔ `microregioes_ibge` ➔ `mesoregioes_ibge` ➔ `uf_ibge` ➔ `regioes_ibge`
+   - Joins corretos:
+     ```sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     ```
+
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está `cod_curso`, não invente e não escreva `co_curso`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela `censo_ies` e `censo_cursos`, a coluna de código da IES é SECAMENTE `cod_ies`, NUNCA `co_ies`. Na tabela `emec_instituicoes` é `co_ies`. O banco de dados vai FALHAR se você errar isso.
+   - ❌ NUNCA USE: `municipios_ibge.cod_uf_ibge` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: `censo_ies.cod_categoria_administrativa` (O nome correto no schema é `id_categoria_administrativa`).
+   - ❌ NUNCA USE: `uf_ibge.nome_uf` ou `uf_ibge.sigla_uf` (O nome correto é `nome_uf_ibge` e o código/sigla é `uf_ibge`).
+   - ❌ NUNCA USE: `emec_instituicoes.in_capital` (Só existe na `censo_ies`).
+   - Use os tipos de dados originais. Para strings, sempre utilize `ILIKE` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo `inep.` em todas as tabelas no `FROM` e `JOIN`. (Ex: `FROM inep.censo_ies`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: `LIMIT 50` em queries com JOINs abertos, ou `LIMIT 100` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo (Cadeia geográfica Obrigatoria):
+```sql
+SELECT r.descr_regiao_ibge AS regiao, COUNT(DISTINCT c.cod_ies) AS total_instituicoes
+FROM inep.censo_ies c
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
+JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
+WHERE r.descr_regiao_ibge ILIKE 'Nordeste'
+GROUP BY r.descr_regiao_ibge
+```\n\nExemplo (Cruzamento entre cursos e instituicoes):
+```sql
+SELECT c.nome_curso, e.site 
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE c.nome_curso ILIKE '%medicina%'
+LIMIT 50
+```
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por ```sql. Não coloque `;` após a query, não adicione comentários adicionais dentro do bloco da query.";"SELECT u.nome_uf_ibge, COUNT(DISTINCT c.cod_curso) AS total_cursos
+FROM inep.censo_cursos c
+JOIN inep.censo_ies i ON c.cod_ies = i.cod_ies
+JOIN inep.municipios_ibge m ON i.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
+WHERE c.nome_curso ILIKE '%Sistemas de Informação%' AND i.id_categoria_administrativa = 1
+GROUP BY u.nome_uf_ibge
+ORDER BY total_cursos DESC
+LIMIT 5";"SUCESSO";
+"Quais são os 5 estados brasileiros com a maior quantidade de cursos de 'Sistemas de Informação' (considerando o nome do curso) oferecidos por instituições de ensino superior públicas";"cloudflare";"---
+### Task
+Generate SQL for: Top 5 Brazilian states with the highest number of 'Sistemas de Informação' courses offered by public higher education institutions.
+
+### Schema (only relevant tables)
+inep.capes_cursos_bruto: sg_uf_programa:varchar, nm_curso:varchar, ds_dependencia_administrativa:varchar
+inep.censo_cursos: nome_curso:varchar, cod_curso:int, cod_ies:int
+inep.censo_ies: cod_ies:int, ds_dependencia_administrativa:varchar, sg_uf_programa:varchar
+
+### Critical Rules
+- USE capes_cursos_bruto for course name and UF.
+- Filter for 'Sistemas de Informação' in nm_curso.
+- Filter for public institutions using ds_dependencia_administrativa.
+- USE EXACTLY: nm_curso, sg_uf_programa, ds_dependencia_administrativa.
+- DO NOT use: censo_cursos, censo_ies.
+- DO NOT invent: any columns or tables.
+- DO NOT use: any geography joins.
+
+### Example
+SELECT sg_uf_programa, COUNT(DISTINCT cd_curso) AS total_cursos
+FROM inep.capes_cursos_bruto
+WHERE nm_curso = 'Sistemas de Informação'
+AND ds_dependencia_administrativa = 'Pública'
+GROUP BY sg_uf_programa
+ORDER BY total_cursos DESC
+LIMIT 5
+
+### SQL Query
+SELECT T1.sg_uf_programa FROM inep.capes_cursos_bruto AS T1 WHERE T1.nm_curso = 'Sistemas de Informação' AND T1.ds_dependencia_administrativa = 'Pública' GROUP BY T1.sg_uf_programa ORDER BY COUNT(T1.cd_curso) DESC LIMIT 5
+---";"SELECT T1.sg_uf_programa FROM inep.capes_cursos_bruto AS T1 WHERE T1.nm_curso = 'Sistemas de Informação' AND T1.ds_dependencia_administrativa = 'Pública' GROUP BY T1.sg_uf_programa ORDER BY COUNT(t1.nm_curso) DESC LIMIT 5";"SUCESSO";
+"Considerando estritamente os cursos de grau 'Bacharelado' em 'Sistemas de Informação', qual é a média de notas contínuas no ENADE por região do país? Ordene da maior para a menor";"gemini";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'nm_regiao' não existe na tabela 'regioes_ibge'. Tente uma destas: cod_regiao_ibge, descr_regiao_ibge, sigla_regiao_ibge., A coluna 'nm_regiao' não existe na tabela 'regioes_ibge'. Tente uma destas: cod_regiao_ibge, descr_regiao_ibge, sigla_regiao_ibge."
+"Considerando estritamente os cursos de grau 'Bacharelado' em 'Sistemas de Informação', qual é a média de notas contínuas no ENADE por região do país? Ordene da maior para a menor";"groq";"Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+Nenhum contexto anterior.
+
+🎯 PERGUNTA ATUAL: Considerando estritamente os cursos de grau 'Bacharelado' em 'Sistemas de Informação', qual é a média de notas contínuas no ENADE por região do país? Ordene da maior para a menor
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+SCHEMA: inep
+Tabela `inep.capes_cursos_bruto`: Colunas [ an_base, nm_grande_area_conhecimento, nm_area_conhecimento, nm_subarea_conhecimento, nm_especialidade, cd_area_avaliacao, nm_area_avaliacao, cd_entidade_capes, cd_entidade_emec, sg_entidade_ensino, nm_entidade_ensino, cs_status_juridico, ds_dependencia_administrativa, ds_organizacao_academica, nm_regiao, sg_uf_programa, nm_municipio_programa_ies, cd_programa_ies, nm_programa_ies, cd_curso_ppg, nm_curso, nm_grau_curso, cd_conceito_curso, an_inicio_previsto, ds_situacao_curso, dt_situacao_curso, id_add_foto_programa_ies, id_add_foto_programa ]
+Tabela `inep.censo_cursos`: Colunas [ cod_curso, nome_curso, cod_ies (Código principal de instituição. Na censo_ies é cod_ies, na emec_instituicoes é co_ies. NUNCA invente codigo_ies), cod_municipio, id_grau_academico, id_modalidade_ensino, id_nivel_academico, id_atributo_ingresso, dt_inicio_funcionamento, cod_area, turno_curso, cc_ano, cc_faixa, cod_cine_rotulo, cod_area_tcu, id_centro_ufsm, nome_curso_ajustado, id_curso, cod_cine_rotulo_n, cod_cine_area_geral, tempo_integralizacao_anos ]
+Tabela `inep.censo_graus_academicos`: Colunas [ id_grau_academico, descr_grau_academico ]
+Tabela `inep.dados_enade`: Colunas [ id, ano, co_ies, co_curso, enade_continuo, enade_faixa, n_bruta_fg, n_padronizada_fg, n_bruta_ce, n_padronizada_ce ]
+Tabela `inep.dados_enade_percepcao_respostas`: Colunas [ questao, opcao, resposta, id, questao_aj ]
+Tabela `inep.dados_percepcao_enade`: Colunas [ nu_ano, co_curso, qe_i27, qe_i28, qe_i29, qe_i30, qe_i31, qe_i32, qe_i33, qe_i34, qe_i35, qe_i36, qe_i37, qe_i38, qe_i39, qe_i40, qe_i41, qe_i42, qe_i43, qe_i44, qe_i45, qe_i46, qe_i47, qe_i48, qe_i49, qe_i50, qe_i51, qe_i52, qe_i53, qe_i54, qe_i55, qe_i56, qe_i57, qe_i58, qe_i59, qe_i60, qe_i61, qe_i62, qe_i63, qe_i64, qe_i65, qe_i66, qe_i67, qe_i68 ]
+Tabela `inep.dados_percepcao_enade_questoes`: Colunas [ id_questao, descricao, grupo, questao_aj, questao ]
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE `CENSO_IES` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (`in_capital`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: `censo_ies.cod_municipio = municipios_ibge.cod_ibge`
+   - ⚠️ **USE `EMEC_INSTITUICOES` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag `in_capital`.
+     * Cursos cruzam com ela via: `emec_instituicoes.co_ies = censo_cursos.cod_ies`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   `censo_ies` ➔ `municipios_ibge` ➔ `microregioes_ibge` ➔ `mesoregioes_ibge` ➔ `uf_ibge` ➔ `regioes_ibge`
+   - Joins corretos:
+     ```sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     ```
+
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está `cod_curso`, não invente e não escreva `co_curso`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela `censo_ies` e `censo_cursos`, a coluna de código da IES é SECAMENTE `cod_ies`, NUNCA `co_ies`. Na tabela `emec_instituicoes` é `co_ies`. O banco de dados vai FALHAR se você errar isso.
+   - ❌ NUNCA USE: `municipios_ibge.cod_uf_ibge` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: `censo_ies.cod_categoria_administrativa` (O nome correto no schema é `id_categoria_administrativa`).
+   - ❌ NUNCA USE: `uf_ibge.nome_uf` ou `uf_ibge.sigla_uf` (O nome correto é `nome_uf_ibge` e o código/sigla é `uf_ibge`).
+   - ❌ NUNCA USE: `emec_instituicoes.in_capital` (Só existe na `censo_ies`).
+   - Use os tipos de dados originais. Para strings, sempre utilize `ILIKE` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo `inep.` em todas as tabelas no `FROM` e `JOIN`. (Ex: `FROM inep.censo_ies`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: `LIMIT 50` em queries com JOINs abertos, ou `LIMIT 100` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo (Cruzamento entre cursos e instituicoes):
+```sql
+SELECT c.nome_curso, e.site 
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE c.nome_curso ILIKE '%medicina%'
+LIMIT 50
+```\n\nExemplo (Uso correto da censo_ies para capitais):
+```sql
+SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
+```
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por ```sql. Não coloque `;` após a query, não adicione comentários adicionais dentro do bloco da query.";"SELECT 
+    r.cod_regiao_ibge, 
+    AVG(de.enade_continuo) AS media_notas
+FROM 
+    inep.dados_enade de
+JOIN 
+    inep.censo_cursos cc ON de.co_curso = cc.cod_curso
+JOIN 
+    inep.censo_ies ci ON cc.cod_ies = ci.cod_ies
+JOIN 
+    inep.municipios_ibge m ON ci.cod_municipio = m.cod_ibge
+JOIN 
+    inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN 
+    inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN 
+    inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
+JOIN 
+    inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
+WHERE 
+    cc.nome_curso ILIKE '%Sistemas de Informação%' 
+    AND cc.id_grau_academico = (SELECT id_grau_academico FROM inep.censo_graus_academicos WHERE descr_grau_academico = 'Bacharelado')
+GROUP BY 
+    r.cod_regiao_ibge
+ORDER BY 
+    media_notas DESC
+LIMIT 50";"SUCESSO";
+"Considerando estritamente os cursos de grau 'Bacharelado' em 'Sistemas de Informação', qual é a média de notas contínuas no ENADE por região do país? Ordene da maior para a menor";"cloudflare";"---
+### Task
+Generate SQL for: What is the average ENADE continuous score for 'Bacharelado' degrees in 'Sistemas de Informação' by region, ordered from highest to lowest?
+
+### Schema (only relevant tables)
+inep.capes_cursos_bruto: nm_grau_curso:varchar, nm_curso:varchar, nm_regiao:varchar
+inep.dados_enade: enade_continuo:float, co_curso:int
+
+### Critical Rules
+- Use EXACTLY column names from the schema.
+- DO NOT invent or abbreviate column names.
+- DO NOT use columns that do not exist.
+- The query must join `inep.capes_cursos_bruto` and `inep.dados_enade` on `nm_curso` and `co_curso` respectively.
+
+### Example
+SELECT T1.nm_regiao, AVG(T2.enade_continuo) AS media_enade
+FROM inep.capes_cursos_bruto AS T1
+INNER JOIN inep.dados_enade AS T2
+  ON T1.nm_curso = T2.co_curso
+WHERE
+  T1.nm_grau_curso = 'Bacharelado' AND T1.nm_curso = 'Sistemas de Informação'
+GROUP BY
+  T1.nm_regiao
+ORDER BY
+  media_enade DESC;
+
+### SQL Query
+SELECT T1.nm_regiao, AVG(T2.enade_continuo) FROM inep.capes_cursos_bruto AS T1 INNER JOIN inep.dados_enade AS T2 ON T1.nm_curso = T2.co_curso WHERE T1.nm_grau_curso = 'Bacharelado' AND T1.nm_curso = 'Sistemas de Informação' GROUP BY T1.nm_regiao ORDER BY AVG(T2.enade_continuo) DESC
+---
+
+[Auto-Correção Aplicada]";"SELECT T1.nm_regiao, AVG(T2.enade_continuo) FROM inep.capes_cursos_bruto AS T1 INNER JOIN inep.dados_enade AS T2 ON T1.nm_curso = T2.co_curso WHERE T1.nm_grau_curso = 'Bacharelado' AND T1.nm_curso = 'Sistemas de Informação' GROUP BY T1.nm_regiao ORDER BY AVG(T2.enade_continuo) DESC";"ERRO";"operator does not exist: character varying = integer"
+"Dentre todas as instituições de ensino localizadas no rio grande do sul, qual instituição possui a maior taxa de concorrência (total de inscritos dividido pelo total de vagas) para o curso de 'Sistemas de Informação'?";"gemini";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'no_municipio_curso' não existe na tabela 'censo_curso_vagas_bruto'. Tente uma destas: nu_ano_censo, no_regiao, co_regiao, no_uf, sg_uf."
+"Dentre todas as instituições de ensino localizadas no rio grande do sul, qual instituição possui a maior taxa de concorrência (total de inscritos dividido pelo total de vagas) para o curso de 'Sistemas de Informação'?";"groq";"Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
+Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
+
+📋 CONTEXTO DA CONVERSA:
+Nenhum contexto anterior.
+
+🎯 PERGUNTA ATUAL: Dentre todas as instituições de ensino localizadas no rio grande do sul, qual instituição possui a maior taxa de concorrência (total de inscritos dividido pelo total de vagas) para o curso de 'Sistemas de Informação'?
+
+📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
+SCHEMA: inep
+Tabela `inep.capes_cursos_bruto`: Colunas [ an_base, nm_grande_area_conhecimento, nm_area_conhecimento, nm_subarea_conhecimento, nm_especialidade, cd_area_avaliacao, nm_area_avaliacao, cd_entidade_capes, cd_entidade_emec, sg_entidade_ensino, nm_entidade_ensino, cs_status_juridico, ds_dependencia_administrativa, ds_organizacao_academica, nm_regiao, sg_uf_programa, nm_municipio_programa_ies, cd_programa_ies, nm_programa_ies, cd_curso_ppg, nm_curso, nm_grau_curso, cd_conceito_curso, an_inicio_previsto, ds_situacao_curso, dt_situacao_curso, id_add_foto_programa_ies, id_add_foto_programa ]
+Tabela `inep.censo_curso_vagas_bruto`: Colunas [ nu_ano_censo, no_regiao, co_regiao, no_uf, sg_uf, co_uf, no_municipio, co_municipio, in_capital (1=Capital, 0=Interior), tp_dimensao, tp_organizacao_academica, tp_rede, tp_categoria_administrativa, in_comunitaria, in_confessional, co_ies, no_curso, co_curso, no_cine_rotulo, co_cine_rotulo, co_cine_area_geral, no_cine_area_geral, co_cine_area_especifica, no_cine_area_especifica, co_cine_area_detalhada, no_cine_area_detalhada, tp_grau_academico, in_gratuito, tp_modalidade_ensino (1=Presencial, 2=EAD), tp_nivel_academico, qt_curso, qt_vg_total, qt_vg_total_diurno, qt_vg_total_noturno, qt_vg_total_ead, qt_vg_nova, qt_vg_proc_seletivo, qt_vg_remanesc, qt_vg_prog_especial, qt_inscrito_total, qt_inscrito_total_diurno, qt_inscrito_total_noturno, qt_inscrito_total_ead, qt_insc_vg_nova, qt_insc_proc_seletivo, qt_insc_vg_remanesc, qt_insc_vg_prog_especial, qt_ing, qt_ing_fem, qt_ing_masc, qt_ing_diurno, qt_ing_noturno, qt_ing_vg_nova, qt_ing_vestibular, qt_ing_enem, qt_ing_avaliacao_seriada, qt_ing_selecao_simplifica, qt_ing_egr, qt_ing_outro_tipo_selecao, qt_ing_proc_seletivo, qt_ing_vg_remanesc, qt_ing_vg_prog_especial, qt_ing_outra_forma, qt_ing_0_17, qt_ing_18_24, qt_ing_25_29, qt_ing_30_34, qt_ing_35_39, qt_ing_40_49, qt_ing_50_59, qt_ing_60_mais, qt_ing_branca, qt_ing_preta, qt_ing_parda, qt_ing_amarela, qt_ing_indigena, qt_ing_cornd, qt_mat, qt_mat_fem, qt_mat_masc, qt_mat_diurno, qt_mat_noturno, qt_mat_0_17, qt_mat_18_24, qt_mat_25_29, qt_mat_30_34, qt_mat_35_39, qt_mat_40_49, qt_mat_50_59, qt_mat_60_mais, qt_mat_branca, qt_mat_preta, qt_mat_parda, qt_mat_amarela, qt_mat_indigena, qt_mat_cornd, qt_conc, qt_conc_fem, qt_conc_masc, qt_conc_diurno, qt_conc_noturno, qt_conc_0_17, qt_conc_18_24, qt_conc_25_29, qt_conc_30_34, qt_conc_35_39, qt_conc_40_49, qt_conc_50_59, qt_conc_60_mais, qt_conc_branca, qt_conc_preta, qt_conc_parda, qt_conc_amarela, qt_conc_indigena, qt_conc_cornd, qt_ing_nacbras, qt_ing_nacestrang, qt_mat_nacbras, qt_mat_nacestrang, qt_conc_nacbras, qt_conc_nacestrang, qt_aluno_deficiente, qt_ing_deficiente, qt_mat_deficiente, qt_conc_deficiente, qt_ing_financ, qt_ing_financ_reemb, qt_ing_fies, qt_ing_rpfies, qt_ing_financ_reemb_outros, qt_ing_financ_nreemb, qt_ing_prounii, qt_ing_prounip, qt_ing_nrpfies, qt_ing_financ_nreemb_outros, qt_mat_financ, qt_mat_financ_reemb, qt_mat_fies, qt_mat_rpfies, qt_mat_financ_reemb_outros, qt_mat_financ_nreemb, qt_mat_prounii, qt_mat_prounip, qt_mat_nrpfies, qt_mat_financ_nreemb_outros, qt_conc_financ, qt_conc_financ_reemb, qt_conc_fies, qt_conc_rpfies, qt_conc_financ_reemb_outros, qt_conc_financ_nreemb, qt_conc_prounii, qt_conc_prounip, qt_conc_nrpfies, qt_conc_financ_nreemb_outros, qt_ing_reserva_vaga, qt_ing_rvredepublica, qt_ing_rvetnico, qt_ing_rvpdef, qt_ing_rvsocial_rf, qt_ing_rvoutros, qt_mat_reserva_vaga, qt_mat_rvredepublica, qt_mat_rvetnico, qt_mat_rvpdef, qt_mat_rvsocial_rf, qt_mat_rvoutros, qt_conc_reserva_vaga, qt_conc_rvredepublica, qt_conc_rvetnico, qt_conc_rvpdef, qt_conc_rvsocial_rf, qt_conc_rvoutros, qt_sit_trancada, qt_sit_desvinculado, qt_sit_transferido, qt_sit_falecido, qt_ing_procescpublica, qt_ing_procescprivada, qt_ing_procnaoinformada, qt_mat_procescpublica, qt_mat_procescprivada, qt_mat_procnaoinformada, qt_conc_procescpublica, qt_conc_procescprivada, qt_conc_procnaoinformada, qt_parfor, qt_ing_parfor, qt_mat_parfor, qt_conc_parfor, qt_apoio_social, qt_ing_apoio_social, qt_mat_apoio_social, qt_conc_apoio_social, qt_ativ_extracurricular, qt_ing_ativ_extracurricular, qt_mat_ativ_extracurricular, qt_conc_ativ_extracurricular, qt_mob_academica, qt_ing_mob_academica, qt_mat_mob_academica, qt_conc_mob_academica ]
+Tabela `inep.censo_cursos`: Colunas [ cod_curso, nome_curso, cod_ies (Código principal de instituição. Na censo_ies é cod_ies, na emec_instituicoes é co_ies. NUNCA invente codigo_ies), cod_municipio, id_grau_academico, id_modalidade_ensino, id_nivel_academico, id_atributo_ingresso, dt_inicio_funcionamento, cod_area, turno_curso, cc_ano, cc_faixa, cod_cine_rotulo, cod_area_tcu, id_centro_ufsm, nome_curso_ajustado, id_curso, cod_cine_rotulo_n, cod_cine_area_geral, tempo_integralizacao_anos ]
+Tabela `inep.censo_modalidades_ensino`: Colunas [ id_modalidade_ensino, descr_modalidade_ensino ]
+
+⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
+
+1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
+   - ✅ **USE `CENSO_IES` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (`in_capital`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+     * Esta tabela cruza com geografia usando: `censo_ies.cod_municipio = municipios_ibge.cod_ibge`
+   - ⚠️ **USE `EMEC_INSTITUICOES` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
+     * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag `in_capital`.
+     * Cursos cruzam com ela via: `emec_instituicoes.co_ies = censo_cursos.cod_ies`
+
+2. **CADEIA GEOGRÁFICA (OBRIGATÓRIO PARA REGIÕES/ESTADOS)**:
+   A ligação com a geografia deve OBRIGATORIAMENTE seguir esta cadeia exata:
+   `censo_ies` ➔ `municipios_ibge` ➔ `microregioes_ibge` ➔ `mesoregioes_ibge` ➔ `uf_ibge` ➔ `regioes_ibge`
+   - Joins corretos:
+     ```sql
+     c.cod_municipio = m.cod_ibge
+     m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+     mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+     me.cod_uf_ibge = u.uf_ibge
+     u.cod_regiao_ibge = r.cod_regiao_ibge
+     ```
+
+3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
+   - 🚨 CRÍTICO: USE EXATAMENTE E APENAS AS COLUNAS LISTADAS NO SCHEMA ACIMA.
+   - ❌ NUNCA INVENTE NOMES DE COLUNAS. Por exemplo, se no schema está `cod_curso`, não invente e não escreva `co_curso`.
+   - ❌ ATENÇÃO ESPECIAL: Na tabela `censo_ies` e `censo_cursos`, a coluna de código da IES é SECAMENTE `cod_ies`, NUNCA `co_ies`. Na tabela `emec_instituicoes` é `co_ies`. O banco de dados vai FALHAR se você errar isso.
+   - ❌ NUNCA USE: `municipios_ibge.cod_uf_ibge` (Siga a cadeia mostrada acima).
+   - ❌ NUNCA USE: `censo_ies.cod_categoria_administrativa` (O nome correto no schema é `id_categoria_administrativa`).
+   - ❌ NUNCA USE: `uf_ibge.nome_uf` ou `uf_ibge.sigla_uf` (O nome correto é `nome_uf_ibge` e o código/sigla é `uf_ibge`).
+   - ❌ NUNCA USE: `emec_instituicoes.in_capital` (Só existe na `censo_ies`).
+   - Use os tipos de dados originais. Para strings, sempre utilize `ILIKE` em buscas textuais para ser case-insensitive.
+
+4. **PREFIXO DE SCHEMA GERAL**:
+   - SEMPRE adicione o prefixo `inep.` em todas as tabelas no `FROM` e `JOIN`. (Ex: `FROM inep.censo_ies`).
+
+5. **PERFORMANCE**:
+   - Sempre limite os resultados: `LIMIT 50` em queries com JOINs abertos, ou `LIMIT 100` em consultas simples.
+
+💡 EXEMPLOS PRÁTICOS ESPERADOS:
+Exemplo (Cadeia geográfica Obrigatoria):
+```sql
+SELECT r.descr_regiao_ibge AS regiao, COUNT(DISTINCT c.cod_ies) AS total_instituicoes
+FROM inep.censo_ies c
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
+JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
+WHERE r.descr_regiao_ibge ILIKE 'Nordeste'
+GROUP BY r.descr_regiao_ibge
+```\n\nExemplo (Cruzamento entre cursos e instituicoes):
+```sql
+SELECT c.nome_curso, e.site 
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE c.nome_curso ILIKE '%medicina%'
+LIMIT 50
+```
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por ```sql. Não coloque `;` após a query, não adicione comentários adicionais dentro do bloco da query.
+
+[Auto-Correção Aplicada]";"SELECT 
+    c.nome_curso,
+    u.uf_ibge,
+    cc.qt_inscrito_total,
+    cc.qt_vg_total,
+    cc.qt_inscrito_total / cc.qt_vg_total AS taxa_concorrencia
+FROM 
+    inep.censo_cursos c
+JOIN 
+    inep.censo_ies ie ON c.cod_ies = ie.cod_ies
+JOIN 
+    inep.municipios_ibge m ON ie.cod_municipio = m.cod_ibge
+JOIN 
+    inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN 
+    inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN 
+    inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
+JOIN 
+    inep.censo_curso_vagas_bruto cc ON c.cod_curso = cc.co_curso
+WHERE 
+    c.nome_curso ILIKE '%Sistemas de Informação%' AND u.uf_ibge = 'RS'
+ORDER BY 
+    taxa_concorrencia DESC
+LIMIT 1";"ERRO";"division by zero"
+"Dentre todas as instituições de ensino localizadas no rio grande do sul, qual instituição possui a maior taxa de concorrência (total de inscritos dividido pelo total de vagas) para o curso de 'Sistemas de Informação'?";"cloudflare";"---
+### Task
+Generate SQL to find the institution with the highest competition rate (total applicants / total vacancies) for the 'Sistemas de Informação' course among all institutions located in Rio Grande do Sul.
+
+### Schema (only relevant tables)
+inep.censo_curso_vagas_bruto: sg_uf:varchar, no_curso:varchar, qt_inscrito_total:int, qt_vg_total:int, co_ies:int
+inep.censo_ies: co_ies:int, sg_uf:varchar, no_ies:varchar
+
+### Critical Rules
+- Use `censo_curso_vagas_bruto` for course and enrollment/vacancy data.
+- Use `censo_ies` for institution names.
+- Use EXACTLY: `sg_uf` for state filtering.
+- Use EXACTLY: `no_curso` for course name filtering.
+- Use EXACTLY: `qt_inscrito_total` and `qt_vg_total` for competition rate calculation.
+- Use EXACTLY: `co_ies` for joining `censo_curso_vagas_bruto` and `censo_ies`.
+- Filter for 'Rio Grande do Sul' using `sg_uf = 'RS'`.
+- Filter for 'Sistemas de Informação' using `no_curso = 'Sistemas de Informação'`.
+- Calculate competition rate as `CAST(qt_inscrito_total AS REAL) / qt_vg_total`.
+- Order by competition rate in descending order and limit to 1.
+- NEVER use columns not listed above.
+
+### Example
+SELECT
+  c.no_curso,
+  i.no_ies,
+  CAST(c.qt_inscrito_total AS REAL) / c.qt_vg_total AS competition_rate
+FROM inep.censo_curso_vagas_bruto AS c
+JOIN inep.censo_ies AS i
+  ON c.co_ies = i.co_ies
+WHERE
+  c.sg_uf = 'RS' AND c.no_curso = 'Sistemas de Informação' AND c.qt_vg_total > 0
+ORDER BY
+  competition_rate DESC
+LIMIT 1
+
+### SQL Query
+SELECT
+  T1.nm_entidade_ensino,
+  CAST(T2.qt_inscrito_total AS REAL) / T2.qt_vg_total AS taxa_concorrencia
+FROM inep.capes_cursos_bruto AS T1
+INNER JOIN inep.censo_curso_vagas_bruto AS T2
+  ON T1.cd_entidade_emec = T2.co_ies
+WHERE
+  T1.sg_uf_programa = 'RS' AND T1.nm_curso = 'Sistemas de Informação' AND T2.qt_vg_total > 0
+ORDER BY
+  taxa_concorrencia DESC
+LIMIT 1
+---
+
+[Auto-Correção Aplicada]";"SELECT
+  T1.nm_entidade_ensino,
+  CAST(T2.qt_inscrito_total AS REAL) / NULLIF(T2.qt_vg_total, 0) AS taxa_concorrencia
+FROM inep.capes_cursos_bruto AS T1
+INNER JOIN inep.censo_curso_vagas_bruto AS T2
+  ON T1.cd_entidade_emec = T2.co_ies
+WHERE
+  T1.sg_uf_programa = 'RS' AND T1.nm_curso = 'Sistemas de Informação' AND T2.qt_vg_total > 0
+ORDER BY
+  taxa_concorrencia DESC
+LIMIT 1";"ERRO";"operator does not exist: character varying = integer"
+"Quais são os 10 cursos de 'Sistemas de Informação' mais bem avaliados de acordo com a nota contínua do CPC? Exiba o nome da instituição, a sigla do estado e a nota CPC";"gemini";"Prompt não retornado";;"ERRO";"Todos os modelos Gemini falharam. Último erro: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent: [429 Too Many Requests] You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-lite
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-lite
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash-lite
+Please retry in 31.141197326s. [{""@type"":""type.googleapis.com/google.rpc.Help"",""links"":[{""description"":""Learn more about Gemini API quotas"",""url"":""https://ai.google.dev/gemini-api/docs/rate-limits""}]},{""@type"":""type.googleapis.com/google.rpc.QuotaFailure"",""violations"":[{""quotaMetric"":""generativelanguage.googleapis.com/generate_content_free_tier_requests"",""quotaId"":""GenerateRequestsPerDayPerProjectPerModel-FreeTier"",""quotaDimensions"":{""location"":""global"",""model"":""gemini-2.0-flash-lite""}},{""quotaMetric"":""generativelanguage.googleapis.com/generate_content_free_tier_requests"",""quotaId"":""GenerateRequestsPerMinutePerProjectPerModel-FreeTier"",""quotaDimensions"":{""location"":""global"",""model"":""gemini-2.0-flash-lite""}},{""quotaMetric"":""generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"",""quotaId"":""GenerateContentInputTokensPerModelPerMinute-FreeTier"",""quotaDimensions"":{""location"":""global"",""model"":""gemini-2.0-flash-lite""}}]},{""@type"":""type.googleapis.com/google.rpc.RetryInfo"",""retryDelay"":""31s""}]"
+"Quais são os 10 cursos de 'Sistemas de Informação' mais bem avaliados de acordo com a nota contínua do CPC? Exiba o nome da instituição, a sigla do estado e a nota CPC";"groq";"Prompt não retornado";;"ERRO";"429 {""error"":{""message"":""Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kmtxmjzmerd8fkdwmbw7afg1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98473, Requested 1970. Please try again in 6m22.752s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing"",""type"":""tokens"",""code"":""rate_limit_exceeded""}}"
+"Quais são os 10 cursos de 'Sistemas de Informação' mais bem avaliados de acordo com a nota contínua do CPC? Exiba o nome da instituição, a sigla do estado e a nota CPC";"cloudflare";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'cd_conceito_curso' não existe na tabela 'censo_cursos'. Tente uma destas: cod_curso, nome_curso, cod_ies, cod_municipio, id_grau_academico., A coluna 'cd_conceito_curso' não existe na tabela 'censo_cursos'. Tente uma destas: cod_curso, nome_curso, cod_ies, cod_municipio, id_grau_academico."
+"Considerando a instituição cuja sigla é 'UFSM', qual é a média da taxa de conclusão acumulada para os cursos de 'Sistemas de Informação' e 'Ciência da Computação'? Apresente o nome de cada curso junto com a sua respectiva taxa média.";"gemini";"Prompt não retornado";;"ERRO";"Todos os modelos Gemini falharam. Último erro: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent: [429 Too Many Requests] You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash-lite
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-lite
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-lite
+Please retry in 31.587277576s. [{""@type"":""type.googleapis.com/google.rpc.Help"",""links"":[{""description"":""Learn more about Gemini API quotas"",""url"":""https://ai.google.dev/gemini-api/docs/rate-limits""}]},{""@type"":""type.googleapis.com/google.rpc.QuotaFailure"",""violations"":[{""quotaMetric"":""generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"",""quotaId"":""GenerateContentInputTokensPerModelPerMinute-FreeTier"",""quotaDimensions"":{""location"":""global"",""model"":""gemini-2.0-flash-lite""}},{""quotaMetric"":""generativelanguage.googleapis.com/generate_content_free_tier_requests"",""quotaId"":""GenerateRequestsPerMinutePerProjectPerModel-FreeTier"",""quotaDimensions"":{""location"":""global"",""model"":""gemini-2.0-flash-lite""}},{""quotaMetric"":""generativelanguage.googleapis.com/generate_content_free_tier_requests"",""quotaId"":""GenerateRequestsPerDayPerProjectPerModel-FreeTier"",""quotaDimensions"":{""model"":""gemini-2.0-flash-lite"",""location"":""global""}}]},{""@type"":""type.googleapis.com/google.rpc.RetryInfo"",""retryDelay"":""31s""}]"
+"Considerando a instituição cuja sigla é 'UFSM', qual é a média da taxa de conclusão acumulada para os cursos de 'Sistemas de Informação' e 'Ciência da Computação'? Apresente o nome de cada curso junto com a sua respectiva taxa média.";"groq";"Prompt não retornado";;"ERRO";"429 {""error"":{""message"":""Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kmtxmjzmerd8fkdwmbw7afg1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98405, Requested 3228. Please try again in 23m30.912s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing"",""type"":""tokens"",""code"":""rate_limit_exceeded""}}"
+"Considerando a instituição cuja sigla é 'UFSM', qual é a média da taxa de conclusão acumulada para os cursos de 'Sistemas de Informação' e 'Ciência da Computação'? Apresente o nome de cada curso junto com a sua respectiva taxa média.";"cloudflare";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'qt_conc_deficiente' não existe na tabela 'censo_cursos'. Tente uma destas: cod_curso, nome_curso, cod_ies, cod_municipio, id_grau_academico."
+"Comparando os cursos de 'Sistemas de Informação' em todo o Brasil, qual categoria administrativa (Pública, Privada, etc.) possui a maior proporção de mulheres ingressantes? Calcule essa proporção dividindo o total de ingressantes do sexo feminino pelo total geral de ingressantes. Mostre no resultado apenas a descrição da categoria administrativa e a proporção calculada, ordenando para mostrar a maior proporção primeiro.";"gemini";"Prompt não retornado";;"ERRO";"Todos os modelos Gemini falharam. Último erro: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent: [429 Too Many Requests] You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-lite
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-lite
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash-lite
+Please retry in 32.442827675s. [{""@type"":""type.googleapis.com/google.rpc.Help"",""links"":[{""description"":""Learn more about Gemini API quotas"",""url"":""https://ai.google.dev/gemini-api/docs/rate-limits""}]},{""@type"":""type.googleapis.com/google.rpc.QuotaFailure"",""violations"":[{""quotaMetric"":""generativelanguage.googleapis.com/generate_content_free_tier_requests"",""quotaId"":""GenerateRequestsPerDayPerProjectPerModel-FreeTier"",""quotaDimensions"":{""model"":""gemini-2.0-flash-lite"",""location"":""global""}},{""quotaMetric"":""generativelanguage.googleapis.com/generate_content_free_tier_requests"",""quotaId"":""GenerateRequestsPerMinutePerProjectPerModel-FreeTier"",""quotaDimensions"":{""location"":""global"",""model"":""gemini-2.0-flash-lite""}},{""quotaMetric"":""generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"",""quotaId"":""GenerateContentInputTokensPerModelPerMinute-FreeTier"",""quotaDimensions"":{""model"":""gemini-2.0-flash-lite"",""location"":""global""}}]},{""@type"":""type.googleapis.com/google.rpc.RetryInfo"",""retryDelay"":""32s""}]"
+"Comparando os cursos de 'Sistemas de Informação' em todo o Brasil, qual categoria administrativa (Pública, Privada, etc.) possui a maior proporção de mulheres ingressantes? Calcule essa proporção dividindo o total de ingressantes do sexo feminino pelo total geral de ingressantes. Mostre no resultado apenas a descrição da categoria administrativa e a proporção calculada, ordenando para mostrar a maior proporção primeiro.";"groq";"Prompt não retornado";;"ERRO";"429 {""error"":{""message"":""Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kmtxmjzmerd8fkdwmbw7afg1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98336, Requested 2131. Please try again in 6m43.488s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing"",""type"":""tokens"",""code"":""rate_limit_exceeded""}}"
+"Comparando os cursos de 'Sistemas de Informação' em todo o Brasil, qual categoria administrativa (Pública, Privada, etc.) possui a maior proporção de mulheres ingressantes? Calcule essa proporção dividindo o total de ingressantes do sexo feminino pelo total geral de ingressantes. Mostre no resultado apenas a descrição da categoria administrativa e a proporção calculada, ordenando para mostrar a maior proporção primeiro.";"cloudflare";"Prompt não retornado";;"ERRO";"SQL inválido: A coluna 'sexo' não existe na tabela 'censo_cursos'. Tente uma destas: cod_curso, nome_curso, cod_ies, cod_municipio, id_grau_academico."

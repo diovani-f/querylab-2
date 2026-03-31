@@ -3,6 +3,7 @@ import { CloudflareAIService } from './cloudflare-ai-service'
 import { SchemaDiscoveryService } from './schema-discovery-service'
 import { GroqService } from './groq-service'
 import { QueryExecutionService } from './query-execution-service'
+import { SmartSchemaReducer } from './smart-schema-reducer'
 
 export interface SQLGenerationRequest {
   question: string
@@ -65,6 +66,7 @@ export class SQLGenerationService {
   private cloudflareAI: CloudflareAIService
   private schemaService: SchemaDiscoveryService
   private queryExecutionService: QueryExecutionService
+  private schemaReducer: SmartSchemaReducer
   private groqService?: GroqService
 
   private constructor() {
@@ -72,6 +74,7 @@ export class SQLGenerationService {
     this.cloudflareAI = CloudflareAIService.getInstance()
     this.schemaService = SchemaDiscoveryService.getInstance()
     this.queryExecutionService = QueryExecutionService.getInstance()
+    this.schemaReducer = SmartSchemaReducer.getInstance()
 
     // Inicializar Groq para resumos (opcional)
     try {
@@ -261,10 +264,41 @@ export class SQLGenerationService {
         try {
           console.log(`⚡ Executando SQL do ${result.provider}...`)
           const recommendedTimeout = this.queryExecutionService.getRecommendedTimeout(result.sql)
-          const execResult = await this.queryExecutionService.executeWithTimeout(
+          let execResult = await this.queryExecutionService.executeWithTimeout(
             result.sql,
             { timeoutMs: recommendedTimeout } // Timeout dinâmico baseado na complexidade
           )
+
+          // -------- AUTO-CORRECTION LOOP (1 round MAX) --------
+          if (!execResult.success && execResult.error && schemaResult.reducedSchema) {
+            console.log(`⚠️ Execução falhou para ${result.provider}. Tentando auto-correção 1x... Erro: ${execResult.error}`)
+
+            const correctionResult = await this.retrySQLGeneration(
+              result.provider,
+              result.model,
+              request.question,
+              result.sql,
+              execResult.error,
+              schemaResult.reducedSchema,
+              conversationContext
+            )
+
+            if (correctionResult.success && correctionResult.sql) {
+              console.log(`✨ Auto-correção bem sucedida para ${result.provider}! Re-executando...`)
+              result.sql = correctionResult.sql
+              result.prompt = (result.prompt || '') + '\n\n[Auto-Correção Aplicada]'
+
+              // Executar a nova query com timeout atualizado
+              const newTimeout = this.queryExecutionService.getRecommendedTimeout(result.sql)
+              execResult = await this.queryExecutionService.executeWithTimeout(
+                result.sql,
+                { timeoutMs: newTimeout }
+              )
+            } else {
+              console.log(`❌ Auto-correção falhou para ${result.provider}.`)
+            }
+          }
+          // ---------------------------------------------------
 
           console.log(`✅ Execução do ${result.provider}:`, {
             success: execResult.success,
@@ -360,7 +394,7 @@ export class SQLGenerationService {
   /**
    * Obtém schema em formato compacto para LLMs
    */
-  private async getReducedSchema(_question?: string): Promise<{
+  private async getReducedSchema(question?: string): Promise<{
     success: boolean
     reducedSchema?: string
     error?: string
@@ -368,7 +402,61 @@ export class SQLGenerationService {
     try {
       console.log('📊 Obtendo schema compacto...')
 
-      // Obter schema completo
+      if (question && question.trim().length > 0) {
+        console.log('🧠 Utilizando SmartSchemaReducer baseado na pergunta...')
+        const reductionResult = await this.schemaReducer.reduceSchema({
+          question,
+          schemaName: 'inep',
+          maxTables: 15,
+          includeRelationships: false
+        })
+
+        if (reductionResult.success && reductionResult.reducedSchema) {
+          console.log(`✅ Schema reduzido com sucesso! Tabelas selecionadas: ${reductionResult.selectedTables?.length}`)
+
+          const parsedSchema = JSON.parse(reductionResult.reducedSchema)
+
+          const dictionary: Record<string, string> = {
+            'in_capital': '(1=Capital, 0=Interior)',
+            'id_categoria_administrativa': '(1=Pública Federal, 2=Pública Estadual, 3=Municipal, 4=Privada Lucros, 5=Privada sem lucros)',
+            'id_organizacao_academica': '(1=Universidade, 2=Centro Universitário, 3=Faculdade)',
+            'tp_modalidade_ensino': '(1=Presencial, 2=EAD)',
+            'in_local_oferta': '(1=Sim, 0=Não)',
+            'cod_ies': '(Código principal de instituição. Na censo_ies é cod_ies, na emec_instituicoes é co_ies. NUNCA invente codigo_ies)'
+          }
+
+          const lines: string[] = []
+          lines.push('SCHEMA: inep')
+
+          if (parsedSchema.tables && Array.isArray(parsedSchema.tables)) {
+            parsedSchema.tables.forEach((table: any) => {
+              // Filtrar e enriquecer colunas
+              const enrichedCols = (table.columns || []).map((col: string) => {
+                const colName = col.split(':')[0]
+                if (dictionary[colName]) {
+                  return `${colName} ${dictionary[colName]}`
+                }
+                return colName
+              })
+
+              const colsStr = enrichedCols.join(', ')
+              lines.push(`Tabela \`inep.${table.name}\`: Colunas [ ${colsStr} ]`)
+            })
+          }
+
+          const schemaStr = lines.join('\n')
+          console.log(`📏 Tamanho do schema reduzido em texto: ${(schemaStr.length / 1024).toFixed(1)}KB`)
+
+          return {
+            success: true,
+            reducedSchema: schemaStr
+          }
+        } else {
+          console.warn(`⚠️ SmartSchemaReducer falhou: ${reductionResult.error}, fazendo fallback para schema completo`)
+        }
+      }
+
+      // Obter schema completo (fallback)
       const fullSchema = await this.schemaService.getSchemaForLLM('inep')
 
       if (!fullSchema || !fullSchema.tables || fullSchema.tables.length === 0) {
@@ -378,18 +466,29 @@ export class SQLGenerationService {
         }
       }
 
-      console.log(`✅ Schema obtido: ${fullSchema.tables.length} tabelas`)
+      console.log(`✅ Schema inteiro obtido: ${fullSchema.tables.length} tabelas`)
 
       // Criar versão compacta em texto (DDL-like) para otimizar tokens e reduzir alucinações
+      // Dicionário essencial
+      const dictionary: Record<string, string> = {
+        'in_capital': '(1=Capital, 0=Interior)',
+        'id_categoria_administrativa': '(1=Pública Federal, 2=Pública Estadual, 3=Municipal, 4=Privada com lucros, 5=Privada sem lucros)',
+        'id_organizacao_academica': '(1=Universidade, 2=Centro Universitário, 3=Faculdade)',
+        'tp_modalidade_ensino': '(1=Presencial, 2=EAD)'
+      }
+
       const lines: string[] = []
       lines.push('SCHEMA: inep')
       fullSchema.tables.forEach((table: any) => {
-        const cols = table.columns ? table.columns.join(', ') : ''
-        lines.push(`Tabela \`inep.${table.name}\`: Colunas [ ${cols} ]`)
+        const enrichedCols = (table.columns || []).map((colStr: string) => {
+          const col = colStr.split(':')[0]
+          return dictionary[col] ? `${col} ${dictionary[col]}` : col
+        })
+        lines.push(`Tabela \`inep.${table.name}\`: Colunas [ ${enrichedCols.join(', ')} ]`)
       })
 
       const schemaStr = lines.join('\n')
-      console.log(`📏 Tamanho do schema em texto: ${(schemaStr.length / 1024).toFixed(1)}KB`)
+      console.log(`📏 Tamanho do schema inteiro em texto: ${(schemaStr.length / 1024).toFixed(1)}KB`)
 
       return {
         success: true,
@@ -618,15 +717,37 @@ ${reducedSchema}
    - Sempre limite os resultados: \`LIMIT 50\` em queries com JOINs abertos, ou \`LIMIT 100\` em consultas simples.
 
 💡 EXEMPLOS PRÁTICOS ESPERADOS:
-Exemplo 1 (Uso correto da censo_ies para capitais):
+${this.getDynamicExamples(question)}
+
+🧠 SUA TAREFA (CHAIN OF THOUGHT):
+1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
+2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por \`\`\`sql. Não coloque \`;\` após a query, não adicione comentários adicionais dentro do bloco da query.`;
+  }
+
+  /**
+   * Seleciona os melhores exemplos (Few-Shot Dinâmico) baseado em palavras-chave
+   */
+  private getDynamicExamples(question: string): string {
+    const q = question.toLowerCase()
+    const pool = [
+      {
+        tags: ['capital', 'capitais', 'cidade'],
+        text: `Exemplo (Uso correto da censo_ies para capitais):
 \`\`\`sql
 SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
-\`\`\`
-Exemplo 2 (Uso obrigatório da emec_instituicoes para contatos):
+\`\`\``
+      },
+      {
+        tags: ['contato', 'telefone', 'email', 'site', 'telefone'],
+        text: `Exemplo (Uso obrigatório da emec_instituicoes para contatos):
 \`\`\`sql
 SELECT no_ies, telefone, email FROM inep.emec_instituicoes WHERE no_ies ILIKE '%Pernambuco%' LIMIT 50
-\`\`\`
-Exemplo 3 (Cadeia geográfica completa):
+\`\`\``
+      },
+      {
+        tags: ['regiao', 'nordeste', 'sul', 'sudeste', 'norte', 'centro-oeste', 'estado'],
+        text: `Exemplo (Cadeia geográfica Obrigatoria):
 \`\`\`sql
 SELECT r.descr_regiao_ibge AS regiao, COUNT(DISTINCT c.cod_ies) AS total_instituicoes
 FROM inep.censo_ies c
@@ -637,21 +758,92 @@ JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
 JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
 WHERE r.descr_regiao_ibge ILIKE 'Nordeste'
 GROUP BY r.descr_regiao_ibge
-\`\`\`
-
-Exemplo 4 (Cruzamento OBRIGATÓRIO entre censo_cursos e emec_instituicoes):
+\`\`\``
+      },
+      {
+        tags: ['curso', 'medicina', 'direito', 'engenharia'],
+        text: `Exemplo (Cruzamento entre cursos e instituicoes):
 \`\`\`sql
 SELECT c.nome_curso, e.site 
 FROM inep.censo_cursos c
 JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
 WHERE c.nome_curso ILIKE '%medicina%'
 LIMIT 50
-\`\`\`
+\`\`\``
+      },
+      {
+        tags: ['presencial', 'ead', 'modalidade'],
+        text: `Exemplo (Filtro por modalidade de ensino):
+\`\`\`sql
+SELECT tp_modalidade_ensino, COUNT(*) FROM inep.censo_cursos GROUP BY tp_modalidade_ensino
+\`\`\``
+      }
+    ]
 
-🧠 SUA TAREFA (CHAIN OF THOUGHT):
-1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
-2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima.
-3. Em seguida, dê a resposta final em formato SQL padrão isolado por \`\`\`sql. Não coloque \`;\` após a query, não adicione comentários adicionais dentro do bloco da query.`;
+    // Score examples
+    const scored = pool.map(ex => {
+      let score = 0
+      ex.tags.forEach(tag => {
+        if (q.includes(tag)) score += 1
+      })
+      return { ...ex, score }
+    })
+
+    // Sort descending by score, and pick top 2
+    scored.sort((a, b) => b.score - a.score)
+
+    // Always include at least 2 examples, even if score is 0
+    return scored.slice(0, 2).map(ex => ex.text).join('\\n\\n')
+  }
+
+  /**
+   * Tenta auto-corrigir uma query SQL que falhou na execução
+   */
+  private async retrySQLGeneration(
+    provider: string,
+    model: string,
+    question: string,
+    failedSql: string,
+    error: string,
+    reducedSchema: string,
+    conversationContext: string
+  ): Promise<{ success: boolean, sql?: string }> {
+    console.log(`🔄 Tentativa de auto-correção para ${provider}...`)
+
+    const basePrompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext)
+    const correctionPrompt = `${basePrompt}\n\n🚨 ATENÇÃO: A sua consulta SQL anterior falhou durante a execução no banco de dados.\n\nERRO RETORNADO PELO BANCO:\n${error}\n\nCONSULTA QUE FALHOU:\n\`\`\`sql\n${failedSql}\n\`\`\`\n\nPor favor, analise o erro, identifique o problema na consulta original (ex: nome de coluna errado, tipagem, sintaxe) e forneça APENAS o código SQL corrigido.`
+
+    try {
+      if (provider === 'gemini') {
+        const result = await this.llmService.handlePrompt({
+          prompt: correctionPrompt,
+          model,
+          context: { schemaName: 'inep' }
+        })
+        if (result.success && result.content) {
+          return { success: true, sql: this.extractSQL(result.content) }
+        }
+      } else if (provider === 'groq' && this.groqService) {
+        const result = await this.groqService.generateResponse({
+          prompt: correctionPrompt,
+          model
+        })
+        if (result.success && result.content) {
+          return { success: true, sql: this.extractSQL(result.content) }
+        }
+      } else if (provider === 'cloudflare') {
+        // Cloudflare processSQL encapsulates the prompt building, so we append the error and failed SQL to context
+        const errorContext = conversationContext + `\n\n🚨 TENTATIVA ANTERIOR FALHOU:\nErro: ${error}\nSQL: ${failedSql}\nCorrija a consulta focando nas regras do INEP.`
+        const result = await this.cloudflareAI.processSQL(question, reducedSchema, errorContext)
+        if (result.success && result.sql) {
+          return { success: true, sql: result.sql }
+        }
+      }
+    } catch (e) {
+      console.error(`❌ Erro na auto-correção ${provider}:`, e)
+    }
+
+    return { success: false }
   }
 
   /**
@@ -883,15 +1075,66 @@ LIMIT 50
   }
 
   /**
-   * Valida e sanitiza SQL de forma robusta
+   * Corrige automaticamente alucinações comuns do LLM
+   */
+  private autoFixCommonHallucinations(sql: string): string {
+    let fixedSQL = sql
+
+    // Mapeamento de typos comuns identificados nas rodadas de teste
+    // Muitas vezes o LLM mistura o padrão "co_" (usado nas bases brutas) com "cod_" (usado no DW)
+    const typoMap: Record<string, string> = {
+      'co_ies': 'cod_ies',
+      'co_curso': 'cod_curso',
+      'co_municipio': 'cod_municipio',
+      'sg_uf_ies': 'cod_municipio', // Não existe uf direto na censo_ies
+      'cod_categoria_administrativa': 'id_categoria_administrativa',
+      'nome_uf': 'nome_uf_ibge',
+      'sigla_uf': 'uf_ibge'
+    }
+
+    // Regras especiais de substituição para tabelas específicas
+    // Apenas aplica a correção se parecer ser uma coluna, evitamos substituir textos em strings
+    for (const [wrong, right] of Object.entries(typoMap)) {
+      // Regex que busca o erro garantindo que está no contexto de nome de coluna (pode ter . antes ou depois, etc)
+      // Evita substituir strings em aspas simples.
+      const regex = new RegExp(`(?<!')\\b${wrong}\\b(?!')`, 'gi')
+      fixedSQL = fixedSQL.replace(regex, right)
+    }
+
+    return fixedSQL
+  }
+
+  private levenshteinDistance(s1: string, s2: string): number {
+    if (s1.length === 0) return s2.length;
+    if (s2.length === 0) return s1.length;
+    let matrix: number[][] = [];
+    for (let i = 0; i <= s2.length; i++) { matrix[i] = [i]; }
+    for (let j = 0; j <= s1.length; j++) { matrix[0][j] = j; }
+    for (let i = 1; i <= s2.length; i++) {
+      for (let j = 1; j <= s1.length; j++) {
+        if (s2.charAt(i - 1) === s1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1, // substitution
+            Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1) // insertion, deletion
+          );
+        }
+      }
+    }
+    return matrix[s2.length][s1.length];
+  }
+
+  /**
+   * Valida e sanitiza SQL de forma robusta, aplicando Auto-Correção e Validação de Colunas
    */
   private async validateAndSanitizeSQL(sql: string): Promise<SQLValidationResult> {
     const errors: string[] = []
     const warnings: string[] = []
 
     try {
-      // 1. Limpar SQL básico
-      let cleanSQL = sql.trim()
+      // 1. Limpar SQL básico e Auto-Corrigir typos hardcoded
+      let cleanSQL = this.autoFixCommonHallucinations(sql.trim())
 
       // 2. Validações básicas de sintaxe
       if (!cleanSQL) {
@@ -912,14 +1155,18 @@ LIMIT 50
       }
       warnings.push(...tableValidation.warnings)
 
-      // 5. Validar colunas contra o schema
-      // TEMPORARIAMENTE DESABILITADO - validação está com bug
-      // const columnValidation = await this.validateColumnsAgainstSchema(cleanSQL)
-      // if (columnValidation.errors.length > 0) {
-      //   errors.push(...columnValidation.errors)
-      // }
-      // warnings.push(...columnValidation.warnings)
-      warnings.push('Validação de colunas temporariamente desabilitada')
+      // 5. Validar colunas contra o schema e tentar corrigir com Fuzzy Match
+      const columnValidation = await this.validateColumnsAgainstSchema(cleanSQL)
+      warnings.push(...columnValidation.warnings)
+
+      // Aplicar correções de Fuzzy Matching se houver
+      cleanSQL = columnValidation.fixedSQL
+
+      // Se houver erros intoleráveis (colunas que não conseguimos fixar)
+      if (columnValidation.errors.length > 0) {
+        errors.push(...columnValidation.errors)
+        return { isValid: false, errors, warnings }
+      }
 
       // 6. Adicionar proteções de segurança
       const protectedSQL = this.addSafetyProtections(cleanSQL)
@@ -955,115 +1202,173 @@ LIMIT 50
     }
   }
 
-  /**
-   * Valida se as colunas usadas no SQL existem no schema
-   */
   private async validateColumnsAgainstSchema(sql: string): Promise<{
     errors: string[]
     warnings: string[]
+    fixedSQL: string
   }> {
     const errors: string[] = []
     const warnings: string[] = []
+    let fixedSQL = sql
 
     try {
       // Obter schema completo
       const fullSchema = await this.schemaService.getSchemaForLLM('inep')
       if (!fullSchema || !fullSchema.tables) {
         warnings.push('Não foi possível validar colunas contra o schema')
-        return { errors, warnings }
+        return { errors, warnings, fixedSQL }
       }
 
       // Criar mapa de tabelas e suas colunas
       const schemaMap = new Map<string, Set<string>>()
+      const allValidColumns = new Set<string>() // Para validação sem alias
       for (const table of fullSchema.tables) {
         const tableName = table.name.toLowerCase()
         const columns = new Set<string>()
 
         if (Array.isArray(table.columns)) {
           for (const col of table.columns) {
-            // Formato: "nome_coluna:tipo" ou "nome_coluna:tipo!*"
             const colName = col.split(':')[0].toLowerCase()
             columns.add(colName)
+            allValidColumns.add(colName)
           }
         }
-
         schemaMap.set(tableName, columns)
       }
 
-      // Extrair aliases do SQL (FROM/JOIN tabela AS alias ou FROM/JOIN tabela alias)
+      // Extrair aliases do SQL
       const aliasMap = new Map<string, string>() // alias -> tableName
-      const aliasPattern = /(?:from|join)\s+(?:inep\.)?([a-z_][a-z0-9_]*)\s+(?:as\s+)?([a-z_][a-z0-9_]*)/gi
+      // Matchers aprimorados para suportar INNER JOIN, LEFT JOIN etc
+      const aliasPattern = /(?:from|join)\s+(?:inep\.)?([a-z_][a-z0-9_]*)(?:\s+(?:as\s+)?([a-z_][a-z0-9_]*))?/gi
       let aliasMatch: RegExpExecArray | null
       while ((aliasMatch = aliasPattern.exec(sql)) !== null) {
         const tableName = aliasMatch[1].toLowerCase()
-        const alias = aliasMatch[2].toLowerCase()
-        // Só adicionar se o alias for diferente do nome da tabela
-        if (alias !== tableName && alias.length <= 3) { // Aliases geralmente são curtos
+        const alias = aliasMatch[2] ? aliasMatch[2].toLowerCase() : tableName
+
+        // Evitar palavras-chave como aliases (ex: ON, WHERE)
+        const sqlKeywords = ['on', 'where', 'group', 'order', 'having', 'left', 'right', 'inner', 'outer', 'cross', 'limit']
+        if (!sqlKeywords.includes(alias)) {
           aliasMap.set(alias, tableName)
         }
       }
 
-      console.log('🔍 Aliases encontrados:', Object.fromEntries(aliasMap))
-      console.log('🔍 Tabelas no schema:', Array.from(schemaMap.keys()).slice(0, 10))
+      console.log('🔍 Aliases/Tabelas encontrados:', Object.fromEntries(aliasMap))
 
-      // Extrair referências de colunas do SQL
-      // Padrão: tabela.coluna ou alias.coluna
+      // ======== FUZZY MATCH PARA ALIAS.COLUNA ========
       const columnReferences = sql.match(/\b([a-z_][a-z0-9_]*)\s*\.\s*([a-z_][a-z0-9_]*)/gi) || []
-
-      console.log('🔍 Referências de colunas encontradas:', columnReferences)
-
-      const invalidColumns: string[] = []
 
       for (const ref of columnReferences) {
         const parts = ref.toLowerCase().split('.')
         if (parts.length !== 2) continue
 
         const [tableOrAlias, columnName] = parts.map(p => p.trim())
-
-        // Resolver alias para nome real da tabela
         const actualTableName = aliasMap.get(tableOrAlias) || tableOrAlias
 
-        console.log(`🔍 Validando ${tableOrAlias}.${columnName} (tabela real: ${actualTableName})`)
-
-        // Procurar a tabela no schema
-        let found = false
+        let columnExists = false
+        let tableFound = false
+        let availableCols: string[] = []
 
         for (const [tableName, columns] of schemaMap.entries()) {
-          // Verificar se é a tabela exata ou se o nome da tabela termina com o nome procurado
-          // (para lidar com prefixo inep.)
+          // Check exact match or suffix (for 'inep.' prefix)
           if (tableName === actualTableName || tableName.endsWith('_' + actualTableName) || tableName.endsWith(actualTableName)) {
-            console.log(`  ✓ Tabela encontrada: ${tableName}, verificando coluna ${columnName}...`)
+            tableFound = true
+            availableCols = Array.from(columns)
             if (columns.has(columnName)) {
-              console.log(`  ✓ Coluna ${columnName} existe!`)
-              found = true
-              break
-            } else {
-              // Coluna não existe nesta tabela
-              const availableCols = Array.from(columns)
-              console.log(`  ✗ Coluna ${columnName} NÃO existe. Disponíveis:`, availableCols.slice(0, 10))
-              invalidColumns.push(`${tableOrAlias}.${columnName} (tabela: ${tableName}, colunas disponíveis: ${availableCols.slice(0, 10).join(', ')})`)
-              found = true // Marcar como "encontrado" para não procurar em outras tabelas
+              columnExists = true
               break
             }
           }
         }
 
-        if (!found) {
-          console.log(`  ✗ Tabela ${actualTableName} não encontrada no schema`)
-          invalidColumns.push(`${tableOrAlias}.${columnName} (tabela não encontrada no schema)`)
+        if (tableFound && !columnExists) {
+          // Fuzzy match logic
+          let bestMatch = ''
+          let minDistance = 999
+          for (const col of availableCols) {
+            const dist = this.levenshteinDistance(columnName, col)
+            // Weight substitution heavily if lengths are very different, but allow variations like co_ies vs cod_ies
+            if (dist < minDistance && dist <= 3) {
+              minDistance = dist
+              bestMatch = col
+            }
+          }
+
+          if (bestMatch && minDistance > 0) {
+            console.log(`✨ Fuzzy Fix: Substituindo ${tableOrAlias}.${columnName} por ${tableOrAlias}.${bestMatch} (Distância: ${minDistance})`)
+            // Substituição segura usando regex literal
+            const regex = new RegExp(`\\b${tableOrAlias}\\s*\\.\\s*${columnName}\\b`, 'gi')
+            fixedSQL = fixedSQL.replace(regex, `${tableOrAlias}.${bestMatch}`)
+            warnings.push(`Auto-corrigido: coluna '${columnName}' para '${bestMatch}'.`)
+          } else {
+            console.log(`  ✗ Coluna não consertável e fatal: ${tableOrAlias}.${columnName}`)
+            errors.push(`A coluna '${columnName}' não existe na tabela '${actualTableName}'. Tente uma destas: ${availableCols.slice(0, 5).join(', ')}.`)
+          }
         }
       }
 
-      if (invalidColumns.length > 0) {
-        errors.push(`Colunas não encontradas no schema: ${invalidColumns.join('; ')}`)
+      // ======== FUZZY MATCH PARA COLUNAS SOLTAS (SEM ALIAS) ========
+      // Extrai palavras soltas (ignora números, strings em aspas e palavras-chave SQL)
+      const sqlKeywords = new Set(['select', 'from', 'where', 'and', 'or', 'in', 'not', 'null', 'is', 'join', 'inner', 'left', 'right', 'outer', 'on', 'group', 'by', 'order', 'having', 'limit', 'offset', 'as', 'count', 'sum', 'avg', 'max', 'min', 'distinct', 'case', 'when', 'then', 'else', 'end', 'like', 'ilike', 'between', 'asc', 'desc', 'true', 'false', 'inep', 'cast', 'coalesce']);
+
+      // Removendo strings para não falsear colunas e depois pegando palavras
+      const sqlNoStrings = fixedSQL.replace(/'[^']*'/g, '');
+      const looseWordsMatch = sqlNoStrings.match(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g) || [];
+      const checkedWords = new Set<string>();
+
+      for (const wordStr of looseWordsMatch) {
+        const word = wordStr.toLowerCase();
+        if (sqlKeywords.has(word)) continue;
+        if (aliasMap.has(word)) continue; // É um alias de tabela
+        if (Array.from(schemaMap.keys()).some(t => t === word || t.endsWith('.' + word))) continue; // É nome de tabela
+        if (checkedWords.has(word)) continue; // Já verificamos
+
+        checkedWords.add(word);
+
+        // Tem alguma tabela no FROM/JOIN que sabemos que está na query?
+        let allPossibleColsForQuery: string[] = [];
+        for (const [alias, tbl] of aliasMap.entries()) {
+          for (const [schemaTbl, cols] of schemaMap.entries()) {
+            if (schemaTbl === tbl || schemaTbl.endsWith(tbl)) {
+              allPossibleColsForQuery.push(...Array.from(cols));
+            }
+          }
+        }
+
+        // Remover duplicatas
+        allPossibleColsForQuery = [...new Set(allPossibleColsForQuery)];
+
+        if (allPossibleColsForQuery.length > 0 && !allValidColumns.has(word)) {
+          // A palavra não existe em nenhuma tabela do schema
+          let bestMatch = '';
+          let minDistance = 999;
+          for (const col of allPossibleColsForQuery) {
+            const dist = this.levenshteinDistance(word, col);
+            if (dist < minDistance && dist <= 2) { // Distancia estrita para colunas soltas
+              minDistance = dist;
+              bestMatch = col;
+            }
+          }
+
+          if (bestMatch && minDistance > 0 && word.length > 3) { // Não tenta fixar palavras mt curtas soltas
+            console.log(`✨ Fuzzy Fix (Solto): Substituindo ${word} por ${bestMatch} (Distância: ${minDistance})`);
+            const regex = new RegExp(`(?<!\\.)\\b${word}\\b(?!\\.)`, 'gi');
+            fixedSQL = fixedSQL.replace(regex, bestMatch);
+            warnings.push(`Auto-corrigido: coluna solta '${word}' para '${bestMatch}'.`);
+          } else if (!bestMatch && word.length > 3) {
+            // Nós não necessariamente geramos ERRO para colunas soltas não consoláveis pois podem ser 
+            // variáveis do frontend ou partes de funções obscuras. Deixaremos como warning para não ser muito rígido,
+            // ao contrário das que tem alias explícito.
+            warnings.push(`Possível coluna desconhecida (solta): '${word}'.`);
+          }
+        }
       }
 
     } catch (error) {
-      console.error('❌ Erro ao validar colunas:', error)
-      warnings.push('Erro ao validar colunas contra schema')
+      console.error('❌ Erro ao validar colunas com schema:', error)
+      warnings.push('Erro ao validar colunas contra schema (validação incompleta)')
     }
 
-    return { errors, warnings }
+    return { errors, warnings, fixedSQL }
   }
 
   /**
