@@ -8,6 +8,7 @@ const nextConfig = {
     return config;
   },
   output: 'export',
+  trailingSlash: true,
 
   // Configurações para melhorar hidratação
   reactStrictMode: true,
