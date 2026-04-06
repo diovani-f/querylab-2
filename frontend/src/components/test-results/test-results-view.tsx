@@ -76,26 +76,54 @@ export function TestResultsView() {
     }, [selectedFile])
 
     const chartData = useMemo(() => {
-        const successCount = data.filter(d => d['Status Execucao']?.toUpperCase() === 'SUCESSO').length
-        const errorCount = data.length - successCount
+        let successCount = 0;
+        let errorCount = 0;
 
-        const providerStats = data.reduce((acc, curr) => {
-            const provider = curr.Provider || 'Desconhecido'
-            if (!acc[provider]) acc[provider] = { provider, success: 0, error: 0 }
-            if (curr['Status Execucao']?.toUpperCase() === 'SUCESSO') {
-                acc[provider].success++
+        const providerStats: Record<string, { provider: string, success: number, error: number }> = {};
+        const errorTypeStats: Record<string, { type: string, count: number }> = {};
+
+        data.forEach(curr => {
+            const isSuccess = curr['Status Execucao']?.toUpperCase() === 'SUCESSO';
+
+            if (isSuccess) {
+                successCount++;
             } else {
-                acc[provider].error++
+                errorCount++;
+
+                // Tipificação dos erros
+                let errorCat = 'Desconhecido';
+                const errorMsg = (curr.Erro || '').toLowerCase();
+                if (errorMsg) {
+                    if (errorMsg.includes('sql vazio') || errorMsg.includes('prompt não retornado')) errorCat = 'SQL Vazio / Sem Retorno';
+                    else if (errorMsg.includes('column') && errorMsg.includes('does not exist') || errorMsg.includes('coluna') && errorMsg.includes('não existe')) errorCat = 'Coluna Inexistente';
+                    else if (errorMsg.includes('syntax error')) errorCat = 'Erro de Sintaxe';
+                    else if (errorMsg.includes('operator does not exist')) errorCat = 'Erro de Tipo/Operador';
+                    else if (errorMsg.includes('relation') && errorMsg.includes('does not exist') || errorMsg.includes('tabela') && errorMsg.includes('não existe')) errorCat = 'Tabela Inexistente';
+                    else if (errorMsg.includes('timeout')) errorCat = 'Timeout';
+                    else errorCat = 'Outros Erros';
+                }
+
+                if (!errorTypeStats[errorCat]) errorTypeStats[errorCat] = { type: errorCat, count: 0 };
+                errorTypeStats[errorCat].count++;
             }
-            return acc
-        }, {} as Record<string, { provider: string, success: number, error: number }>)
+
+            const provider = curr.Provider || 'Desconhecido';
+            if (!providerStats[provider]) providerStats[provider] = { provider, success: 0, error: 0 };
+
+            if (isSuccess) {
+                providerStats[provider].success++;
+            } else {
+                providerStats[provider].error++;
+            }
+        });
 
         return {
             overallStatus: [
                 { name: 'Sucesso', value: successCount },
                 { name: 'Erro', value: errorCount }
             ],
-            providerStats: Object.values(providerStats)
+            providerStats: Object.values(providerStats),
+            errorTypeStats: Object.values(errorTypeStats).sort((a, b) => b.count - a.count)
         }
     }, [data])
 
@@ -168,6 +196,25 @@ export function TestResultsView() {
                                 </ResponsiveContainer>
                             </CardContent>
                         </Card>
+
+                        {chartData.errorTypeStats.length > 0 && (
+                            <Card className="md:col-span-2">
+                                <CardHeader>
+                                    <CardTitle>Análise de Tipos de Erro</CardTitle>
+                                    <CardDescription>Distribuição dos problemas estruturais que causaram falhas.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="h-[300px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={chartData.errorTypeStats} layout="vertical" margin={{ left: 50 }}>
+                                            <XAxis type="number" />
+                                            <YAxis dataKey="type" type="category" width={150} tick={{ fontSize: 12 }} />
+                                            <Tooltip />
+                                            <Bar dataKey="count" name="Ocorrências" fill="#f59e0b" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
 
                     <Card>
