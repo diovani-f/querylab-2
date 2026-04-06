@@ -21,7 +21,7 @@ const questions = [
     "Dentre todas as instituições de ensino localizadas no rio grande do sul, qual instituição possui a maior taxa de concorrência (total de inscritos dividido pelo total de vagas) para o curso de 'Sistemas de Informação'?",
     "Quais são os 10 cursos de 'Sistemas de Informação' mais bem avaliados de acordo com a nota contínua do CPC? Exiba o nome da instituição, a sigla do estado e a nota CPC",
     "Considerando a instituição cuja sigla é 'UFSM', qual é a média da taxa de conclusão acumulada para os cursos de 'Sistemas de Informação' e 'Ciência da Computação'? Apresente o nome de cada curso junto com a sua respectiva taxa média.",
-    "Comparando os cursos de 'Sistemas de Informação' em todo o Brasil, qual categoria administrativa (Pública, Privada, etc.) possui a maior proporção de mulheres ingressantes? Calcule essa proporção dividindo o total de ingressantes do sexo feminino pelo total geral de ingressantes. Mostre no resultado apenas a descrição da categoria administrativa e a proporção calculada, ordenando para mostrar a maior proporção primeiro.",    
+    "Comparando os cursos de 'Sistemas de Informação' em todo o Brasil, qual categoria administrativa (Pública, Privada, etc.) possui a maior proporção de mulheres ingressantes? Calcule essa proporção dividindo o total de ingressantes do sexo feminino pelo total geral de ingressantes. Mostre no resultado apenas a descrição da categoria administrativa e a proporção calculada, ordenando para mostrar a maior proporção primeiro.",
 ]
 
 // Evitar problemas com `"` no CSV
@@ -88,7 +88,7 @@ async function runTests() {
     // Formato: YYYY-MM-DD_HH-mm-ss (Ex: 2026-03-25_17-41-21)
     const timestamp = now.toISOString().replace(/T/, '_').replace(/\..+/, '').replace(/:/g, '-');
 
-    const outputPath = path.resolve(__dirname, `../../test_results_${timestamp}.csv`);
+    const outputPath = path.resolve(__dirname, `../data/test-results-csvs/test_results_${timestamp}.csv`);
     fs.writeFileSync(outputPath, csvContent, 'utf8')
     console.log(`\n🎉 Testes concluídos! Resultados salvos em: ${outputPath}`)
 }
