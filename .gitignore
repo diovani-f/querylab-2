@@ -211,7 +211,7 @@ frontend/build/
 frontend/dist/
 
 # Test files
-test-results/
+/test-results/
 playwright-report/
 playwright/.cache/
 
