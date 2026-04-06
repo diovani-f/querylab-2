@@ -8,7 +8,9 @@ const router = Router();
 // Função para listar os arquivos com os resultados
 router.get('/files', async (req: Request, res: Response) => {
     try {
-        const rootDir = path.join(__dirname, '../../..', 'test-results-csvs');
+        // Em vez de usar __dirname (que muda dependedo se rodamos src/ via ts-node ou dist/ via node)
+        // usamos process.cwd() base do backend e voltamos um nível.
+        const rootDir = path.join(process.cwd(), '../test-results-csvs');
 
         // Criar o diretório caso ele não exista
         if (!fs.existsSync(rootDir)) {
@@ -21,9 +23,14 @@ router.get('/files', async (req: Request, res: Response) => {
         const csvFiles = files.filter(f => f.endsWith('.csv'));
 
         res.json(csvFiles);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erro ao listar arquivos CSV:', error);
-        res.status(500).json({ error: 'Erro ao listar arquivos CSV' });
+        res.status(500).json({
+            error: 'Erro ao listar arquivos CSV',
+            details: error.message,
+            cwd: process.cwd(),
+            dirname: __dirname
+        });
     }
 });
 
@@ -37,7 +44,7 @@ router.get('/data/:filename', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Nome de arquivo inválido.' });
         }
 
-        const filePath = path.join(__dirname, '../../..', 'test-results-csvs', filename);
+        const filePath = path.join(process.cwd(), '../test-results-csvs', filename);
 
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ error: 'Arquivo não encontrado.' });
@@ -63,9 +70,12 @@ router.get('/data/:filename', async (req: Request, res: Response) => {
         }
 
         res.json(records);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erro ao ler arquivo CSV:', error);
-        res.status(500).json({ error: 'Erro ao analisar arquivo CSV' });
+        res.status(500).json({
+            error: 'Erro ao analisar arquivo CSV',
+            details: error.message
+        });
     }
 });
 
