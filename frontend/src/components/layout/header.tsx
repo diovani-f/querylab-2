@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from "@/components/ui/button"
-import { Zap, BarChart3, Menu, X } from "lucide-react"
+import { Zap, BarChart3, Menu, X, BookOpen } from "lucide-react"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { ModelSelector } from "@/components/ui/model-selector"
 import { UserMenu } from "@/components/layout/user-menu"
@@ -55,6 +55,14 @@ export function Header({ sidebarControls }: HeaderProps) {
 
         {/* Status e Configurações */}
         <div className="flex items-center space-x-2 sm:space-x-4">
+          {/* Link para Dicionário - Hidden on mobile */}
+          <Link href="/dicionario" className="hidden md:block">
+            <Button variant="outline" size="sm" className="border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 dark:border-indigo-900/50 dark:hover:bg-indigo-900/40">
+              <BookOpen className="h-4 w-4 mr-2 text-indigo-500" />
+              <span className="hidden lg:inline font-medium">Explorar Dados</span>
+            </Button>
+          </Link>
+
           {/* Link para Avaliações - Hidden on mobile */}
           <Link href="/evaluations" className="hidden md:block">
             <Button variant="outline" size="sm">
