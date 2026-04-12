@@ -21,7 +21,7 @@ export const businessDictionary: DictionaryCategory[] = [
             "Tipo de Organização (Universidade, Centro Universitário, Faculdade)",
             "Endereço e Localização"
         ],
-        exampleQuestion: "Quantas universidades federais existem no estado de Minas Gerais?"
+        exampleQuestion: "Liste o nome e a sigla das instituições cuja categoria administrativa é Pública Federal."
     },
     {
         id: "cursos",
@@ -34,7 +34,7 @@ export const businessDictionary: DictionaryCategory[] = [
             "Vagas Ofertadas e Preenchidas",
             "Tempo de Integralização (Anos definidos para formar)"
         ],
-        exampleQuestion: "Mostre os cursos de Engenharia de Software EAD com o maior número de vagas."
+        exampleQuestion: "Liste o nome dos cursos e a sigla da instituição para os cursos com modalidade EAD."
     },
     {
         id: "alunos_financiamento",
@@ -47,7 +47,7 @@ export const businessDictionary: DictionaryCategory[] = [
             "Bolsas (FIES, ProUni Integral e Parcial)",
             "Cotas (Escola Pública, Étnico-racial, Baixa Renda)"
         ],
-        exampleQuestion: "Qual a quantidade de matriculados com ProUni em cursos de Medicina?"
+        exampleQuestion: "Qual o total de matriculados com FIES por categoria administrativa em 2022?"
     },
     {
         id: "fluxo_sucesso",
@@ -60,7 +60,7 @@ export const businessDictionary: DictionaryCategory[] = [
             "Taxa de Desistência e Evasão Anual",
             "Prazo de Integralização vs. Prazo Máximo de Acompanhamento"
         ],
-        exampleQuestion: "Qual o curso de exatas com a maior taxa de desistência no Brasil?"
+        exampleQuestion: "Liste o nome do curso, a sigla da IES e a taxa de desistência dos cursos com maior evasão."
     },
     {
         id: "corpo_docente",
@@ -73,7 +73,7 @@ export const businessDictionary: DictionaryCategory[] = [
             "Perfil Demográfico (Idade, Sexo, Cor/Raça)",
             "Professores Em Exercício vs. Afastados"
         ],
-        exampleQuestion: "Quantos doutores com dedicação exclusiva existem nas universidades federais de São Paulo?"
+        exampleQuestion: "Liste a sigla e o total de docentes doutores das instituições da região Sul."
     },
     {
         id: "pos_graduacao",
@@ -86,7 +86,7 @@ export const businessDictionary: DictionaryCategory[] = [
             "Conceito/Nota da CAPES para o Programa",
             "Bolsistas e Redes de Pesquisa"
         ],
-        exampleQuestion: "Liste os programas de doutorado em Ciência da Computação com nota máxima na CAPES."
+        exampleQuestion: "Liste os programas de pós-graduação e seus conceitos na área de Ciência da Computação."
     },
     {
         id: "qualidade_notas",
@@ -98,7 +98,7 @@ export const businessDictionary: DictionaryCategory[] = [
             "CPC (Conceito Preliminar de Cursos de 1 a 5)",
             "IGC (Índice Geral de Cursos da Instituição de 1 a 5)"
         ],
-        exampleQuestion: "Quais instituições privadas possuem IGC na faixa 5?"
+        exampleQuestion: "Liste o nome do curso, a sigla da IES e a nota contínua do CPC dos cursos com CPC faixa 5."
     },
     {
         id: "percepcao_infraestrutura",
@@ -111,7 +111,7 @@ export const businessDictionary: DictionaryCategory[] = [
             "Infraestrutura da Instituição (Acesso a bases CAPES, Internet)",
             "Avaliação das Estruturas de Biblioteca"
         ],
-        exampleQuestion: "Qual a avaliação dos alunos sobre a biblioteca nos cursos que tiraram nota 5 no ENADE?"
+        exampleQuestion: "Liste as questões do questionário do ENADE e suas descrições agrupadas por grupo."
     },
     {
         id: "socioeconomia",
@@ -124,6 +124,6 @@ export const businessDictionary: DictionaryCategory[] = [
             "IDHM (Índice de Desenvolvimento Humano)",
             "População Total Municipal Estimada"
         ],
-        exampleQuestion: "A média da nota do ENADE é maior em cidades com IDHM alto?"
+        exampleQuestion: "Liste o nome das IES, o município e o IDHM das instituições localizadas em cidades com IDHM acima de 0.8."
     }
 ];
