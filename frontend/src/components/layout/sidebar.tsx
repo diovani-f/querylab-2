@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useHydration } from "@/hooks/use-hydration"
+import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/stores/app-store"
@@ -45,6 +46,8 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
     isLoadingSessions,
     isCreatingSession
   } = useAppStore()
+  const router = useRouter()
+  const pathname = usePathname()
 
   // Garantir que sessions é sempre um array
   const safeSessions = Array.isArray(sessions) ? sessions : []
@@ -65,6 +68,7 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
 
   const handleNewSession = async () => {
     await createNewSession()
+    if (pathname !== '/') router.push('/')
   }
 
   const handleSelectSession = (sessionId: string) => {
@@ -80,6 +84,7 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
       if (sidebarControls?.isMobile) {
         sidebarControls.close()
       }
+      if (pathname !== '/') router.push('/')
     }
   }
 
@@ -138,9 +143,9 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
     "flex h-full flex-col border-r transition-all duration-300",
     sidebarControls?.isMobile
       ? cn(
-          "fixed inset-y-0 left-0 z-50 w-80 transform bg-background shadow-lg",
-          sidebarControls.isOpen ? "translate-x-0" : "-translate-x-full"
-        )
+        "fixed inset-y-0 left-0 z-50 w-80 transform bg-background shadow-lg",
+        sidebarControls.isOpen ? "translate-x-0" : "-translate-x-full"
+      )
       : "w-80 bg-muted/10"
   )
 
@@ -167,70 +172,70 @@ export function Sidebar({ sidebarControls }: SidebarProps) {
       <ScrollArea className="flex-1">
         <TooltipProvider>
           <div className="p-2 space-y-2">
-          {isLoadingSessions ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <PulseLoader color="#6366f1" size={8} />
-              <p className="text-sm text-muted-foreground mt-4">
-                Carregando sessões...
-              </p>
-            </div>
-          ) : safeSessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-sm text-muted-foreground">
-                Nenhuma sessão ainda.
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Clique em + para começar
-              </p>
-            </div>
-          ) : (
-            safeSessions.map((session) => (
-              <div
-                key={session.id}
-                className={cn(
-                  "group flex items-center gap-2 rounded-lg p-3 cursor-pointer transition-all duration-300",
-                  currentSession?.id === session.id && "bg-accent",
-                  isDeleting && sessionToDelete === session.id
-                    ? "opacity-60 cursor-not-allowed bg-muted scale-95 transform"
-                    : "hover:bg-accent hover:scale-[1.02]"
-                )}
-                onClick={() => handleSelectSession(session.id)}
-              >
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="w-full">
-                        <h3 className="text-sm font-medium truncate cursor-help max-w-[250px]">
-                          {session.titulo}
-                        </h3>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs z-50">
-                      <p className="break-words">{session.titulo}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <p className="text-xs text-muted-foreground">
-                    {session.messageCount || (session.mensagens || []).length} mensagens
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(session.updatedAt).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-                <div className="flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => handleDeleteSession(session.id, e)}
-                    disabled={isDeleting}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
+            {isLoadingSessions ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <PulseLoader color="#6366f1" size={8} />
+                <p className="text-sm text-muted-foreground mt-4">
+                  Carregando sessões...
+                </p>
               </div>
-            ))
-          )}
+            ) : safeSessions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma sessão ainda.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Clique em + para começar
+                </p>
+              </div>
+            ) : (
+              safeSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={cn(
+                    "group flex items-center gap-2 rounded-lg p-3 cursor-pointer transition-all duration-300",
+                    currentSession?.id === session.id && "bg-accent",
+                    isDeleting && sessionToDelete === session.id
+                      ? "opacity-60 cursor-not-allowed bg-muted scale-95 transform"
+                      : "hover:bg-accent hover:scale-[1.02]"
+                  )}
+                  onClick={() => handleSelectSession(session.id)}
+                >
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="w-full">
+                          <h3 className="text-sm font-medium truncate cursor-help max-w-[250px]">
+                            {session.titulo}
+                          </h3>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs z-50">
+                        <p className="break-words">{session.titulo}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <p className="text-xs text-muted-foreground">
+                      {session.messageCount || (session.mensagens || []).length} mensagens
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(session.updatedAt).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => handleDeleteSession(session.id, e)}
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </TooltipProvider>
       </ScrollArea>
