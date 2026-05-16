@@ -416,21 +416,27 @@ export class SQLGenerationService {
 
           const parsedSchema = JSON.parse(reductionResult.reducedSchema)
 
+          const cestaSchemaSet = new Set(['uf_ibge', 'idhms', 'pibs_per_capita', 'variaveis_pib_municipios_ibge', 'ibge_demografia_municipios'])
+
           const dictionary: Record<string, string> = {
             'in_capital': '(1=Capital, 0=Interior)',
             'id_categoria_administrativa': '(1=Pública Federal, 2=Pública Estadual, 3=Municipal, 4=Privada Lucros, 5=Privada sem lucros)',
             'id_organizacao_academica': '(1=Universidade, 2=Centro Universitário, 3=Faculdade)',
             'tp_modalidade_ensino': '(1=Presencial, 2=EAD)',
             'in_local_oferta': '(1=Sim, 0=Não)',
-            'cod_ies': '(Código principal de instituição. Na censo_ies é cod_ies, na emec_instituicoes é co_ies. NUNCA invente codigo_ies)'
+            'cod_ies': '(Código IES em censo_ies e censo_cursos)',
+            'co_ies': '(Código IES em emec_instituicoes e censo_curso_vagas_bruto)',
+            'qt_mat': '(Total de matrículas — SOMENTE em censo_curso_vagas_bruto)',
+            'nu_ano_censo': '(Ano do censo — SOMENTE em censo_curso_vagas_bruto)',
+            'qt_ing': '(Ingressantes — SOMENTE em censo_curso_vagas_bruto)',
+            'qt_vg_total': '(Vagas totais — SOMENTE em censo_curso_vagas_bruto)',
           }
 
           const lines: string[] = []
-          lines.push('SCHEMA: inep')
+          lines.push('SCHEMAS DISPONÍVEIS: inep e cesta')
 
           if (parsedSchema.tables && Array.isArray(parsedSchema.tables)) {
             parsedSchema.tables.forEach((table: any) => {
-              // Filtrar e enriquecer colunas
               const enrichedCols = (table.columns || []).map((col: string) => {
                 const colName = col.split(':')[0]
                 if (dictionary[colName]) {
@@ -439,8 +445,9 @@ export class SQLGenerationService {
                 return colName
               })
 
+              const schemaPrefix = cestaSchemaSet.has(table.name) ? 'cesta' : 'inep'
               const colsStr = enrichedCols.join(', ')
-              lines.push(`Tabela \`inep.${table.name}\`: Colunas [ ${colsStr} ]`)
+              lines.push(`Tabela \`${schemaPrefix}.${table.name}\`: Colunas [ ${colsStr} ]`)
             })
           }
 
@@ -470,21 +477,30 @@ export class SQLGenerationService {
 
       // Criar versão compacta em texto (DDL-like) para otimizar tokens e reduzir alucinações
       // Dicionário essencial
+      const cestaSchemaSet = new Set(['uf_ibge', 'idhms', 'pibs_per_capita', 'variaveis_pib_municipios_ibge', 'ibge_demografia_municipios'])
+
       const dictionary: Record<string, string> = {
         'in_capital': '(1=Capital, 0=Interior)',
         'id_categoria_administrativa': '(1=Pública Federal, 2=Pública Estadual, 3=Municipal, 4=Privada com lucros, 5=Privada sem lucros)',
         'id_organizacao_academica': '(1=Universidade, 2=Centro Universitário, 3=Faculdade)',
-        'tp_modalidade_ensino': '(1=Presencial, 2=EAD)'
+        'tp_modalidade_ensino': '(1=Presencial, 2=EAD)',
+        'cod_ies': '(Código IES em censo_ies e censo_cursos)',
+        'co_ies': '(Código IES em emec_instituicoes e censo_curso_vagas_bruto)',
+        'qt_mat': '(Total de matrículas — SOMENTE em censo_curso_vagas_bruto)',
+        'nu_ano_censo': '(Ano do censo — SOMENTE em censo_curso_vagas_bruto)',
+        'qt_ing': '(Ingressantes — SOMENTE em censo_curso_vagas_bruto)',
+        'qt_vg_total': '(Vagas totais — SOMENTE em censo_curso_vagas_bruto)',
       }
 
       const lines: string[] = []
-      lines.push('SCHEMA: inep')
+      lines.push('SCHEMAS DISPONÍVEIS: inep e cesta')
       fullSchema.tables.forEach((table: any) => {
         const enrichedCols = (table.columns || []).map((colStr: string) => {
           const col = colStr.split(':')[0]
           return dictionary[col] ? `${col} ${dictionary[col]}` : col
         })
-        lines.push(`Tabela \`inep.${table.name}\`: Colunas [ ${enrichedCols.join(', ')} ]`)
+        const schemaPrefix = cestaSchemaSet.has(table.name) ? 'cesta' : 'inep'
+        lines.push(`Tabela \`${schemaPrefix}.${table.name}\`: Colunas [ ${enrichedCols.join(', ')} ]`)
       })
 
       const schemaStr = lines.join('\n')
@@ -696,8 +712,8 @@ ${reducedSchema}
      c.cod_municipio = m.cod_ibge
      m.cod_microregiao_ibge = mi.cod_microregiao_ibge
      mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-     me.cod_uf_ibge = u.uf_ibge
-     u.cod_regiao_ibge = r.cod_regiao_ibge
+     me.cod_uf_ibge = u.co_uf_ibge
+     u.co_regiao_ibge = r.cod_regiao_ibge
      \`\`\`
 
 3. **RESTRIÇÕES DE COLUNAS (ALUCINAÇÃO É ESTRITAMENTE PROIBIDA)**:
@@ -710,11 +726,19 @@ ${reducedSchema}
    - ❌ NUNCA USE: \`emec_instituicoes.in_capital\` (Só existe na \`censo_ies\`).
    - Use os tipos de dados originais. Para strings, sempre utilize \`ILIKE\` em buscas textuais para ser case-insensitive.
 
-4. **PREFIXO DE SCHEMA GERAL**:
-   - SEMPRE adicione o prefixo \`inep.\` em todas as tabelas no \`FROM\` e \`JOIN\`. (Ex: \`FROM inep.censo_ies\`).
+4. **PREFIXO DE SCHEMA (ATENÇÃO)**:
+   - A maioria das tabelas usa o prefixo \`inep.\`: \`censo_ies\`, \`censo_cursos\`, \`censo_curso_vagas_bruto\`, \`emec_instituicoes\`, \`municipios_ibge\`, \`microregioes_ibge\`, \`mesoregioes_ibge\`, \`regioes_ibge\`, \`dados_cpc\`, \`dados_enade\`, \`dados_igc\`.
+   - ⚠️ EXCEÇÃO CRÍTICA: A tabela \`uf_ibge\` pertence ao schema \`cesta\` — SEMPRE use \`cesta.uf_ibge\`, NUNCA \`inep.uf_ibge\`.
+   - Também são do schema \`cesta\`: \`idhms\`, \`pibs_per_capita\`, \`variaveis_pib_municipios_ibge\`.
 
 5. **PERFORMANCE**:
    - Sempre limite os resultados: \`LIMIT 50\` em queries com JOINs abertos, ou \`LIMIT 100\` em consultas simples.
+
+6. **CURSOS: DICIONÁRIO vs FATOS (CRÍTICO)**:
+   - \`censo_cursos\` = DICIONÁRIO (nome do curso, código, modalidade de ingresso). **NÃO TEM**: \`qt_mat\`, \`nu_ano_censo\`, \`qt_ing\`, \`qt_vg_total\`, \`qt_conc\`.
+   - \`censo_curso_vagas_bruto\` = FATOS ANUAIS (série temporal). **USE SEMPRE** para matrículas, vagas, ingressantes, concluintes ou qualquer dado com dimensão de ano.
+   - JOIN entre elas: \`censo_curso_vagas_bruto.co_curso = censo_cursos.cod_curso\`
+   - ❌ NUNCA coloque \`qt_mat\` ou \`nu_ano_censo\` em \`censo_cursos\` — o banco vai FALHAR.
 
 💡 EXEMPLOS PRÁTICOS ESPERADOS:
 ${this.getDynamicExamples(question)}
@@ -747,15 +771,15 @@ SELECT no_ies, telefone, email FROM inep.emec_instituicoes WHERE no_ies ILIKE '%
       },
       {
         tags: ['regiao', 'nordeste', 'sul', 'sudeste', 'norte', 'centro-oeste', 'estado'],
-        text: `Exemplo (Cadeia geográfica Obrigatoria):
+        text: `Exemplo (Cadeia geográfica Obrigatoria — note cesta.uf_ibge):
 \`\`\`sql
 SELECT r.descr_regiao_ibge AS regiao, COUNT(DISTINCT c.cod_ies) AS total_instituicoes
 FROM inep.censo_ies c
 JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
 JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
 JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
-JOIN inep.regioes_ibge r ON u.cod_regiao_ibge = r.cod_regiao_ibge
+JOIN cesta.uf_ibge u ON me.cod_uf_ibge = u.co_uf_ibge
+JOIN inep.regioes_ibge r ON u.co_regiao_ibge = r.cod_regiao_ibge
 WHERE r.descr_regiao_ibge ILIKE 'Nordeste'
 GROUP BY r.descr_regiao_ibge
 \`\`\``
@@ -772,10 +796,44 @@ LIMIT 50
 \`\`\``
       },
       {
-        tags: ['presencial', 'ead', 'modalidade'],
-        text: `Exemplo (Filtro por modalidade de ensino):
+        tags: ['presencial', 'ead', 'modalidade', 'ensino'],
+        text: `Exemplo (Filtro por modalidade de ensino com dados anuais):
 \`\`\`sql
-SELECT tp_modalidade_ensino, COUNT(*) FROM inep.censo_cursos GROUP BY tp_modalidade_ensino
+SELECT tp_modalidade_ensino, SUM(qt_mat) AS total_matriculas
+FROM inep.censo_curso_vagas_bruto
+WHERE nu_ano_censo = 2023
+GROUP BY tp_modalidade_ensino
+\`\`\`
+Nota: tp_modalidade_ensino existe em censo_curso_vagas_bruto (1=Presencial, 2=EAD). Em censo_cursos a coluna é id_modalidade_ensino.`
+      },
+      {
+        tags: ['matriculas', 'matriculados', 'vagas', 'ingressantes', 'concluintes', 'ano', 'censo', '2023', '2022', '2021'],
+        text: `Exemplo (Dados anuais de matrículas — SEMPRE use censo_curso_vagas_bruto):
+\`\`\`sql
+SELECT cc.nome_curso, SUM(v.qt_mat) AS total_matriculas
+FROM inep.censo_curso_vagas_bruto v
+JOIN inep.censo_cursos cc ON v.co_curso = cc.cod_curso
+WHERE v.nu_ano_censo = 2023
+  AND cc.nome_curso ILIKE '%engenharia%'
+GROUP BY cc.nome_curso
+ORDER BY total_matriculas DESC
+LIMIT 50
+\`\`\`
+Nota: qt_mat, qt_ing, qt_vg_total, nu_ano_censo existem APENAS em censo_curso_vagas_bruto, nunca em censo_cursos.`
+      },
+      {
+        tags: ['minas gerais', 'sao paulo', 'rio de janeiro', 'bahia', 'parana', 'estado', 'uf', 'universidades'],
+        text: `Exemplo (Contagem por estado — cadeia geográfica com cesta.uf_ibge):
+\`\`\`sql
+SELECT u.no_uf_ibge AS estado, COUNT(DISTINCT c.cod_ies) AS total_instituicoes
+FROM inep.censo_ies c
+JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
+JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+JOIN cesta.uf_ibge u ON me.cod_uf_ibge = u.co_uf_ibge
+WHERE u.no_uf_ibge ILIKE '%Minas Gerais%'
+  AND c.id_organizacao_academica = 1
+GROUP BY u.no_uf_ibge
 \`\`\``
       }
     ]
@@ -1080,23 +1138,20 @@ SELECT tp_modalidade_ensino, COUNT(*) FROM inep.censo_cursos GROUP BY tp_modalid
   private autoFixCommonHallucinations(sql: string): string {
     let fixedSQL = sql
 
+    // Corrigir prefixo de schema para uf_ibge (tabela está em cesta, não inep)
+    fixedSQL = fixedSQL.replace(/\binep\.(uf_ibge)\b/gi, 'cesta.$1')
+
     // Mapeamento de typos comuns identificados nas rodadas de teste
-    // Muitas vezes o LLM mistura o padrão "co_" (usado nas bases brutas) com "cod_" (usado no DW)
+    // ATENÇÃO: co_ies e co_curso foram REMOVIDOS pois são nomes CORRETOS em emec_instituicoes
+    // e censo_curso_vagas_bruto — substituição global causava mais dano do que correção
     const typoMap: Record<string, string> = {
-      'co_ies': 'cod_ies',
-      'co_curso': 'cod_curso',
       'co_municipio': 'cod_municipio',
-      'sg_uf_ies': 'cod_municipio', // Não existe uf direto na censo_ies
+      'sg_uf_ies': 'cod_municipio',
       'cod_categoria_administrativa': 'id_categoria_administrativa',
       'nome_uf': 'nome_uf_ibge',
-      'sigla_uf': 'uf_ibge'
     }
 
-    // Regras especiais de substituição para tabelas específicas
-    // Apenas aplica a correção se parecer ser uma coluna, evitamos substituir textos em strings
     for (const [wrong, right] of Object.entries(typoMap)) {
-      // Regex que busca o erro garantindo que está no contexto de nome de coluna (pode ter . antes ou depois, etc)
-      // Evita substituir strings em aspas simples.
       const regex = new RegExp(`(?<!')\\b${wrong}\\b(?!')`, 'gi')
       fixedSQL = fixedSQL.replace(regex, right)
     }
