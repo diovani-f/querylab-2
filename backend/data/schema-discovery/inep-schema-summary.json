@@ -771,13 +771,13 @@
     {
       "name": "uf_ibge",
       "columns": [
-        "uf_ibge:character!*",
-        "num_uf_ibge:int2",
-        "nome_uf_ibge:varchar",
-        "cod_regiao_ibge:int2",
-        "latitude:numeric",
-        "longitude:numeric",
-        "nome_uf_ibge_sem_acento:varchar"
+        "co_uf_ibge:character!*",
+        "nu_uf_ibge:int2",
+        "no_uf_ibge:varchar",
+        "co_regiao_ibge:int2",
+        "nu_latitude:numeric",
+        "nu_longitude:numeric",
+        "no_uf_ibge_sem_acento:varchar"
       ]
     },
     {

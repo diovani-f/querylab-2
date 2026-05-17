@@ -1,0 +1,1 @@
+npx ts-node scripts/run-semantic-tests.ts --start 0 --limit 3

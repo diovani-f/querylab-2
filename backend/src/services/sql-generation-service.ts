@@ -722,7 +722,7 @@ ${reducedSchema}
    - ❌ ATENÇÃO ESPECIAL: Na tabela \`censo_ies\` e \`censo_cursos\`, a coluna de código da IES é SECAMENTE \`cod_ies\`, NUNCA \`co_ies\`. Na tabela \`emec_instituicoes\` é \`co_ies\`. O banco de dados vai FALHAR se você errar isso.
    - ❌ NUNCA USE: \`municipios_ibge.cod_uf_ibge\` (Siga a cadeia mostrada acima).
    - ❌ NUNCA USE: \`censo_ies.cod_categoria_administrativa\` (O nome correto no schema é \`id_categoria_administrativa\`).
-   - ❌ NUNCA USE: \`uf_ibge.nome_uf\` ou \`uf_ibge.sigla_uf\` (O nome correto é \`nome_uf_ibge\` e o código/sigla é \`uf_ibge\`).
+   - ❌ NUNCA USE: \`uf_ibge.nome_uf\` ou \`uf_ibge.sigla_uf\` (O nome correto é \`no_uf_ibge\` e o PK é \`co_uf_ibge\`).
    - ❌ NUNCA USE: \`emec_instituicoes.in_capital\` (Só existe na \`censo_ies\`).
    - Use os tipos de dados originais. Para strings, sempre utilize \`ILIKE\` em buscas textuais para ser case-insensitive.
 
@@ -1148,7 +1148,8 @@ GROUP BY u.no_uf_ibge
       'co_municipio': 'cod_municipio',
       'sg_uf_ies': 'cod_municipio',
       'cod_categoria_administrativa': 'id_categoria_administrativa',
-      'nome_uf': 'nome_uf_ibge',
+      'nome_uf': 'no_uf_ibge',
+      'nome_uf_ibge': 'no_uf_ibge',
     }
 
     for (const [wrong, right] of Object.entries(typoMap)) {

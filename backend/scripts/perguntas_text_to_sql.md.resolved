@@ -1,0 +1,534 @@
+# Novas Perguntas de Teste — Text-to-SQL (Validação Semântica)
+
+> [!NOTE]
+> 30 perguntas organizadas em 4 níveis de dificuldade. Nenhuma pergunta dá indícios de tabelas/colunas. SQLs usam prefixo `inep.` e evitam CTEs desnecessárias.
+
+---
+
+## 🟢 Nível 1 — Fácil (consultas diretas, filtros simples)
+
+### P1
+**Pergunta:** Quantas universidades existem no estado de Minas Gerais?
+
+```sql
+SELECT COUNT(*) AS total_ies
+FROM inep.censo_ies_bruto
+WHERE sg_uf_ies = 'MG'
+  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto);
+```
+
+---
+
+### P2
+**Pergunta:** Quais são os nomes e siglas das faculdades localizadas em Curitiba?
+
+```sql
+SELECT DISTINCT no_ies, sg_ies
+FROM inep.censo_ies_bruto
+WHERE no_municipio_ies = 'Curitiba'
+  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto);
+```
+
+---
+
+### P3
+**Pergunta:** Quantos alunos estão matriculados em cursos presenciais no Brasil em 2022?
+
+```sql
+SELECT SUM(qt_mat) AS total_matriculados
+FROM inep.censo_curso_vagas_bruto
+WHERE nu_ano_censo = 2022
+  AND tp_modalidade_ensino = 1;
+```
+
+---
+
+### P4
+**Pergunta:** Liste os 10 cursos com maior número de vagas ofertadas em 2022.
+
+```sql
+SELECT no_curso, SUM(qt_vg_total) AS total_vagas
+FROM inep.censo_curso_vagas_bruto
+WHERE nu_ano_censo = 2022
+GROUP BY no_curso
+ORDER BY total_vagas DESC
+LIMIT 10;
+```
+
+---
+
+### P5
+**Pergunta:** Qual é a nota IGC contínua mais recente da UFRGS?
+
+```sql
+SELECT igc_continuo, ano
+FROM inep.igc_bruto
+WHERE sigla_ies = 'UFRGS'
+ORDER BY ano DESC
+LIMIT 1;
+```
+
+---
+
+### P6
+**Pergunta:** Quantos programas de pós-graduação existem na região Nordeste?
+
+```sql
+SELECT COUNT(*) AS total_programas
+FROM inep.capes_programas_bruto
+WHERE nm_regiao = 'Nordeste'
+  AND ds_situacao_programa = 'Em Funcionamento';
+```
+
+---
+
+### P7
+**Pergunta:** Quais instituições possuem IGC faixa 5 no ano mais recente disponível?
+
+```sql
+SELECT ies, sigla_ies, uf_ies
+FROM inep.igc_bruto
+WHERE igc_faixa = '5'
+  AND ano = (SELECT MAX(ano) FROM inep.igc_bruto WHERE igc_faixa = '5');
+```
+
+---
+
+## 🟡 Nível 2 — Médio (JOINs, agrupamentos, cálculos)
+
+### P8
+**Pergunta:** Qual é o total de ingressantes por região do Brasil em 2022?
+
+```sql
+SELECT no_regiao, SUM(qt_ing) AS total_ingressantes
+FROM inep.censo_curso_vagas_bruto
+WHERE nu_ano_censo = 2022
+GROUP BY no_regiao
+ORDER BY total_ingressantes DESC;
+```
+
+---
+
+### P9
+**Pergunta:** Qual a proporção de homens e mulheres matriculados em cursos de Engenharia Civil em 2022?
+
+```sql
+SELECT
+  SUM(qt_mat_fem) AS total_mulheres,
+  SUM(qt_mat_masc) AS total_homens,
+  ROUND(SUM(qt_mat_fem)::numeric / NULLIF(SUM(qt_mat), 0) * 100, 2) AS percentual_feminino,
+  ROUND(SUM(qt_mat_masc)::numeric / NULLIF(SUM(qt_mat), 0) * 100, 2) AS percentual_masculino
+FROM inep.censo_curso_vagas_bruto
+WHERE nu_ano_censo = 2022
+  AND no_curso ILIKE '%Engenharia Civil%';
+```
+
+---
+
+### P10
+**Pergunta:** Quais são as 5 instituições privadas com a maior quantidade de alunos matriculados em EAD no último censo?
+
+```sql
+SELECT b.no_ies, b.sg_ies, SUM(v.qt_mat) AS total_matriculados
+FROM inep.censo_curso_vagas_bruto v
+JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo
+WHERE v.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_curso_vagas_bruto)
+  AND v.tp_modalidade_ensino = 2
+  AND b.tp_categoria_administrativa IN (4, 5, 6, 7)
+GROUP BY b.no_ies, b.sg_ies
+ORDER BY total_matriculados DESC
+LIMIT 5;
+```
+
+---
+
+### P11
+**Pergunta:** Qual a média da nota CPC contínua dos cursos de Direito, agrupada por estado?
+
+```sql
+SELECT cb.uf, ROUND(AVG(cb.cpc_continuo::numeric), 2) AS media_cpc
+FROM inep.dados_cpc_brutos cb
+WHERE cb.descr_area ILIKE '%Direito%'
+  AND cb.cpc_continuo IS NOT NULL
+GROUP BY cb.uf
+ORDER BY media_cpc DESC;
+```
+
+---
+
+### P12
+**Pergunta:** Quais estados formaram mais profissionais de Enfermagem em 2022?
+
+```sql
+SELECT sg_uf, SUM(qt_conc) AS total_concluintes
+FROM inep.censo_curso_vagas_bruto
+WHERE nu_ano_censo = 2022
+  AND no_curso ILIKE '%Enfermagem%'
+GROUP BY sg_uf
+ORDER BY total_concluintes DESC
+LIMIT 10;
+```
+
+---
+
+### P13
+**Pergunta:** Qual é a evolução do número total de vagas em EAD de 2018 a 2022?
+
+```sql
+SELECT nu_ano_censo, SUM(qt_vg_total) AS total_vagas_ead
+FROM inep.censo_curso_vagas_bruto
+WHERE tp_modalidade_ensino = 2
+  AND nu_ano_censo BETWEEN 2018 AND 2022
+GROUP BY nu_ano_censo
+ORDER BY nu_ano_censo;
+```
+
+---
+
+### P14
+**Pergunta:** Qual é a taxa de evasão média dos cursos de Administração em universidades públicas federais?
+
+```sql
+SELECT ROUND(AVG(f.tda), 2) AS media_taxa_desistencia
+FROM inep.fluxo_tda f
+WHERE f.no_curso ILIKE '%Administração%'
+  AND f.tp_categoria_administrativa = 1;
+```
+
+---
+
+### P15
+**Pergunta:** Quantos docentes com doutorado e dedicação exclusiva existem em cada estado?
+
+```sql
+SELECT sg_uf_ies, SUM(qt_doc_ex_dout) AS total_doutores_de
+FROM inep.censo_ies_bruto
+WHERE nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)
+GROUP BY sg_uf_ies
+ORDER BY total_doutores_de DESC;
+```
+
+---
+
+## 🔴 Nível 3 — Difícil (múltiplos JOINs, subconsultas, cálculos compostos)
+
+### P16
+**Pergunta:** Qual é a taxa de concorrência para Sistemas de Informação no Rio Grande do Sul?
+
+```sql
+SELECT
+  v.no_curso,
+  b.no_ies,
+  SUM(v.qt_inscrito_total) AS total_inscritos,
+  SUM(v.qt_vg_total) AS total_vagas,
+  ROUND(SUM(v.qt_inscrito_total)::numeric / NULLIF(SUM(v.qt_vg_total), 0), 2) AS taxa_concorrencia
+FROM inep.censo_curso_vagas_bruto v
+JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo
+WHERE v.no_curso ILIKE '%Sistemas de Informação%'
+  AND v.sg_uf = 'RS'
+  AND v.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_curso_vagas_bruto)
+GROUP BY v.no_curso, b.no_ies
+ORDER BY taxa_concorrencia DESC;
+```
+
+---
+
+### P17
+**Pergunta:** Quais cursos de Ciência da Computação tiveram nota no ENADE acima da média nacional nesse mesmo curso?
+
+```sql
+SELECT e.co_curso, c.nome_curso, i.nome_ies, e.enade_continuo
+FROM inep.dados_enade e
+JOIN inep.censo_cursos c ON e.co_curso = c.cod_curso
+JOIN inep.censo_ies i ON e.co_ies = i.cod_ies
+WHERE c.nome_curso ILIKE '%Ciência da Computação%'
+  AND e.enade_continuo > (
+    SELECT AVG(e2.enade_continuo)
+    FROM inep.dados_enade e2
+    JOIN inep.censo_cursos c2 ON e2.co_curso = c2.cod_curso
+    WHERE c2.nome_curso ILIKE '%Ciência da Computação%'
+      AND e2.enade_continuo IS NOT NULL
+  )
+  AND e.enade_continuo IS NOT NULL
+ORDER BY e.enade_continuo DESC;
+```
+
+---
+
+### P18
+**Pergunta:** Quais são as 10 cidades com o maior número de instituições de ensino superior e qual o IDHM médio dessas cidades?
+
+```sql
+SELECT
+  b.no_municipio_ies,
+  b.sg_uf_ies,
+  COUNT(DISTINCT b.co_ies) AS total_ies,
+  ROUND(AVG(idh.idhm), 3) AS idhm_medio
+FROM inep.censo_ies_bruto b
+JOIN inep.municipios_ibge m ON b.co_municipio_ies::text = m.cod_municipio
+JOIN inep.idhms idh ON m.cod_ibge = idh.cod_ibge
+WHERE b.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)
+GROUP BY b.no_municipio_ies, b.sg_uf_ies
+ORDER BY total_ies DESC
+LIMIT 10;
+```
+
+---
+
+### P19
+**Pergunta:** Comparando universidades públicas e privadas, qual tipo tem a melhor nota média no IGC contínuo nos últimos 3 anos disponíveis?
+
+```sql
+SELECT
+  ib.dependencia_adm,
+  ROUND(AVG(ib.igc_continuo), 3) AS media_igc
+FROM inep.igc_bruto ib
+WHERE ib.ano >= (SELECT MAX(ano) - 2 FROM inep.igc_bruto)
+  AND ib.igc_continuo IS NOT NULL
+GROUP BY ib.dependencia_adm
+ORDER BY media_igc DESC;
+```
+
+---
+
+### P20
+**Pergunta:** Qual é a relação entre o percentual de doutores no corpo docente e a nota CPC dos cursos de Pedagogia?
+
+```sql
+SELECT
+  cb.nome_ies,
+  cb.sigla_ies,
+  cb.uf,
+  ROUND(cb.nota_bruta_doutores, 2) AS nota_doutores,
+  ROUND(cb.cpc_continuo, 2) AS cpc_continuo
+FROM inep.dados_cpc_brutos cb
+WHERE cb.descr_area ILIKE '%Pedagogia%'
+  AND cb.cpc_continuo IS NOT NULL
+  AND cb.nota_bruta_doutores IS NOT NULL
+ORDER BY cb.cpc_continuo DESC
+LIMIT 20;
+```
+
+---
+
+### P21
+**Pergunta:** Qual a taxa de conclusão acumulada média dos cursos de Medicina versus Enfermagem por região?
+
+```sql
+SELECT
+  f.no_cine_area_geral,
+  f.co_regiao,
+  f.no_curso,
+  ROUND(AVG(f.tca), 2) AS media_taxa_conclusao
+FROM inep.fluxo_tda f
+WHERE f.no_curso ILIKE '%Medicina%' OR f.no_curso ILIKE '%Enfermagem%'
+GROUP BY f.no_cine_area_geral, f.co_regiao, f.no_curso
+ORDER BY f.no_curso, media_taxa_conclusao DESC;
+```
+
+---
+
+### P22
+**Pergunta:** Quais instituições do Sul do Brasil possuem programas de pós-graduação com conceito CAPES igual ou superior a 6?
+
+```sql
+SELECT DISTINCT
+  nm_entidade_ensino,
+  sg_entidade_ensino,
+  nm_programa_ies,
+  cd_conceito_programa
+FROM inep.capes_programas_bruto
+WHERE nm_regiao = 'Sul'
+  AND cd_conceito_programa::int >= 6
+  AND ds_situacao_programa = 'Em Funcionamento'
+ORDER BY cd_conceito_programa::int DESC, nm_entidade_ensino;
+```
+
+---
+
+### P23
+**Pergunta:** Para as universidades federais, qual é a proporção de alunos que ingressaram por cotas de escola pública em relação ao total de ingressantes em 2022?
+
+```sql
+SELECT
+  b.no_ies,
+  b.sg_ies,
+  SUM(v.qt_ing_rvredepublica) AS ingressantes_cota_escola_publica,
+  SUM(v.qt_ing) AS total_ingressantes,
+  ROUND(SUM(v.qt_ing_rvredepublica)::numeric / NULLIF(SUM(v.qt_ing), 0) * 100, 2) AS percentual_cotas
+FROM inep.censo_curso_vagas_bruto v
+JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo
+WHERE v.nu_ano_censo = 2022
+  AND b.tp_categoria_administrativa = 1
+GROUP BY b.no_ies, b.sg_ies
+HAVING SUM(v.qt_ing) > 0
+ORDER BY percentual_cotas DESC
+LIMIT 15;
+```
+
+---
+
+## 🟣 Nível 4 — Ambíguo / Interpretativo (linguagem vaga, exige inferência semântica)
+
+### P24
+**Pergunta:** Qual é a melhor universidade do Brasil?
+
+```sql
+SELECT ies, sigla_ies, uf_ies, igc_continuo, igc_faixa
+FROM inep.igc_bruto
+WHERE ano = (SELECT MAX(ano) FROM inep.igc_bruto WHERE igc_continuo IS NOT NULL)
+  AND igc_continuo IS NOT NULL
+ORDER BY igc_continuo DESC
+LIMIT 1;
+```
+
+> **Nota semântica:** "Melhor" é ambíguo — o SQL interpreta como maior IGC contínuo (indicador oficial de qualidade global da IES).
+
+---
+
+### P25
+**Pergunta:** A UFSM é uma boa faculdade?
+
+```sql
+SELECT
+  ib.ies,
+  ib.sigla_ies,
+  ib.igc_continuo,
+  ib.igc_faixa,
+  ib.ano
+FROM inep.igc_bruto ib
+WHERE ib.sigla_ies = 'UFSM'
+ORDER BY ib.ano DESC
+LIMIT 1;
+```
+
+> **Nota semântica:** "Boa" é subjetivo. O SQL retorna o IGC mais recente para que o usuário avalie.
+
+---
+
+### P26
+**Pergunta:** Onde é mais fácil entrar em Medicina no Brasil?
+
+```sql
+SELECT
+  v.no_curso,
+  b.no_ies,
+  v.sg_uf,
+  SUM(v.qt_inscrito_total) AS inscritos,
+  SUM(v.qt_vg_total) AS vagas,
+  ROUND(SUM(v.qt_inscrito_total)::numeric / NULLIF(SUM(v.qt_vg_total), 0), 2) AS concorrencia
+FROM inep.censo_curso_vagas_bruto v
+JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo
+WHERE v.no_curso ILIKE '%Medicina%'
+  AND v.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_curso_vagas_bruto)
+  AND v.qt_vg_total > 0
+GROUP BY v.no_curso, b.no_ies, v.sg_uf
+ORDER BY concorrencia ASC
+LIMIT 10;
+```
+
+> **Nota semântica:** "Mais fácil entrar" → menor taxa de concorrência (inscritos/vagas).
+
+---
+
+### P27
+**Pergunta:** Os cursos a distância são piores que os presenciais?
+
+```sql
+SELECT
+  CASE WHEN v.tp_modalidade_ensino = 1 THEN 'Presencial' ELSE 'EAD' END AS modalidade,
+  ROUND(AVG(cpc.cpc_continuo), 3) AS media_cpc,
+  ROUND(AVG(cpc.enade_continuo), 3) AS media_enade
+FROM inep.dados_cpc cpc
+JOIN inep.censo_curso_vagas_bruto v ON cpc.co_curso = v.co_curso AND cpc.ano = v.nu_ano_censo
+WHERE cpc.cpc_continuo IS NOT NULL
+GROUP BY v.tp_modalidade_ensino
+ORDER BY media_cpc DESC;
+```
+
+> **Nota semântica:** "Piores" → compara médias de CPC e ENADE entre modalidades.
+
+---
+
+### P28
+**Pergunta:** Vale a pena fazer faculdade particular?
+
+```sql
+SELECT
+  ca.descr_cat_adm_agrupada,
+  ROUND(AVG(cpc.cpc_continuo), 3) AS media_cpc,
+  ROUND(AVG(cpc.enade_continuo), 3) AS media_enade,
+  COUNT(*) AS total_cursos_avaliados
+FROM inep.dados_cpc cpc
+JOIN inep.censo_ies i ON cpc.co_ies = i.cod_ies
+JOIN inep.censo_categorias_administrativas ca ON i.id_categoria_administrativa = ca.id_categoria_administrativa
+WHERE cpc.cpc_continuo IS NOT NULL
+GROUP BY ca.descr_cat_adm_agrupada
+ORDER BY media_cpc DESC;
+```
+
+> **Nota semântica:** "Vale a pena" → compara indicadores de qualidade entre públicas e privadas.
+
+---
+
+### P29
+**Pergunta:** Quais cursos estão crescendo mais no Brasil nos últimos anos?
+
+```sql
+SELECT
+  no_curso,
+  SUM(CASE WHEN nu_ano_censo = 2018 THEN qt_mat ELSE 0 END) AS mat_2018,
+  SUM(CASE WHEN nu_ano_censo = 2022 THEN qt_mat ELSE 0 END) AS mat_2022,
+  ROUND(
+    (SUM(CASE WHEN nu_ano_censo = 2022 THEN qt_mat ELSE 0 END)::numeric -
+     SUM(CASE WHEN nu_ano_censo = 2018 THEN qt_mat ELSE 0 END)::numeric) /
+    NULLIF(SUM(CASE WHEN nu_ano_censo = 2018 THEN qt_mat ELSE 0 END)::numeric, 0) * 100,
+  2) AS crescimento_percentual
+FROM inep.censo_curso_vagas_bruto
+WHERE nu_ano_censo IN (2018, 2022)
+GROUP BY no_curso
+HAVING SUM(CASE WHEN nu_ano_censo = 2018 THEN qt_mat ELSE 0 END) > 1000
+ORDER BY crescimento_percentual DESC
+LIMIT 15;
+```
+
+> **Nota semântica:** "Crescendo mais" → maior crescimento percentual de matriculados entre 2018 e 2022, filtrado para cursos relevantes (>1000 alunos em 2018).
+
+---
+
+### P30
+**Pergunta:** O Nordeste está melhorando na educação superior?
+
+```sql
+SELECT
+  nu_ano_censo,
+  SUM(qt_ing) AS total_ingressantes,
+  SUM(qt_mat) AS total_matriculados,
+  SUM(qt_conc) AS total_concluintes,
+  SUM(qt_vg_total) AS total_vagas
+FROM inep.censo_curso_vagas_bruto
+WHERE no_regiao = 'Nordeste'
+  AND nu_ano_censo BETWEEN 2018 AND 2022
+GROUP BY nu_ano_censo
+ORDER BY nu_ano_censo;
+```
+
+> **Nota semântica:** "Melhorando" → mostra evolução temporal de indicadores quantitativos para o usuário avaliar a tendência.
+
+---
+
+## 📋 Resumo por Nível
+
+| Nível | Qtd | Características |
+|---|---|---|
+| 🟢 Fácil | 7 | Filtros simples, contagens, consulta a uma tabela |
+| 🟡 Médio | 8 | JOINs, agrupamentos, cálculos com proporções |
+| 🔴 Difícil | 8 | Múltiplos JOINs, subconsultas, cruzamentos complexos |
+| 🟣 Ambíguo | 7 | Linguagem vaga, exige inferência semântica da IA |
+| **Total** | **30** | — |
+
+---
+
+## Observações para Uso no Script de Testes
+
+Para usar essas perguntas no `run-sql-tests.ts`, basta copiar somente os textos das perguntas (sem o SQL) para o array `questions`. Os SQLs servem como **gabarito** para posterior validação semântica manual dos resultados gerados pela IA.

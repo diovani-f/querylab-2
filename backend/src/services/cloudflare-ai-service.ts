@@ -97,7 +97,7 @@ REGRAS CRÍTICAS SOBRE NOMES DE COLUNAS:
 - municipios_ibge: cod_ibge, nome_municipio, cod_microregiao_ibge
 - microregioes_ibge: cod_microregiao_ibge, cod_mesoregiao_ibge
 - mesoregioes_ibge: cod_mesoregiao_ibge, cod_uf_ibge
-- uf_ibge: uf_ibge, nome_uf_ibge, cod_regiao_ibge
+- uf_ibge: co_uf_ibge, no_uf_ibge, co_regiao_ibge
 - regioes_ibge: cod_regiao_ibge, descr_regiao_ibge
 
 COLUNAS QUE NÃO EXISTEM (PROIBIDAS):
@@ -113,7 +113,7 @@ COLUNAS QUE NÃO EXISTEM (PROIBIDAS):
 JOINS OBRIGATÓRIOS E CADEIA GEOGRÁFICA:
 - censo_ies.cod_ies = censo_cursos.cod_ies
 - emec_instituicoes.co_ies = censo_cursos.cod_ies
-- Cadeia completa (não pule tabelas): censo_ies.cod_municipio = municipios_ibge.cod_ibge -> municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge -> microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge -> mesoregioes_ibge.cod_uf_ibge = uf_ibge.uf_ibge -> uf_ibge.cod_regiao_ibge = regioes_ibge.cod_regiao_ibge
+- Cadeia completa (não pule tabelas): censo_ies.cod_municipio = municipios_ibge.cod_ibge -> municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge -> microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge -> mesoregioes_ibge.cod_uf_ibge = uf_ibge.co_uf_ibge -> uf_ibge.co_regiao_ibge = regioes_ibge.cod_regiao_ibge
 
 FORMATO DE SAÍDA OBRIGATÓRIO (seja EXTREMAMENTE conciso e use inglês na Task e Rules, pois o SQLCoder entende melhor em inglês):
 ---
@@ -129,7 +129,7 @@ inep.municipios_ibge: cod_ibge:char, nome_municipio:varchar, cod_microregiao_ibg
 ### Critical Rules
 - USE censo_ies for: capitals, administrative category, geography joins
 - USE emec_instituicoes for: contact info (phone, email, cnpj)
-- USE EXACTLY: id_categoria_administrativa (NOT cod_categoria_administrativa), nome_uf_ibge (NOT nome_uf)
+- USE EXACTLY: id_categoria_administrativa (NOT cod_categoria_administrativa), no_uf_ibge (NOT nome_uf, NOT nome_uf_ibge)
 - USE EXACTLY: cod_ies in censo_ies and censo_cursos. NEVER invent co_ies for them!
 - Geography MUST chain: censo_ies -> municipios -> microregioes -> mesoregioes -> uf -> regioes 
 - NEVER use: municipios_ibge.cod_uf_ibge, municipios_ibge.cod_mesoregiao_ibge
@@ -137,14 +137,14 @@ inep.municipios_ibge: cod_ibge:char, nome_municipio:varchar, cod_microregiao_ibg
 - LIMIT 50 for joins, LIMIT 100 for simple queries
 
 ### Example
-SELECT u.nome_uf_ibge, ca.descr_categoria_administrativa, COUNT(DISTINCT c.cod_ies) AS total
+SELECT u.no_uf_ibge, ca.descr_categoria_administrativa, COUNT(DISTINCT c.cod_ies) AS total
 FROM inep.censo_ies c
 JOIN inep.censo_categorias_administrativas ca ON c.id_categoria_administrativa = ca.id_categoria_administrativa
 JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
 JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
 JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN inep.uf_ibge u ON me.cod_uf_ibge = u.uf_ibge
-GROUP BY u.nome_uf_ibge, ca.descr_categoria_administrativa
+JOIN cesta.uf_ibge u ON me.cod_uf_ibge = u.co_uf_ibge
+GROUP BY u.no_uf_ibge, ca.descr_categoria_administrativa
 LIMIT 50
 
 ### SQL Query
