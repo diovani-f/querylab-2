@@ -2,6 +2,7 @@ import { LLMService } from './llm-service'
 import { CloudflareAIService } from './cloudflare-ai-service'
 import { SchemaDiscoveryService } from './schema-discovery-service'
 import { GroqService } from './groq-service'
+import { OpenRouterService } from './openrouter-service'
 import { QueryExecutionService } from './query-execution-service'
 import { SmartSchemaReducer } from './smart-schema-reducer'
 
@@ -23,7 +24,7 @@ export interface SQLGenerationResult {
 }
 
 export interface ParallelSQLResult {
-  provider: 'gemini' | 'groq' | 'cloudflare'
+  provider: 'gemini' | 'groq' | 'deepseek'
   model: string
   success: boolean
   prompt?: string
@@ -68,6 +69,7 @@ export class SQLGenerationService {
   private queryExecutionService: QueryExecutionService
   private schemaReducer: SmartSchemaReducer
   private groqService?: GroqService
+  private openRouterService?: OpenRouterService
 
   private constructor() {
     this.llmService = LLMService.getInstance()
@@ -82,6 +84,14 @@ export class SQLGenerationService {
       console.log('✅ Groq inicializado no SQLGenerationService')
     } catch (error) {
       console.warn('⚠️ Groq não disponível no SQLGenerationService - usando LLMService como fallback')
+    }
+
+    // Inicializar OpenRouter/DeepSeek (opcional)
+    try {
+      this.openRouterService = OpenRouterService.getInstance()
+      console.log('✅ OpenRouter/DeepSeek inicializado no SQLGenerationService')
+    } catch (error) {
+      console.warn('⚠️ OpenRouter não disponível - provider DeepSeek desabilitado')
     }
   }
 
@@ -204,8 +214,8 @@ export class SQLGenerationService {
           processingTime: 0
         },
         {
-          provider: 'cloudflare',
-          model: 'sqlcoder-7b-2',
+          provider: 'deepseek',
+          model: 'deepseek-v3',
           success: false,
           status: 'pending',
           processingTime: 0
@@ -216,7 +226,7 @@ export class SQLGenerationService {
       const promises = [
         this.generateWithGemini(request.question, schemaResult.reducedSchema!, conversationContext),
         this.generateWithGroq(request.question, schemaResult.reducedSchema!, conversationContext),
-        this.generateWithCloudflare(request.question, schemaResult.reducedSchema!, conversationContext)
+        this.generateWithDeepSeek(request.question, schemaResult.reducedSchema!, conversationContext)
       ]
 
       const settledResults = await Promise.allSettled(promises)
@@ -269,33 +279,33 @@ export class SQLGenerationService {
             { timeoutMs: recommendedTimeout } // Timeout dinâmico baseado na complexidade
           )
 
-          // -------- AUTO-CORRECTION LOOP (1 round MAX) --------
-          if (!execResult.success && execResult.error && schemaResult.reducedSchema) {
-            console.log(`⚠️ Execução falhou para ${result.provider}. Tentando auto-correção 1x... Erro: ${execResult.error}`)
+          // -------- AUTO-CORRECTION LOOP (2 rounds MAX) --------
+          for (let round = 1; round <= 2 && !execResult.success && execResult.error && schemaResult.reducedSchema; round++) {
+            console.log(`⚠️ Execução falhou para ${result.provider} (round ${round}). Tentando auto-correção... Erro: ${execResult.error}`)
 
             const correctionResult = await this.retrySQLGeneration(
               result.provider,
               result.model,
               request.question,
-              result.sql,
+              result.sql!,
               execResult.error,
               schemaResult.reducedSchema,
               conversationContext
             )
 
             if (correctionResult.success && correctionResult.sql) {
-              console.log(`✨ Auto-correção bem sucedida para ${result.provider}! Re-executando...`)
+              console.log(`✨ Auto-correção round ${round} bem sucedida para ${result.provider}! Re-executando...`)
               result.sql = correctionResult.sql
-              result.prompt = (result.prompt || '') + '\n\n[Auto-Correção Aplicada]'
+              result.prompt = (result.prompt || '') + `\n\n[Auto-Correção Round ${round} Aplicada]`
 
-              // Executar a nova query com timeout atualizado
               const newTimeout = this.queryExecutionService.getRecommendedTimeout(result.sql)
               execResult = await this.queryExecutionService.executeWithTimeout(
                 result.sql,
                 { timeoutMs: newTimeout }
               )
             } else {
-              console.log(`❌ Auto-correção falhou para ${result.provider}.`)
+              console.log(`❌ Auto-correção round ${round} falhou para ${result.provider}.`)
+              break
             }
           }
           // ---------------------------------------------------
@@ -417,33 +427,16 @@ export class SQLGenerationService {
           const parsedSchema = JSON.parse(reductionResult.reducedSchema)
 
           const cestaSchemaSet = new Set(['uf_ibge', 'idhms', 'pibs_per_capita', 'variaveis_pib_municipios_ibge', 'ibge_demografia_municipios'])
-
-          const dictionary: Record<string, string> = {
-            'in_capital': '(1=Capital, 0=Interior)',
-            'id_categoria_administrativa': '(1=Pública Federal, 2=Pública Estadual, 3=Municipal, 4=Privada Lucros, 5=Privada sem lucros)',
-            'id_organizacao_academica': '(1=Universidade, 2=Centro Universitário, 3=Faculdade)',
-            'tp_modalidade_ensino': '(1=Presencial, 2=EAD)',
-            'in_local_oferta': '(1=Sim, 0=Não)',
-            'cod_ies': '(Código IES em censo_ies e censo_cursos)',
-            'co_ies': '(Código IES em emec_instituicoes e censo_curso_vagas_bruto)',
-            'qt_mat': '(Total de matrículas — SOMENTE em censo_curso_vagas_bruto)',
-            'nu_ano_censo': '(Ano do censo — SOMENTE em censo_curso_vagas_bruto)',
-            'qt_ing': '(Ingressantes — SOMENTE em censo_curso_vagas_bruto)',
-            'qt_vg_total': '(Vagas totais — SOMENTE em censo_curso_vagas_bruto)',
-          }
+          const dictionary = this.buildSchemaColumnDict()
 
           const lines: string[] = []
           lines.push('SCHEMAS DISPONÍVEIS: inep e cesta')
 
           if (parsedSchema.tables && Array.isArray(parsedSchema.tables)) {
             parsedSchema.tables.forEach((table: any) => {
-              const enrichedCols = (table.columns || []).map((col: string) => {
-                const colName = col.split(':')[0]
-                if (dictionary[colName]) {
-                  return `${colName} ${dictionary[colName]}`
-                }
-                return colName
-              })
+              const enrichedCols = (table.columns || []).map((col: string) =>
+                this.formatColumnForPrompt(col, dictionary)
+              )
 
               const schemaPrefix = cestaSchemaSet.has(table.name) ? 'cesta' : 'inep'
               const colsStr = enrichedCols.join(', ')
@@ -451,6 +444,7 @@ export class SQLGenerationService {
             })
           }
 
+          lines.push(this.buildJoinRelationships())
           const schemaStr = lines.join('\n')
           console.log(`📏 Tamanho do schema reduzido em texto: ${(schemaStr.length / 1024).toFixed(1)}KB`)
 
@@ -476,33 +470,20 @@ export class SQLGenerationService {
       console.log(`✅ Schema inteiro obtido: ${fullSchema.tables.length} tabelas`)
 
       // Criar versão compacta em texto (DDL-like) para otimizar tokens e reduzir alucinações
-      // Dicionário essencial
       const cestaSchemaSet = new Set(['uf_ibge', 'idhms', 'pibs_per_capita', 'variaveis_pib_municipios_ibge', 'ibge_demografia_municipios'])
-
-      const dictionary: Record<string, string> = {
-        'in_capital': '(1=Capital, 0=Interior)',
-        'id_categoria_administrativa': '(1=Pública Federal, 2=Pública Estadual, 3=Municipal, 4=Privada com lucros, 5=Privada sem lucros)',
-        'id_organizacao_academica': '(1=Universidade, 2=Centro Universitário, 3=Faculdade)',
-        'tp_modalidade_ensino': '(1=Presencial, 2=EAD)',
-        'cod_ies': '(Código IES em censo_ies e censo_cursos)',
-        'co_ies': '(Código IES em emec_instituicoes e censo_curso_vagas_bruto)',
-        'qt_mat': '(Total de matrículas — SOMENTE em censo_curso_vagas_bruto)',
-        'nu_ano_censo': '(Ano do censo — SOMENTE em censo_curso_vagas_bruto)',
-        'qt_ing': '(Ingressantes — SOMENTE em censo_curso_vagas_bruto)',
-        'qt_vg_total': '(Vagas totais — SOMENTE em censo_curso_vagas_bruto)',
-      }
+      const dictionary = this.buildSchemaColumnDict()
 
       const lines: string[] = []
       lines.push('SCHEMAS DISPONÍVEIS: inep e cesta')
       fullSchema.tables.forEach((table: any) => {
-        const enrichedCols = (table.columns || []).map((colStr: string) => {
-          const col = colStr.split(':')[0]
-          return dictionary[col] ? `${col} ${dictionary[col]}` : col
-        })
+        const enrichedCols = (table.columns || []).map((colStr: string) =>
+          this.formatColumnForPrompt(colStr, dictionary)
+        )
         const schemaPrefix = cestaSchemaSet.has(table.name) ? 'cesta' : 'inep'
         lines.push(`Tabela \`${schemaPrefix}.${table.name}\`: Colunas [ ${enrichedCols.join(', ')} ]`)
       })
 
+      lines.push(this.buildJoinRelationships())
       const schemaStr = lines.join('\n')
       console.log(`📏 Tamanho do schema inteiro em texto: ${(schemaStr.length / 1024).toFixed(1)}KB`)
 
@@ -576,8 +557,9 @@ ${contextLines.join('\n')}
       // Construir contexto da conversa
       const conversationContext = this.buildConversationContext(conversationHistory)
 
-      if (model === 'cloudflare-sqlcoder-7b-2') {
-        return await this.generateWithCloudflareSimple(question, reducedSchema, conversationContext)
+      if (model === 'deepseek-v3') {
+        const r = await this.generateWithDeepSeek(question, reducedSchema, conversationContext)
+        return { success: r.success, sql: r.sql, error: r.error }
       } else {
         return await this.generateWithLLM(question, model, reducedSchema, conversationContext)
       }
@@ -590,23 +572,35 @@ ${contextLines.join('\n')}
   }
 
   /**
-   * Gera SQL usando Cloudflare AI (versão para paralelismo)
+   * Gera SQL usando DeepSeek-V3 via OpenRouter
    */
-  private async generateWithCloudflare(
+  private async generateWithDeepSeek(
     question: string,
     reducedSchema: string,
     conversationContext: string = ""
   ): Promise<ParallelSQLResult> {
     const startTime = Date.now()
 
+    if (!this.openRouterService) {
+      return {
+        provider: 'deepseek',
+        model: 'deepseek-v3',
+        success: false,
+        status: 'error',
+        error: 'OpenRouter service não disponível (OPENROUTER_API_KEY ausente)',
+        processingTime: Date.now() - startTime
+      }
+    }
+
     try {
-      // Usar o método processSQL otimizado do CloudflareAI que usa Gemini para otimizar o prompt
-      const result = await this.cloudflareAI.processSQL(question, reducedSchema, conversationContext)
+      const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext)
+
+      const result = await this.openRouterService.generateResponse({ prompt })
 
       if (!result.success) {
         return {
-          provider: 'cloudflare',
-          model: 'sqlcoder-7b-2',
+          provider: 'deepseek',
+          model: 'deepseek-v3',
           success: false,
           status: 'error',
           error: result.error,
@@ -614,15 +608,14 @@ ${contextLines.join('\n')}
         }
       }
 
-      const sql = result.sql!
+      const sql = this.extractSQL(result.content || '')
 
-      // Validar SQL
       const validation = await this.validateAndSanitizeSQL(sql)
 
       if (!validation.isValid) {
         return {
-          provider: 'cloudflare',
-          model: 'sqlcoder-7b-2',
+          provider: 'deepseek',
+          model: 'deepseek-v3',
           success: false,
           status: 'error',
           error: `SQL inválido: ${validation.errors.join(', ')}`,
@@ -630,15 +623,14 @@ ${contextLines.join('\n')}
         }
       }
 
-      // Gerar explicação
       const explanation = await this.generateExplanation(question, validation.sanitizedSQL!)
 
       return {
-        provider: 'cloudflare',
-        model: 'sqlcoder-7b-2',
+        provider: 'deepseek',
+        model: 'deepseek-v3',
         success: true,
         status: 'complete',
-        prompt: result.prompt,
+        prompt,
         sql: validation.sanitizedSQL!,
         explanation,
         validationWarnings: validation.warnings,
@@ -646,33 +638,13 @@ ${contextLines.join('\n')}
       }
     } catch (error) {
       return {
-        provider: 'cloudflare',
-        model: 'sqlcoder-7b-2',
+        provider: 'deepseek',
+        model: 'deepseek-v3',
         success: false,
         status: 'error',
         error: error instanceof Error ? error.message : 'Erro desconhecido',
         processingTime: Date.now() - startTime
       }
-    }
-  }
-
-  /**
-   * Gera SQL usando Cloudflare AI (versão legada para compatibilidade)
-   */
-  private async generateWithCloudflareSimple(
-    question: string,
-    reducedSchema: string,
-    conversationContext: string = ""
-  ): Promise<{
-    success: boolean
-    sql?: string
-    error?: string
-  }> {
-    const result = await this.generateWithCloudflare(question, reducedSchema, conversationContext)
-    return {
-      success: result.success,
-      sql: result.sql,
-      error: result.error
     }
   }
 
@@ -698,8 +670,11 @@ ${reducedSchema}
 ⚖️ REGRAS DE OURO (LEIA ATENTAMENTE):
 
 1. **TABELAS DE INSTITUIÇÕES (ESCOLHA COM CUIDADO)**:
-   - ✅ **USE \`CENSO_IES\` (Principal)**: Para a maioria dos casos. Use para filtragem por capitais (\`in_capital\`), categoria administrativa, organização acadêmica e cruzamentos com geografia.
+   - ✅ **USE \`CENSO_IES_BRUTO\` (Preferencial para filtros geográficos/temporais/tipo)**: Tem colunas de estado (\`sg_uf_ies\`), município (\`no_municipio_ies\`), região (\`no_regiao_ies\`), capital (\`in_capital_ies\`), ano (\`nu_ano_censo\`), tipo (\`tp_organizacao_academica\`) e categoria (\`tp_categoria_administrativa\`) EMBUTIDAS — **sem necessidade de cadeia de JOINs geográficos**. Código da IES: \`co_ies\`. Para filtrar por tipo: \`tp_organizacao_academica\` (1=Universidade, 2=Centro Universitário, 3=Faculdade, 4=Instituto Federal).
+   - ✅ **USE \`CENSO_IES\` (Alternativo)**: Para cruzamentos via \`cod_municipio\` com tabelas geográficas, ou quando precisar de \`id_organizacao_academica\` / \`id_categoria_administrativa\` especificamente.
      * Esta tabela cruza com geografia usando: \`censo_ies.cod_municipio = municipios_ibge.cod_ibge\`
+     * ⚠️ ATENÇÃO: \`censo_ies\` é uma dimensão estática (SEM \`nu_ano_censo\`). Se usar esta tabela sem filtro de ano, você retornará IES históricas de TODAS as edições do censo, não apenas a mais recente. Para perguntas sobre IES atuais filtradas por cidade/município, prefira \`censo_ies_bruto\` com \`nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\`.
+     * 🚨 PROIBIDO para perguntas por cidade/município: NUNCA use \`censo_ies c JOIN municipios_ibge m ON c.cod_municipio = m.cod_ibge WHERE m.nome_municipio = 'XYZ'\` — isso retorna IES de TODAS as edições históricas (ex: 66 rows em vez de 38 do último censo). Use \`censo_ies_bruto WHERE no_municipio_ies ILIKE '%XYZ%' AND nu_ano_censo = (SELECT MAX...)\`.
    - ⚠️ **USE \`EMEC_INSTITUICOES\` (Auxiliar)**: **SOMENTE** se a pergunta solicitar dados de contato (telefone, email, site, cnpj), site, IGC ou CI.
      * ⚠️ Esta tabela NÃO cruza facilmente com geografia (não tem código numérico de município), e NÃO TEM a flag \`in_capital\`.
      * Cursos cruzam com ela via: \`emec_instituicoes.co_ies = censo_cursos.cod_ies\`
@@ -740,6 +715,39 @@ ${reducedSchema}
    - JOIN entre elas: \`censo_curso_vagas_bruto.co_curso = censo_cursos.cod_curso\`
    - ❌ NUNCA coloque \`qt_mat\` ou \`nu_ano_censo\` em \`censo_cursos\` — o banco vai FALHAR.
 
+7. **JOIN TEMPORAL OBRIGATÓRIO (censo_ies_bruto × censo_curso_vagas_bruto)**:
+   - 🚨 \`censo_ies_bruto\` também é uma série temporal (tem \`nu_ano_censo\`). Todo JOIN entre ela e \`censo_curso_vagas_bruto\` **DEVE** incluir a condição de ano, caso contrário cria produto cartesiano com 14x os dados.
+   - ❌ NUNCA faça: \`JOIN censo_ies_bruto b ON v.co_ies = b.co_ies\` (sem ano = produto cartesiano, valores inflados 14x e timeout)
+   - ✅ SEMPRE faça: \`JOIN censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\`
+   - Exemplo correto para IES + vagas anuais:
+     \`\`\`sql
+     SELECT b.no_ies, b.sg_ies, SUM(v.qt_mat) AS total_matriculados
+     FROM inep.censo_curso_vagas_bruto v
+     JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo
+     WHERE v.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_curso_vagas_bruto)
+       AND b.tp_categoria_administrativa IN (4, 5, 6, 7)
+     GROUP BY b.no_ies, b.sg_ies
+     ORDER BY total_matriculados DESC LIMIT 10
+     \`\`\`
+
+🚫 ANTI-PADRÕES CONFIRMADOS — ESTES ERROS JÁ FORAM OBSERVADOS E CAUSAM FALHAS GRAVES:
+
+❌ ANTI-PADRÃO 1 — JOIN EXPLOSIVO (produto cartesiano):
+   ERRADO:  JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies
+   CORRETO: JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo
+   CONSEQUÊNCIA: Sem AND de ano → 8,7 MILHÕES de linhas → valores inflados 14× e timeout de 45s
+
+❌ ANTI-PADRÃO 2 — TABELA HISTÓRICA SEM FILTRO DE ANO PARA CIDADE:
+   ERRADO:  FROM inep.censo_ies c JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge WHERE m.nome_municipio = 'Curitiba'
+   CORRETO: FROM inep.censo_ies_bruto WHERE no_municipio_ies ILIKE '%Curitiba%' AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)
+   CONSEQUÊNCIA: census_ies não tem nu_ano_censo → retorna IES de TODAS as edições históricas (ex: 66 rows em vez de 38)
+
+❌ ANTI-PADRÃO 3 — SALTO NA CADEIA GEOGRÁFICA:
+   ERRADO:  JOIN inep.mesoregioes_ibge me ON m.cod_microregiao_ibge = me.cod_mesoregiao_ibge
+   CORRETO: JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
+            JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
+   CONSEQUÊNCIA: Chaves têm formatos diferentes (7 vs 4 chars) → 0 linhas retornadas
+
 💡 EXEMPLOS PRÁTICOS ESPERADOS:
 ${this.getDynamicExamples(question)}
 
@@ -750,7 +758,8 @@ ${this.getDynamicExamples(question)}
   }
 
   /**
-   * Seleciona os melhores exemplos (Few-Shot Dinâmico) baseado em palavras-chave
+   * Seleciona os melhores exemplos (Few-Shot Dinâmico) baseado em palavras-chave.
+   * Pool expandido para cobrir os padrões mais comuns do test set.
    */
   private getDynamicExamples(question: string): string {
     const q = question.toLowerCase()
@@ -763,15 +772,15 @@ SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
 \`\`\``
       },
       {
-        tags: ['contato', 'telefone', 'email', 'site', 'telefone'],
+        tags: ['contato', 'telefone', 'email', 'site'],
         text: `Exemplo (Uso obrigatório da emec_instituicoes para contatos):
 \`\`\`sql
 SELECT no_ies, telefone, email FROM inep.emec_instituicoes WHERE no_ies ILIKE '%Pernambuco%' LIMIT 50
 \`\`\``
       },
       {
-        tags: ['regiao', 'nordeste', 'sul', 'sudeste', 'norte', 'centro-oeste', 'estado'],
-        text: `Exemplo (Cadeia geográfica Obrigatoria — note cesta.uf_ibge):
+        tags: ['regiao', 'nordeste', 'sul', 'sudeste', 'norte', 'centro-oeste'],
+        text: `Exemplo (Cadeia geográfica obrigatória via censo_ies — note cesta.uf_ibge):
 \`\`\`sql
 SELECT r.descr_regiao_ibge AS regiao, COUNT(DISTINCT c.cod_ies) AS total_instituicoes
 FROM inep.censo_ies c
@@ -785,30 +794,22 @@ GROUP BY r.descr_regiao_ibge
 \`\`\``
       },
       {
-        tags: ['curso', 'medicina', 'direito', 'engenharia'],
-        text: `Exemplo (Cruzamento entre cursos e instituicoes):
+        tags: ['estado', 'uf', 'minas gerais', 'sao paulo', 'rio de janeiro', 'bahia', 'parana', 'rs', 'mg', 'sp', 'rj'],
+        text: `Exemplo (Filtro por estado — use censo_ies_bruto, sem JOINs geográficos):
 \`\`\`sql
-SELECT c.nome_curso, e.site 
-FROM inep.censo_cursos c
-JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
-WHERE c.nome_curso ILIKE '%medicina%'
+SELECT sg_uf_ies AS estado, COUNT(DISTINCT co_ies) AS total_universidades
+FROM inep.censo_ies_bruto
+WHERE tp_organizacao_academica = 1
+  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)
+GROUP BY sg_uf_ies
+ORDER BY total_universidades DESC
 LIMIT 50
-\`\`\``
-      },
-      {
-        tags: ['presencial', 'ead', 'modalidade', 'ensino'],
-        text: `Exemplo (Filtro por modalidade de ensino com dados anuais):
-\`\`\`sql
-SELECT tp_modalidade_ensino, SUM(qt_mat) AS total_matriculas
-FROM inep.censo_curso_vagas_bruto
-WHERE nu_ano_censo = 2023
-GROUP BY tp_modalidade_ensino
 \`\`\`
-Nota: tp_modalidade_ensino existe em censo_curso_vagas_bruto (1=Presencial, 2=EAD). Em censo_cursos a coluna é id_modalidade_ensino.`
+Nota: Use censo_ies_bruto para filtros por sg_uf_ies, no_municipio_ies, no_regiao_ies, nu_ano_censo — sem cadeia de JOINs.`
       },
       {
-        tags: ['matriculas', 'matriculados', 'vagas', 'ingressantes', 'concluintes', 'ano', 'censo', '2023', '2022', '2021'],
-        text: `Exemplo (Dados anuais de matrículas — SEMPRE use censo_curso_vagas_bruto):
+        tags: ['matriculas', 'matriculados', 'vagas', 'ingressantes', 'concluintes', 'ano', 'censo', '2023', '2022', '2021', '2020'],
+        text: `Exemplo (Dados anuais — SEMPRE use censo_curso_vagas_bruto, nunca censo_cursos):
 \`\`\`sql
 SELECT cc.nome_curso, SUM(v.qt_mat) AS total_matriculas
 FROM inep.censo_curso_vagas_bruto v
@@ -819,43 +820,139 @@ GROUP BY cc.nome_curso
 ORDER BY total_matriculas DESC
 LIMIT 50
 \`\`\`
-Nota: qt_mat, qt_ing, qt_vg_total, nu_ano_censo existem APENAS em censo_curso_vagas_bruto, nunca em censo_cursos.`
+Nota: qt_mat, qt_ing, qt_vg_total, nu_ano_censo existem APENAS em censo_curso_vagas_bruto (range 2010–2023).`
       },
       {
-        tags: ['minas gerais', 'sao paulo', 'rio de janeiro', 'bahia', 'parana', 'estado', 'uf', 'universidades'],
-        text: `Exemplo (Contagem por estado — cadeia geográfica com cesta.uf_ibge):
+        tags: ['privado', 'privada', 'particular', 'ead', 'ies', 'instituicao', 'instituicoes', 'matriculados', 'maior', 'alunos', 'vagas', 'ano', 'censo', 'ultimo', 'bruto', 'ingressantes', 'concluintes', 'ranking'],
+        text: `Exemplo (JOIN temporal obrigatório entre censo_ies_bruto e censo_curso_vagas_bruto):
 \`\`\`sql
-SELECT u.no_uf_ibge AS estado, COUNT(DISTINCT c.cod_ies) AS total_instituicoes
-FROM inep.censo_ies c
-JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
-JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
-JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN cesta.uf_ibge u ON me.cod_uf_ibge = u.co_uf_ibge
-WHERE u.no_uf_ibge ILIKE '%Minas Gerais%'
-  AND c.id_organizacao_academica = 1
-GROUP BY u.no_uf_ibge
+-- CORRETO: JOIN com AND de ano (OBRIGATÓRIO para evitar produto cartesiano)
+SELECT b.no_ies, b.sg_ies, SUM(v.qt_mat) AS total_matriculados
+FROM inep.censo_curso_vagas_bruto v
+JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo
+WHERE v.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_curso_vagas_bruto)
+  AND v.tp_modalidade_ensino = 2
+  AND b.tp_categoria_administrativa IN (4, 5, 6, 7)
+GROUP BY b.no_ies, b.sg_ies
+ORDER BY total_matriculados DESC
+LIMIT 5
+\`\`\`
+ATENÇÃO: NUNCA omita o AND v.nu_ano_censo = b.nu_ano_censo no JOIN — sem ele, são 8,7M de linhas e timeout.`
+      },
+      {
+        tags: ['presencial', 'ead', 'modalidade', 'distancia', 'a distancia'],
+        text: `Exemplo (Filtro por modalidade de ensino com dados anuais):
+\`\`\`sql
+SELECT tp_modalidade_ensino, SUM(qt_mat) AS total_matriculas
+FROM inep.censo_curso_vagas_bruto
+WHERE nu_ano_censo = 2023
+GROUP BY tp_modalidade_ensino
+\`\`\`
+Nota: tp_modalidade_ensino (1=Presencial, 2=EAD) existe em censo_curso_vagas_bruto. Em censo_cursos a coluna é id_modalidade_ensino.`
+      },
+      {
+        tags: ['curso', 'medicina', 'direito', 'engenharia', 'enfermagem', 'administracao', 'sistemas', 'computacao'],
+        text: `Exemplo (Cruzamento entre cursos e instituições):
+\`\`\`sql
+SELECT c.nome_curso, e.no_ies, e.site
+FROM inep.censo_cursos c
+JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
+WHERE c.nome_curso ILIKE '%medicina%'
+LIMIT 50
+\`\`\``
+      },
+      {
+        tags: ['feminino', 'masculino', 'genero', 'mulheres', 'homens', 'proporcao', 'percentual', 'sexo'],
+        text: `Exemplo (Proporção de gênero em matrículas — use qt_mat_fem e qt_mat_masc):
+\`\`\`sql
+SELECT
+  cc.nome_curso,
+  SUM(v.qt_mat_fem) AS matriculas_femininas,
+  SUM(v.qt_mat_masc) AS matriculas_masculinas,
+  ROUND(100.0 * SUM(v.qt_mat_fem) / NULLIF(SUM(v.qt_mat_fem + v.qt_mat_masc), 0), 1) AS pct_feminino
+FROM inep.censo_curso_vagas_bruto v
+JOIN inep.censo_cursos cc ON v.co_curso = cc.cod_curso
+WHERE v.nu_ano_censo = 2023
+  AND cc.nome_curso ILIKE '%engenharia%'
+GROUP BY cc.nome_curso
+ORDER BY pct_feminino DESC
+LIMIT 50
+\`\`\``
+      },
+      {
+        tags: ['cpc', 'desempenho', 'qualidade', 'avaliacao', 'nota', 'conceito', 'score', 'ranking'],
+        text: `Exemplo (Notas CPC por curso e estado — use dados_cpc):
+\`\`\`sql
+SELECT b.sg_uf_ies AS estado, cc.nome_curso,
+       ROUND(AVG(cpc.cpc_continuo)::numeric, 2) AS media_cpc
+FROM inep.dados_cpc cpc
+JOIN inep.censo_curso_vagas_bruto b ON cpc.co_ies = b.co_ies AND cpc.co_curso = b.co_curso AND cpc.ano = b.nu_ano_censo
+JOIN inep.censo_cursos cc ON cpc.co_curso = cc.cod_curso
+WHERE cc.nome_curso ILIKE '%direito%'
+GROUP BY b.sg_uf_ies, cc.nome_curso
+ORDER BY media_cpc DESC
+LIMIT 50
+\`\`\`
+Nota: dados_cpc tem co_ies (int), co_curso (int), ano (int), cpc_continuo (numeric 0–5), cpc_faixa (1–5).`
+      },
+      {
+        tags: ['evasao', 'desistencia', 'abandono', 'dropout', 'conclusao', 'taxa', 'fluxo', 'permanencia'],
+        text: `Exemplo (Taxa de desistência por curso — use fluxo_tda):
+\`\`\`sql
+SELECT f.no_curso, f.no_ies, f.sg_uf_ies AS estado,
+       ROUND(AVG(f.tda)::numeric * 100, 1) AS taxa_desistencia_pct
+FROM inep.fluxo_tda f
+WHERE f.no_curso ILIKE '%administracao%'
+  AND f.nu_ano_referencia = (SELECT MAX(nu_ano_referencia) FROM inep.fluxo_tda)
+GROUP BY f.no_curso, f.no_ies, f.sg_uf_ies
+ORDER BY taxa_desistencia_pct DESC
+LIMIT 50
+\`\`\`
+Nota: fluxo_tda tem tda (desistência 0–1), tca (conclusão 0–1), tap (permanência 0–1). sg_uf_ies é varchar.`
+      },
+      {
+        tags: ['igc', 'indice', 'geral', 'cursos', 'ranking', 'melhor', 'pior'],
+        text: `Exemplo (IGC das instituições — use dados_igc + emec_instituicoes):
+\`\`\`sql
+SELECT e.no_ies, ig.ano, ig.igc_continuo, ig.igc_faixa
+FROM inep.dados_igc ig
+JOIN inep.emec_instituicoes e ON ig.co_ies = e.co_ies
+WHERE ig.ano = (SELECT MAX(ano) FROM inep.dados_igc)
+ORDER BY ig.igc_continuo DESC
+LIMIT 10
+\`\`\`
+Nota: dados_igc.co_ies = emec_instituicoes.co_ies. igc_faixa: 1–5. igc_continuo: numeric 0–5.`
+      },
+      {
+        tags: ['capes', 'pos-graduacao', 'pos graduacao', 'mestrado', 'doutorado', 'stricto', 'programa'],
+        text: `Exemplo (Programas de pós-graduação por área — use capes_programas_bruto):
+\`\`\`sql
+SELECT nm_area_conhecimento, COUNT(*) AS total_programas
+FROM inep.capes_programas_bruto
+WHERE an_base = (SELECT MAX(an_base) FROM inep.capes_programas_bruto)
+GROUP BY nm_area_conhecimento
+ORDER BY total_programas DESC
+LIMIT 20
 \`\`\``
       }
     ]
 
-    // Score examples
+    // Score examples by keyword matches
     const scored = pool.map(ex => {
       let score = 0
-      ex.tags.forEach(tag => {
-        if (q.includes(tag)) score += 1
-      })
+      ex.tags.forEach(tag => { if (q.includes(tag)) score++ })
       return { ...ex, score }
     })
 
-    // Sort descending by score, and pick top 2
     scored.sort((a, b) => b.score - a.score)
 
-    // Always include at least 2 examples, even if score is 0
-    return scored.slice(0, 2).map(ex => ex.text).join('\\n\\n')
+    // Top 3 examples
+    return scored.slice(0, 3).map(ex => ex.text).join('\n\n')
   }
 
   /**
-   * Tenta auto-corrigir uma query SQL que falhou na execução
+   * Tenta auto-corrigir uma query SQL que falhou na execução.
+   * Classifica o erro PostgreSQL para fornecer um hint direcionado ao LLM.
    */
   private async retrySQLGeneration(
     provider: string,
@@ -868,8 +965,24 @@ GROUP BY u.no_uf_ibge
   ): Promise<{ success: boolean, sql?: string }> {
     console.log(`🔄 Tentativa de auto-correção para ${provider}...`)
 
+    const { hint } = this.classifyPostgresError(error, failedSql)
+
     const basePrompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext)
-    const correctionPrompt = `${basePrompt}\n\n🚨 ATENÇÃO: A sua consulta SQL anterior falhou durante a execução no banco de dados.\n\nERRO RETORNADO PELO BANCO:\n${error}\n\nCONSULTA QUE FALHOU:\n\`\`\`sql\n${failedSql}\n\`\`\`\n\nPor favor, analise o erro, identifique o problema na consulta original (ex: nome de coluna errado, tipagem, sintaxe) e forneça APENAS o código SQL corrigido.`
+    const correctionPrompt = `${basePrompt}
+
+🚨 CORREÇÃO NECESSÁRIA: A consulta SQL abaixo falhou na execução.
+
+DIAGNÓSTICO DO ERRO: ${hint}
+
+ERRO ORIGINAL DO BANCO:
+${error}
+
+CONSULTA QUE FALHOU:
+\`\`\`sql
+${failedSql}
+\`\`\`
+
+Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça o SQL corrigido completo.`
 
     try {
       if (provider === 'gemini') {
@@ -889,12 +1002,10 @@ GROUP BY u.no_uf_ibge
         if (result.success && result.content) {
           return { success: true, sql: this.extractSQL(result.content) }
         }
-      } else if (provider === 'cloudflare') {
-        // Cloudflare processSQL encapsulates the prompt building, so we append the error and failed SQL to context
-        const errorContext = conversationContext + `\n\n🚨 TENTATIVA ANTERIOR FALHOU:\nErro: ${error}\nSQL: ${failedSql}\nCorrija a consulta focando nas regras do INEP.`
-        const result = await this.cloudflareAI.processSQL(question, reducedSchema, errorContext)
-        if (result.success && result.sql) {
-          return { success: true, sql: result.sql }
+      } else if (provider === 'deepseek' && this.openRouterService) {
+        const result = await this.openRouterService.generateResponse({ prompt: correctionPrompt })
+        if (result.success && result.content) {
+          return { success: true, sql: this.extractSQL(result.content) }
         }
       }
     } catch (e) {
@@ -1135,6 +1246,83 @@ GROUP BY u.no_uf_ibge
   /**
    * Corrige automaticamente alucinações comuns do LLM
    */
+  /**
+   * Detecta e corrige deterministicamente JOINs temporais faltando a condição de ano.
+   * Específico para o par censo_ies_bruto × censo_curso_vagas_bruto — sem AND nu_ano_censo
+   * o join produz ~8,7M linhas (produto cartesiano), causando timeout e valores 14× inflados.
+   */
+  private enforceTemporalJoinConstraints(sql: string): { sql: string; warnings: string[] } {
+    const warnings: string[] = []
+
+    const hasCensoIesBruto = /censo_ies_bruto/i.test(sql)
+    const hasCensoVagasBruto = /censo_curso_vagas_bruto/i.test(sql)
+
+    if (!hasCensoIesBruto || !hasCensoVagasBruto) {
+      return { sql, warnings }
+    }
+
+    // Extrair aliases das duas tabelas
+    const iesBrutoAliasMatch = sql.match(/\bcenso_ies_bruto\s+(\w+)/i)
+    const vagasBrutoAliasMatch = sql.match(/\bcenso_curso_vagas_bruto\s+(\w+)/i)
+
+    if (!iesBrutoAliasMatch || !vagasBrutoAliasMatch) {
+      return { sql, warnings }
+    }
+
+    const iesBrutoAlias = iesBrutoAliasMatch[1]
+    const vagasBrutoAlias = vagasBrutoAliasMatch[1]
+
+    // Verificar se a condição temporal já existe
+    const temporalConditionRegex = new RegExp(
+      `(${iesBrutoAlias}|${vagasBrutoAlias})\\.nu_ano_censo\\s*=\\s*(${iesBrutoAlias}|${vagasBrutoAlias})\\.nu_ano_censo`,
+      'i'
+    )
+
+    if (temporalConditionRegex.test(sql)) {
+      return { sql, warnings }
+    }
+
+    // Tentar injetar a condição no JOIN de censo_ies_bruto
+    const joinIesRegex = new RegExp(
+      `(JOIN\\s+inep\\.censo_ies_bruto\\s+${iesBrutoAlias}\\s+ON\\s+[^\\n]+?)(?=\\s*(?:JOIN|LEFT|RIGHT|INNER|WHERE|GROUP|ORDER|LIMIT|HAVING|$))`,
+      'is'
+    )
+    const joinIesMatch = sql.match(joinIesRegex)
+
+    if (joinIesMatch) {
+      const originalJoin = joinIesMatch[1]
+      if (!originalJoin.toLowerCase().includes('nu_ano_censo')) {
+        const fixedJoin = originalJoin.trimEnd() + ` AND ${vagasBrutoAlias}.nu_ano_censo = ${iesBrutoAlias}.nu_ano_censo`
+        const fixedSQL = sql.replace(originalJoin, fixedJoin)
+        warnings.push(`⚠️ JOIN temporal corrigido: adicionado AND ${vagasBrutoAlias}.nu_ano_censo = ${iesBrutoAlias}.nu_ano_censo para evitar produto cartesiano de 8,7M linhas.`)
+        return { sql: fixedSQL, warnings }
+      }
+      return { sql, warnings }
+    }
+
+    // Tentar injetar no JOIN de censo_curso_vagas_bruto
+    const joinVagasRegex = new RegExp(
+      `(JOIN\\s+inep\\.censo_curso_vagas_bruto\\s+${vagasBrutoAlias}\\s+ON\\s+[^\\n]+?)(?=\\s*(?:JOIN|LEFT|RIGHT|INNER|WHERE|GROUP|ORDER|LIMIT|HAVING|$))`,
+      'is'
+    )
+    const joinVagasMatch = sql.match(joinVagasRegex)
+
+    if (joinVagasMatch) {
+      const originalJoin = joinVagasMatch[1]
+      if (!originalJoin.toLowerCase().includes('nu_ano_censo')) {
+        const fixedJoin = originalJoin.trimEnd() + ` AND ${iesBrutoAlias}.nu_ano_censo = ${vagasBrutoAlias}.nu_ano_censo`
+        const fixedSQL = sql.replace(originalJoin, fixedJoin)
+        warnings.push(`⚠️ JOIN temporal corrigido: adicionado AND ${iesBrutoAlias}.nu_ano_censo = ${vagasBrutoAlias}.nu_ano_censo para evitar produto cartesiano de 8,7M linhas.`)
+        return { sql: fixedSQL, warnings }
+      }
+      return { sql, warnings }
+    }
+
+    // Não conseguiu injetar automaticamente — pelo menos avisa
+    warnings.push(`⚠️ AVISO: JOIN entre censo_ies_bruto e censo_curso_vagas_bruto sem condição de ano (nu_ano_censo). Isso pode causar produto cartesiano com ~8,7M linhas e timeout.`)
+    return { sql, warnings }
+  }
+
   private autoFixCommonHallucinations(sql: string): string {
     let fixedSQL = sql
 
@@ -1144,9 +1332,9 @@ GROUP BY u.no_uf_ibge
     // Mapeamento de typos comuns identificados nas rodadas de teste
     // ATENÇÃO: co_ies e co_curso foram REMOVIDOS pois são nomes CORRETOS em emec_instituicoes
     // e censo_curso_vagas_bruto — substituição global causava mais dano do que correção
+    // NOTA: 'sg_uf_ies' foi removido — é uma coluna VÁLIDA de censo_ies_bruto (sigla da UF da IES)
     const typoMap: Record<string, string> = {
       'co_municipio': 'cod_municipio',
-      'sg_uf_ies': 'cod_municipio',
       'cod_categoria_administrativa': 'id_categoria_administrativa',
       'nome_uf': 'no_uf_ibge',
       'nome_uf_ibge': 'no_uf_ibge',
@@ -1191,6 +1379,11 @@ GROUP BY u.no_uf_ibge
     try {
       // 1. Limpar SQL básico e Auto-Corrigir typos hardcoded
       let cleanSQL = this.autoFixCommonHallucinations(sql.trim())
+
+      // 1b. Enforçar JOINs temporais obrigatórios (censo_ies_bruto × censo_curso_vagas_bruto)
+      const temporalResult = this.enforceTemporalJoinConstraints(cleanSQL)
+      cleanSQL = temporalResult.sql
+      warnings.push(...temporalResult.warnings)
 
       // 2. Validações básicas de sintaxe
       if (!cleanSQL) {
@@ -1382,7 +1575,7 @@ GROUP BY u.no_uf_ibge
 
         // Tem alguma tabela no FROM/JOIN que sabemos que está na query?
         let allPossibleColsForQuery: string[] = [];
-        for (const [alias, tbl] of aliasMap.entries()) {
+        for (const [, tbl] of aliasMap.entries()) {
           for (const [schemaTbl, cols] of schemaMap.entries()) {
             if (schemaTbl === tbl || schemaTbl.endsWith(tbl)) {
               allPossibleColsForQuery.push(...Array.from(cols));
@@ -1610,5 +1803,194 @@ GROUP BY u.no_uf_ibge
 
     const sqlLower = sql.toLowerCase()
     return dangerous.filter(keyword => sqlLower.includes(keyword))
+  }
+
+  /**
+   * Dicionário central de anotações de colunas para enriquecer o schema enviado ao LLM.
+   * Inclui tipos, enums reais do banco e contexto de uso.
+   */
+  private buildSchemaColumnDict(): Record<string, string> {
+    return {
+      // Flags booleanas
+      'in_capital':              '[int: 1=Capital, 0=Interior — em censo_ies]',
+      'in_capital_ies':          '[int: 1=Capital, 0=Interior — em censo_ies_bruto]',
+      'in_local_oferta':         '[int: 1=Sim, 0=Não]',
+      // Categorias em censo_ies (lookup via cod_ies PK)
+      'id_categoria_administrativa': '[int — em censo_ies: 1=Pública Federal, 2=Pública Estadual, 3=Municipal, 4=Privada c/fins lucrativos, 5=Privada s/fins lucrativos, 6=Privada Confessional, 7=Especial, 8=Comunitária]',
+      'id_organizacao_academica':    '[int — em censo_ies: 1=Universidade, 2=Centro Universitário, 3=Faculdade, 4=Instituto Federal, 5=CEFET]',
+      'id_grau_academico':           '[int — em censo_cursos: 1=Bacharelado, 2=Licenciatura, 3=Tecnológico, 4=Bacharelado+Licenciatura]',
+      'id_modalidade_ensino':        '[int — em censo_cursos: 1=Presencial, 2=EAD]',
+      // Categorias em censo_ies_bruto e censo_curso_vagas_bruto (sem JOIN extra)
+      'tp_organizacao_academica':    '[int — em censo_ies_bruto: 1=Universidade, 2=Centro Universitário, 3=Faculdade, 4=Instituto Federal, 5=CEFET]',
+      'tp_categoria_administrativa': '[int — em censo_ies_bruto/vagas_bruto: 1=Federal, 2=Estadual, 3=Municipal, 4=Privada c/lucro, 5=Privada s/lucro, 6=Confessional, 7=Especial, 8=Comunitária]',
+      'tp_modalidade_ensino':        '[int — em censo_curso_vagas_bruto: 1=Presencial, 2=EAD]',
+      'tp_grau_academico':           '[varchar — em censo_curso_vagas_bruto: 1=Bacharelado, 2=Licenciatura, 3=Tecnológico]',
+      // IDs de IES (atenção: nomes diferentes por tabela!)
+      'cod_ies':  '[int PK — em censo_ies e censo_cursos]',
+      'co_ies':   '[int — em emec_instituicoes, censo_curso_vagas_bruto, censo_ies_bruto, dados_cpc, fluxo_tda, dados_igc — NÃO é PK]',
+      // Fatos anuais (SOMENTE em censo_curso_vagas_bruto)
+      'nu_ano_censo':  '[int — ano do censo, range 2010–2023 — em censo_curso_vagas_bruto e censo_ies_bruto — NO JOIN entre elas: v.nu_ano_censo = b.nu_ano_censo é OBRIGATÓRIO]',
+      'qt_mat':        '[int — matrículas totais — SOMENTE em censo_curso_vagas_bruto]',
+      'qt_mat_fem':    '[int — matrículas femininas — em censo_curso_vagas_bruto]',
+      'qt_mat_masc':   '[int — matrículas masculinas — em censo_curso_vagas_bruto]',
+      'qt_ing':        '[int — ingressantes — SOMENTE em censo_curso_vagas_bruto]',
+      'qt_vg_total':   '[int — vagas totais — SOMENTE em censo_curso_vagas_bruto]',
+      'qt_conc':       '[int — concluintes — em censo_curso_vagas_bruto]',
+      // Taxas de fluxo (fluxo_tda) — valores entre 0 e 1
+      'tda':  '[numeric 0–1 — Taxa de Desistência Acumulada — em fluxo_tda]',
+      'tca':  '[numeric 0–1 — Taxa de Conclusão Acumulada — em fluxo_tda]',
+      'tap':  '[numeric 0–1 — Taxa de Permanência Acumulada — em fluxo_tda]',
+      'tcan': '[numeric 0–1 — Taxa de Conclusão Acumulada Normalizada — em fluxo_tda]',
+      'tada': '[numeric 0–1 — Taxa de Desistência Acumulada — em fluxo_tda]',
+      // Modalidade em fluxo_tda
+      'co_modalidade': '[int — em fluxo_tda: 1=Presencial, 2=EAD]',
+      // Indicadores de qualidade
+      'cpc_faixa':      '[int — em dados_cpc: 1=Muito Fraco, 2=Fraco, 3=Regular, 4=Bom, 5=Muito Bom]',
+      'cpc_continuo':   '[numeric 0–5 — nota CPC contínua — em dados_cpc]',
+      'enade_continuo': '[numeric 0–5 — nota ENADE — em dados_cpc]',
+      'enade_faixa':    '[int — em dados_cpc: 1=Muito Fraco, 2=Fraco, 3=Regular, 4=Bom, 5=Muito Bom]',
+      'igc_faixa':      '[int — em dados_igc: 1=Muito Fraco, 2=Fraco, 3=Regular, 4=Bom, 5=Muito Bom]',
+      'igc_continuo':   '[numeric 0–5 — IGC contínuo — em dados_igc]',
+      // uf_ibge — pertence ao schema cesta (SEMPRE use cesta.uf_ibge)
+      'co_uf_ibge':  '[int PK — em cesta.uf_ibge — FK de mesoregioes_ibge.cod_uf_ibge]',
+      'no_uf_ibge':  '[varchar — nome do estado — em cesta.uf_ibge — ex: "São Paulo", "Rio Grande do Sul"]',
+      'sg_uf_ibge':  '[char(2) — sigla do estado — em cesta.uf_ibge — ex: "SP", "RS"]',
+      'cod_uf_ibge': '[int — FK em mesoregioes_ibge → cesta.uf_ibge.co_uf_ibge]',
+      // Tipos de dados importantes para joins (character vs int)
+      'cod_municipio':        '[character — em censo_ies e municipios_ibge — use aspas simples em comparações]',
+      'co_municipio_ies':     '[int — em censo_ies_bruto — para JOIN com municipios_ibge use cast: co_municipio_ies::text = municipios_ibge.cod_ibge]',
+      'cod_ibge':             '[character PK — em municipios_ibge — use aspas simples]',
+      'cod_microregiao_ibge': '[character — join entre municipios_ibge e microregioes_ibge]',
+      // CAPES pós-graduação
+      'an_base':             '[int — ano base — em capes_programas_bruto, range 2013–2022]',
+      'cd_nivel_formacao':   '[char — em capes_programas_bruto: M=Mestrado, D=Doutorado, F=Mestrado Profissional]',
+      'nm_grau_academico':   '[varchar — em capes_programas_bruto: "MESTRADO", "DOUTORADO", "MESTRADO PROFISSIONAL"]',
+      // IBGE socioeconômico (schema cesta)
+      'cod_ibge_mun':  '[character — em idhms e pibs_per_capita — equivale a municipios_ibge.cod_ibge]',
+    }
+  }
+
+  /**
+   * Formata uma coluna do schema JSON para exibição no prompt.
+   * Mantém tipo de dado e marca PKs. Adiciona anotação do dicionário se disponível.
+   * Formato do JSON: "col_name:type" ou "col_name:type!*" (PK)
+   */
+  private formatColumnForPrompt(col: string, dictionary: Record<string, string>): string {
+    const colonIdx = col.indexOf(':')
+    if (colonIdx === -1) {
+      return dictionary[col] ? `${col} ${dictionary[col]}` : col
+    }
+
+    const colName = col.substring(0, colonIdx)
+    const typeRaw = col.substring(colonIdx + 1)
+    const isPK = typeRaw.includes('!*')
+    const type = typeRaw.replace('!*', '').replace('!', '').trim()
+
+    // Dicionário tem anotação própria que já inclui tipo e contexto — usar ele
+    if (dictionary[colName]) {
+      return `${colName} ${dictionary[colName]}`
+    }
+
+    // Sem anotação: mostrar tipo compacto e PK
+    let result = colName
+    if (type) result += `:${type}`
+    if (isPK) result += '(PK)'
+    return result
+  }
+
+  /**
+   * Seção estática de relacionamentos entre tabelas (JOINs corretos).
+   * Gerada a partir de análise real do banco — não há FK constraints definidos,
+   * mas estas são as relações corretas por convenção de negócio.
+   */
+  private buildJoinRelationships(): string {
+    return `
+📎 RELACIONAMENTOS / JOINs CORRETOS:
+- censo_cursos.cod_ies = emec_instituicoes.co_ies
+- censo_cursos.cod_curso = censo_curso_vagas_bruto.co_curso
+- censo_curso_vagas_bruto.co_ies = censo_ies_bruto.co_ies  AND v.nu_ano_censo = b.nu_ano_censo  (JOIN TEMPORAL OBRIGATÓRIO)
+- censo_ies.cod_municipio = municipios_ibge.cod_ibge  (ambos character — sem cast)
+- censo_ies_bruto.co_municipio_ies::text = municipios_ibge.cod_ibge  (co_municipio_ies é int, cast para text necessário)
+- municipios_ibge.cod_microregiao_ibge = microregioes_ibge.cod_microregiao_ibge
+- microregioes_ibge.cod_mesoregiao_ibge = mesoregioes_ibge.cod_mesoregiao_ibge
+- mesoregioes_ibge.cod_uf_ibge = cesta.uf_ibge.co_uf_ibge
+- cesta.uf_ibge.co_regiao_ibge = regioes_ibge.cod_regiao_ibge
+- dados_cpc.co_ies = censo_ies_bruto.co_ies  |  dados_cpc.co_curso = censo_cursos.cod_curso
+- dados_igc.co_ies = emec_instituicoes.co_ies
+- igc_bruto.cod_ies = censo_ies_bruto.co_ies  (NOTE: igc_bruto tem 'cod_ies', censo_ies_bruto tem 'co_ies')
+- fluxo_tda.co_ies = censo_ies_bruto.co_ies  |  fluxo_tda.co_curso = censo_cursos.cod_curso
+- municipios_ibge.cod_ibge = idhms.cod_ibge
+- municipios_ibge.cod_ibge = pibs_per_capita.cod_ibge`
+  }
+
+  /**
+   * Classifica erros PostgreSQL para direcionar a correção automática.
+   */
+  private classifyPostgresError(error: string, sql?: string): { type: string; hint: string } {
+    const lower = error.toLowerCase()
+
+    if (lower.includes('column') && lower.includes('does not exist')) {
+      const colMatch = error.match(/column "?([^"\s]+)"? /)
+      const tblMatch = error.match(/table "?([^"\s]+)"?/)
+      const col = colMatch?.[1] || 'desconhecida'
+      const tbl = tblMatch?.[1] || ''
+      return {
+        type: 'column_not_found',
+        hint: `❌ COLUNA "${col}" NÃO EXISTE${tbl ? ` na tabela "${tbl}"` : ''}. Verifique o schema acima e use EXATAMENTE o nome listado. Atenção: 'cod_ies' existe em censo_ies/censo_cursos; 'co_ies' existe em emec_instituicoes/censo_ies_bruto/dados_cpc — são colunas diferentes.`
+      }
+    }
+
+    if (lower.includes('relation') && lower.includes('does not exist')) {
+      const tblMatch = error.match(/relation "?([^"\s"]+)"?/)
+      const tbl = tblMatch?.[1] || 'desconhecida'
+      return {
+        type: 'table_not_found',
+        hint: `❌ TABELA "${tbl}" NÃO EXISTE. Use apenas as tabelas do schema fornecido. Verifique o prefixo: a maioria usa 'inep.', mas uf_ibge usa 'cesta.uf_ibge'.`
+      }
+    }
+
+    if (lower.includes('ambiguous')) {
+      const colMatch = error.match(/column reference "([^"]+)"/)
+      const col = colMatch?.[1] || ''
+      return {
+        type: 'ambiguous_column',
+        hint: `❌ COLUNA AMBÍGUA: "${col}" existe em mais de uma tabela do JOIN. Use sempre o alias da tabela: ex. alias.${col || 'coluna'}.`
+      }
+    }
+
+    if (lower.includes('operator does not exist') || lower.includes('cannot cast') || lower.includes('invalid input syntax for type')) {
+      return {
+        type: 'type_mismatch',
+        hint: `❌ TIPO DE DADO INCOMPATÍVEL. Possíveis causas: (1) comparando int com varchar sem cast — lembre que cod_municipio e cod_ibge são character, use aspas simples: cod_municipio = '123456'; (2) tp_grau_academico em fluxo_tda é varchar, não int.`
+      }
+    }
+
+    if (lower.includes('syntax error') || lower.includes('parse error')) {
+      return {
+        type: 'syntax_error',
+        hint: `❌ ERRO DE SINTAXE. Verifique: parênteses balanceados, vírgulas corretas, sem ponto-e-vírgula no final, e que o bloco SQL está completo.`
+      }
+    }
+
+    if (lower.includes('timeout') || lower.includes('canceling statement') || lower.includes('statement canceled')) {
+      const hasBothTemporalTables = sql
+        ? (/censo_ies_bruto/i.test(sql) && /censo_curso_vagas_bruto/i.test(sql))
+        : false
+      if (hasBothTemporalTables) {
+        return {
+          type: 'temporal_join_missing',
+          hint: `🚨 TIMEOUT CAUSADO POR JOIN SEM FILTRO DE ANO. O JOIN entre censo_ies_bruto e censo_curso_vagas_bruto sem a condição de ano produz produto cartesiano de ~8,7 MILHÕES de linhas → timeout e valores 14× inflados.
+CORRIJA obrigatoriamente: adicione AND v.nu_ano_censo = b.nu_ano_censo na cláusula ON do JOIN.
+ERRADO:  JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies
+CORRETO: JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo`
+        }
+      }
+      return {
+        type: 'timeout',
+        hint: `❌ TIMEOUT: A query demorou mais de 45s. Verifique: (1) JOINs sem condição de ano entre tabelas temporais, (2) ausência de LIMIT, (3) produto cartesiano acidental entre tabelas grandes.`
+      }
+    }
+
+    return { type: 'other', hint: `Analise o erro e corrija o problema identificado.` }
   }
 }

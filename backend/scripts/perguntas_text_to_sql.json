@@ -2,13 +2,13 @@
   {
     "id": "P1",
     "pergunta": "Quantas universidades existem no estado de Minas Gerais?",
-    "sql": "SELECT COUNT(*) AS total_ies\nFROM inep.censo_ies_bruto\nWHERE sg_uf_ies = 'MG'\n  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto);",
+    "sql": "SELECT COUNT(DISTINCT co_ies) AS total_universidades\nFROM inep.censo_ies_bruto\nWHERE sg_uf_ies = 'MG'\n  AND tp_organizacao_academica = 1\n  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto);",
     "dificuldade": "facil"
   },
   {
     "id": "P2",
     "pergunta": "Quais são os nomes e siglas das faculdades localizadas em Curitiba?",
-    "sql": "SELECT DISTINCT no_ies, sg_ies\nFROM inep.censo_ies_bruto\nWHERE no_municipio_ies = 'Curitiba'\n  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto);",
+    "sql": "SELECT DISTINCT no_ies, sg_ies\nFROM inep.censo_ies_bruto\nWHERE no_municipio_ies ILIKE '%Curitiba%'\n  AND tp_organizacao_academica = 3\n  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto);",
     "dificuldade": "facil"
   },
   {
@@ -80,13 +80,13 @@
   {
     "id": "P14",
     "pergunta": "Qual é a taxa de evasão média dos cursos de Administração em universidades públicas federais?",
-    "sql": "SELECT ROUND(AVG(f.tda), 2) AS media_taxa_desistencia\nFROM inep.fluxo_tda f\nWHERE f.no_curso ILIKE '%Administração%'\n  AND f.tp_categoria_administrativa = 1;",
+    "sql": "SELECT ROUND(AVG(f.tda), 2) AS media_taxa_desistencia\nFROM inep.fluxo_tda f\nWHERE f.no_curso ILIKE '%Administração%'\n  AND f.tp_categoria_administrativa = 1\n  AND f.tp_organizacao_academica = 1;",
     "dificuldade": "medio"
   },
   {
     "id": "P15",
-    "pergunta": "Quantos docentes com doutorado e dedicação exclusiva existem em cada estado?",
-    "sql": "SELECT sg_uf_ies, SUM(qt_doc_ex_dout) AS total_doutores_de\nFROM inep.censo_ies_bruto\nWHERE nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\nGROUP BY sg_uf_ies\nORDER BY total_doutores_de DESC;",
+    "pergunta": "Quantos docentes com doutorado existem em cada estado no último censo?",
+    "sql": "SELECT sg_uf_ies, SUM(qt_doc_ex_dout) AS total_doutores\nFROM inep.censo_ies_bruto\nWHERE nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\nGROUP BY sg_uf_ies\nORDER BY total_doutores DESC;",
     "dificuldade": "medio"
   },
   {
@@ -98,13 +98,13 @@
   {
     "id": "P17",
     "pergunta": "Quais cursos de Ciência da Computação tiveram nota no ENADE acima da média nacional nesse mesmo curso?",
-    "sql": "SELECT e.co_curso, c.nome_curso, i.nome_ies, e.enade_continuo\nFROM inep.dados_enade e\nJOIN inep.censo_cursos c ON e.co_curso = c.cod_curso\nJOIN inep.censo_ies i ON e.co_ies = i.cod_ies\nWHERE c.nome_curso ILIKE '%Ciência da Computação%'\n  AND e.enade_continuo > (\n    SELECT AVG(e2.enade_continuo)\n    FROM inep.dados_enade e2\n    JOIN inep.censo_cursos c2 ON e2.co_curso = c2.cod_curso\n    WHERE c2.nome_curso ILIKE '%Ciência da Computação%'\n      AND e2.enade_continuo IS NOT NULL\n  )\n  AND e.enade_continuo IS NOT NULL\nORDER BY e.enade_continuo DESC;",
+    "sql": "SELECT e.co_curso, c.nome_curso, i.nome_ies, e.enade_continuo\nFROM inep.dados_enade e\nJOIN inep.censo_cursos c ON e.co_curso = c.cod_curso\nJOIN inep.censo_ies i ON e.co_ies = i.cod_ies\nWHERE c.nome_curso ILIKE '%Ciência da Computação%'\n  AND e.ano = (\n    SELECT MAX(e3.ano)\n    FROM inep.dados_enade e3\n    JOIN inep.censo_cursos c3 ON e3.co_curso = c3.cod_curso\n    WHERE c3.nome_curso ILIKE '%Ciência da Computação%'\n      AND e3.enade_continuo IS NOT NULL\n  )\n  AND e.enade_continuo > (\n    SELECT AVG(e2.enade_continuo)\n    FROM inep.dados_enade e2\n    JOIN inep.censo_cursos c2 ON e2.co_curso = c2.cod_curso\n    WHERE c2.nome_curso ILIKE '%Ciência da Computação%'\n      AND e2.enade_continuo IS NOT NULL\n      AND e2.ano = (\n        SELECT MAX(e3.ano)\n        FROM inep.dados_enade e3\n        JOIN inep.censo_cursos c3 ON e3.co_curso = c3.cod_curso\n        WHERE c3.nome_curso ILIKE '%Ciência da Computação%'\n          AND e3.enade_continuo IS NOT NULL\n      )\n  )\n  AND e.enade_continuo IS NOT NULL\nORDER BY e.enade_continuo DESC;",
     "dificuldade": "dificil"
   },
   {
     "id": "P18",
     "pergunta": "Quais são as 10 cidades com o maior número de instituições de ensino superior e qual o IDHM médio dessas cidades?",
-    "sql": "SELECT\n  b.no_municipio_ies,\n  b.sg_uf_ies,\n  COUNT(DISTINCT b.co_ies) AS total_ies,\n  ROUND(AVG(idh.idhm), 3) AS idhm_medio\nFROM inep.censo_ies_bruto b\nJOIN inep.municipios_ibge m ON b.co_municipio_ies::text = m.cod_municipio\nJOIN inep.idhms idh ON m.cod_ibge = idh.cod_ibge\nWHERE b.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\nGROUP BY b.no_municipio_ies, b.sg_uf_ies\nORDER BY total_ies DESC\nLIMIT 10;",
+    "sql": "SELECT\n  b.no_municipio_ies,\n  b.sg_uf_ies,\n  COUNT(DISTINCT b.co_ies) AS total_ies,\n  ROUND(AVG(idh.idhm), 3) AS idhm_medio\nFROM inep.censo_ies_bruto b\nJOIN inep.municipios_ibge m ON b.co_municipio_ies::text = m.cod_ibge\nJOIN inep.idhms idh ON m.cod_ibge = idh.cod_ibge\n  AND idh.ano = (SELECT MAX(ano) FROM inep.idhms)\nWHERE b.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\nGROUP BY b.no_municipio_ies, b.sg_uf_ies\nORDER BY total_ies DESC\nLIMIT 10;",
     "dificuldade": "dificil"
   },
   {

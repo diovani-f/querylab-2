@@ -24,6 +24,28 @@ export interface TableRelevance {
   keywords: string[]
 }
 
+// Grafo de foreign keys do banco INEP (undirected: expansão nos dois sentidos)
+const FK_GRAPH: Map<string, string[]> = new Map([
+  ['censo_ies_bruto',          ['censo_curso_vagas_bruto', 'dados_cpc', 'igc_bruto', 'fluxo_tda']],
+  ['censo_curso_vagas_bruto',  ['censo_ies_bruto', 'censo_cursos']],
+  ['censo_cursos',             ['censo_curso_vagas_bruto', 'emec_instituicoes', 'dados_cpc', 'fluxo_tda']],
+  ['censo_ies',                ['municipios_ibge', 'censo_cursos']],
+  ['emec_instituicoes',        ['censo_cursos', 'dados_igc']],
+  ['municipios_ibge',          ['censo_ies', 'microregioes_ibge', 'idhms', 'pibs_per_capita', 'ibge_demografia_municipios']],
+  ['microregioes_ibge',        ['municipios_ibge', 'mesoregioes_ibge']],
+  ['mesoregioes_ibge',         ['microregioes_ibge', 'uf_ibge']],
+  ['uf_ibge',                  ['mesoregioes_ibge', 'regioes_ibge']],
+  ['regioes_ibge',             ['uf_ibge']],
+  ['dados_cpc',                ['censo_ies_bruto', 'censo_cursos']],
+  ['dados_igc',                ['emec_instituicoes']],
+  ['igc_bruto',                ['censo_ies_bruto']],
+  ['fluxo_tda',                ['censo_ies_bruto', 'censo_cursos']],
+  ['idhms',                    ['municipios_ibge']],
+  ['pibs_per_capita',          ['municipios_ibge']],
+  ['ibge_demografia_municipios', ['municipios_ibge']],
+  ['capes_programas_bruto',    ['censo_ies_bruto']],
+])
+
 export class SmartSchemaReducer {
   private static instance: SmartSchemaReducer
   private schemaService: SchemaDiscoveryService
@@ -312,6 +334,32 @@ export class SmartSchemaReducer {
   }
 
   /**
+   * BFS no grafo de FK: expande as tabelas seed incluindo seus vizinhos diretos.
+   * depth=1 inclui apenas vizinhos imediatos; depth=2 inclui vizinhos dos vizinhos.
+   */
+  private expandWithFKGraph(seedTables: string[], depth: number = 1): string[] {
+    const expanded = new Set(seedTables)
+    let frontier = new Set(seedTables)
+
+    for (let d = 0; d < depth; d++) {
+      const nextFrontier = new Set<string>()
+      for (const table of frontier) {
+        const neighbors = FK_GRAPH.get(table) || []
+        for (const neighbor of neighbors) {
+          if (!expanded.has(neighbor)) {
+            expanded.add(neighbor)
+            nextFrontier.add(neighbor)
+          }
+        }
+      }
+      frontier = nextFrontier
+      if (frontier.size === 0) break
+    }
+
+    return Array.from(expanded)
+  }
+
+  /**
    * Constrói schema reduzido com as tabelas selecionadas
    */
   private buildReducedSchema(
@@ -321,13 +369,20 @@ export class SmartSchemaReducer {
   ): any {
     const selectedTableNames = new Set(selectedTables.map(t => t.tableName))
 
+    // Expandir via FK Graph (depth=1): adiciona vizinhos FK das tabelas selecionadas
+    // Garante que os JOINs necessários nunca faltem sem depender exclusivamente das regras do prompt
+    const expanded = this.expandWithFKGraph(Array.from(selectedTableNames), 1)
+    expanded.forEach(t => selectedTableNames.add(t))
+
     // ---------------------------------------------------------
     // GARANTIA DE TABELAS CORE E CADEIA GEOGRÁFICA
     // Isso evita que a IA alucine joins ou falhe na regra de ouro
     // ---------------------------------------------------------
     const coreTables = [
       'censo_ies',
+      'censo_ies_bruto',       // tabela temporal preferencial para filtros geográficos/tipo/ano
       'censo_cursos',
+      'censo_curso_vagas_bruto', // tabela de fatos anuais (matrículas, vagas, ingressantes)
       'municipios_ibge',
       'microregioes_ibge',
       'mesoregioes_ibge',

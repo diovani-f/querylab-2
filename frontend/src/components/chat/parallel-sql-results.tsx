@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CheckCircle, XCircle, Loader2, Copy, Eye, Zap, Brain, Cloud } from 'lucide-react'
+import { CheckCircle, XCircle, Loader2, Copy, Eye, Zap, Brain, Cpu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface ParallelSQLResult {
-  provider: 'gemini' | 'groq' | 'cloudflare'
+  provider: 'gemini' | 'groq' | 'deepseek'
   model: string
   success: boolean
   sql?: string
@@ -42,9 +42,9 @@ const providerConfig = {
     bgColor: 'bg-orange-50',
     borderColor: 'border-orange-200'
   },
-  cloudflare: {
-    name: 'Cloudflare',
-    icon: Cloud,
+  deepseek: {
+    name: 'DeepSeek',
+    icon: Cpu,
     color: 'text-purple-500',
     bgColor: 'bg-purple-50',
     borderColor: 'border-purple-200'

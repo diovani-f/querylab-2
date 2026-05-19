@@ -3,11 +3,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, XCircle, Loader2, Eye, Zap, Brain, Cloud, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { CheckCircle, XCircle, Loader2, Eye, Zap, Brain, Cpu, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useState } from 'react'
 
 interface ParallelSQLResult {
-  provider: 'gemini' | 'groq' | 'cloudflare'
+  provider: 'gemini' | 'groq' | 'deepseek'
   model: string
   success: boolean
   sql?: string
@@ -44,9 +44,9 @@ const providerConfig = {
     bgColor: 'bg-orange-50 dark:bg-orange-950/30',
     borderColor: 'border-orange-200 dark:border-orange-800'
   },
-  cloudflare: {
-    name: 'Cloudflare',
-    icon: Cloud,
+  deepseek: {
+    name: 'DeepSeek',
+    icon: Cpu,
     color: 'text-purple-600 dark:text-purple-400',
     bgColor: 'bg-purple-50 dark:bg-purple-950/30',
     borderColor: 'border-purple-200 dark:border-purple-800'

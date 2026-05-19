@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { apiService } from '@/lib/api'
 
 interface ParallelSQLResult {
-  provider: 'gemini' | 'groq' | 'cloudflare'
+  provider: 'gemini' | 'groq' | 'deepseek'
   model: string
   success: boolean
   sql?: string
@@ -53,8 +53,8 @@ export function useParallelSQL() {
         processingTime: 0
       },
       {
-        provider: 'cloudflare',
-        model: 'sqlcoder-7b-2',
+        provider: 'deepseek',
+        model: 'deepseek-v3',
         success: false,
         status: 'pending',
         processingTime: 0

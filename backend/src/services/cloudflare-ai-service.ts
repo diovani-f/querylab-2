@@ -80,12 +80,13 @@ INSTRUÇÕES:
 2. Para cada tabela, liste APENAS as colunas que serão usadas (máximo 5-8 colunas por tabela)
 3. **CRÍTICO**: Use EXATAMENTE os nomes de colunas do schema fornecido - NÃO invente, NÃO abrevie, NÃO modifique
 4. Inclua AVISOS EXPLÍCITOS sobre colunas que NÃO existem mas que o modelo pode tentar usar
-5. Gere um exemplo de SQL correto similar à pergunta usando os nomes EXATOS das colunas e tabelas reais
+5. NÃO gere exemplos de SQL — o SQLCoder tende a memorizar exemplos e retorná-los em vez de responder a pergunta
 
 ESCOLHA DA TABELA DE INSTITUIÇÕES:
-- **CENSO_IES** (PRINCIPAL): Use para capitais (in_capital), categoria administrativa, organização acadêmica, JOINs numéricos com geografia
-  * Colunas chave: cod_ies, nome_ies, sigla_ies, cod_municipio, in_capital, id_categoria_administrativa
-  * JOIN com geografia: censo_ies.cod_municipio = municipios_ibge.cod_ibge
+- **CENSO_IES_BRUTO** (PRINCIPAL): Use para filtros por cidade, estado, região, tipo, ano — tem colunas embutidas no_municipio_ies, sg_uf_ies, tp_organizacao_academica, nu_ano_censo. Código da IES: co_ies. Para dados atuais: AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)
+- **CENSO_IES** (ALTERNATIVO): Use apenas para JOINs geográficos via cod_municipio ou quando precisar de in_capital
+  * JOIN com geografia: censo_ies.cod_municipio = municipios_ibge.cod_ibge. Código da IES: cod_ies
+  * ⚠️ SEM nu_ano_censo — retorna todas as edições históricas
 - **EMEC_INSTITUICOES** (AUXILIAR): Use APENAS para dados de contato (telefone, email, site), CNPJ, IGC, CI
   * Colunas chave: co_ies, no_ies, no_municipio (texto), sg_uf, telefone, email, site, cnpj
   * ⚠️ NÃO TEM: in_capital, cod_municipio, id_categoria_administrativa
@@ -135,17 +136,6 @@ inep.municipios_ibge: cod_ibge:char, nome_municipio:varchar, cod_microregiao_ibg
 - NEVER use: municipios_ibge.cod_uf_ibge, municipios_ibge.cod_mesoregiao_ibge
 - JOIN: emec_instituicoes.co_ies = censo_cursos.cod_ies
 - LIMIT 50 for joins, LIMIT 100 for simple queries
-
-### Example
-SELECT u.no_uf_ibge, ca.descr_categoria_administrativa, COUNT(DISTINCT c.cod_ies) AS total
-FROM inep.censo_ies c
-JOIN inep.censo_categorias_administrativas ca ON c.id_categoria_administrativa = ca.id_categoria_administrativa
-JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
-JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
-JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN cesta.uf_ibge u ON me.cod_uf_ibge = u.co_uf_ibge
-GROUP BY u.no_uf_ibge, ca.descr_categoria_administrativa
-LIMIT 50
 
 ### SQL Query
 ---
@@ -211,13 +201,6 @@ ${compactSchema}
 - For city search: WHERE no_municipio ILIKE '%city%'
 - NEVER use: co_municipio, no_curso, co_curso, no_municipio in municipios_ibge
 - NEVER JOIN emec_instituicoes with municipios_ibge (no common column!)
-
-### Example
-SELECT COUNT(DISTINCT c.cod_curso)
-FROM inep.censo_cursos c
-JOIN inep.emec_instituicoes e ON c.cod_ies = e.co_ies
-WHERE e.sg_uf = 'SP' AND c.nome_curso ILIKE '%Administração%'
-LIMIT 100
 
 ### SQL Query
 `
