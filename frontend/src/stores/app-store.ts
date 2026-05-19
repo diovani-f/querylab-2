@@ -62,9 +62,9 @@ const defaultModels: LLMModel[] = [
     isDefault: true
   },
   {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
-    description: 'Modelo fallback para consultas SQL (200 RPD)',
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    description: 'Modelo fallback para consultas SQL',
     provider: 'gemini',
     maxTokens: 8192,
     isDefault: false
