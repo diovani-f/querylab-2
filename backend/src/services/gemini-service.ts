@@ -35,7 +35,7 @@ export class GeminiService {
     // Modelos Gemini Flash-Lite (otimizados para maior RPD)
     const models = [
       'gemini-2.5-flash-lite',    // Gemini 2.5 Flash-Lite (1000 RPD) - PRINCIPAL
-      'gemini-2.0-flash',         // Gemini 2.0 Flash (200 RPD) - FALLBACK
+      'gemini-2.5-flash',         // Gemini 2.5 Flash - FALLBACK
     ]
 
     models.forEach(modelName => {
@@ -53,7 +53,7 @@ export class GeminiService {
     // Ordem de prioridade dos modelos Flash-Lite
     const modelPriority = [
       'gemini-2.5-flash-lite',  // 1000 RPD - PRINCIPAL
-      'gemini-2.0-flash',       // 200 RPD - FALLBACK
+      'gemini-2.5-flash',       // FALLBACK
     ]
 
     let lastError: any = null
@@ -177,7 +177,7 @@ export class GeminiService {
           maxOutputTokens: 8192
         }
 
-      case 'gemini-2.0-flash':
+      case 'gemini-2.5-flash':
         return {
           ...baseConfig,
           temperature: 0.4,

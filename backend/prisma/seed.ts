@@ -39,20 +39,20 @@ async function main() {
   })
   console.log(`Modelo LLM padrão (Gemini 2.5 Flash-Lite) criado com ID: ${defaultModel.id}`)
 
-  // Gemini 2.0 Flash como fallback (200 RPD)
+  // Gemini 2.5 Flash como fallback
   const geminiFlashModel = await prisma.lLMModel.upsert({
-    where: { id: 'gemini-2.0-flash' },
+    where: { id: 'gemini-2.5-flash' },
     update: {},
     create: {
-      id: 'gemini-2.0-flash',
-      name: 'Gemini 2.0 Flash',
-      description: 'Modelo fallback para consultas simples (200 RPD)',
+      id: 'gemini-2.5-flash',
+      name: 'Gemini 2.5 Flash',
+      description: 'Modelo fallback para consultas simples',
       provider: 'gemini',
       maxTokens: 8192,
       isDefault: false,
     },
   })
-  console.log(`Modelo Gemini 2.0 Flash criado com ID: ${geminiFlashModel.id}`)
+  console.log(`Modelo Gemini 2.5 Flash criado com ID: ${geminiFlashModel.id}`)
 
   // Remover dependência do Groq - manter apenas para compatibilidade se existir
   const groqFallbackModel = await prisma.lLMModel.upsert({
