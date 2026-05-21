@@ -493,7 +493,7 @@ async function runSemanticTests() {
   console.log('📊 SUMÁRIO FINAL DOS TESTES SEMÂNTICOS')
   console.log('═'.repeat(60))
 
-  const providers = ['gemini', 'groq', 'cloudflare', 'openrouter']
+  const providers = ['gemini', 'groq', 'deepseek']
 
   for (const provider of providers) {
     const provResults = allResults.filter(r => r.provider === provider)

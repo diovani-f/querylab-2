@@ -435,6 +435,52 @@ export class SmartSchemaReducer {
     return reasoning
   }
 
+  /**
+   * Reduz schema a partir de seeds vindos do RAG semântico
+   */
+  async reduceSchemaFromSeed(
+    seedTableNames: string[],
+    schemaName: string = 'inep',
+    includeRelationships: boolean = false
+  ): Promise<SmartSchemaReductionResult> {
+    const startTime = Date.now()
+
+    try {
+      const fullSchema = await this.schemaService.getSchemaForLLM(schemaName)
+      if (!fullSchema || !fullSchema.tables) {
+        return {
+          success: false,
+          error: 'Schema não encontrado',
+          processingTime: Date.now() - startTime
+        }
+      }
+
+      const seedRelevances: TableRelevance[] = seedTableNames.map(name => ({
+        tableName: name,
+        relevanceScore: 10,
+        reasons: ['Selecionado por RAG semântico'],
+        category: 'rag-selected',
+        keywords: []
+      }))
+
+      const reducedSchema = this.buildReducedSchema(fullSchema, seedRelevances, includeRelationships)
+
+      return {
+        success: true,
+        reducedSchema: JSON.stringify(reducedSchema, null, 2),
+        selectedTables: seedTableNames,
+        reasoning: `RAG semântico selecionou ${seedTableNames.length} tabelas: ${seedTableNames.join(', ')}`,
+        processingTime: Date.now() - startTime
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        processingTime: Date.now() - startTime
+      }
+    }
+  }
+
   // Métodos auxiliares
   private containsAny(text: string, terms: string[]): boolean {
     return terms.some(term => text.includes(term))

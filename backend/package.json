@@ -7,7 +7,8 @@
     "dev": "nodemon src/index.ts",
     "build": "npx prisma generate && tsc",
     "start": "node dist/index.js",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "embed:index": "ts-node --transpile-only scripts/index-schema-embeddings.ts"
   },
   "keywords": [],
   "author": "",

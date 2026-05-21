@@ -165,6 +165,12 @@ class ApiService {
     return this.getPublic('/health/status')
   }
 
+  // Schema discovery
+  async getSchema(schemaName: string, type: 'summary' | 'full' = 'summary') {
+    const response = await this.get(`/schema/saved/${schemaName}?type=${type}`)
+    return response.data as { schemaName: string; totalTables: number; tables: Array<{ name: string; columns: string[] }> }
+  }
+
   // Método GET sem autenticação (para rotas públicas)
   private async getPublic(endpoint: string) {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {

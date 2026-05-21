@@ -134,6 +134,16 @@ model LLMModel {
   sessions Sessao[]
 }
 
+model SchemaTableEmbedding {
+  id         Int    @id @default(autoincrement())
+  tableName  String @unique @map("table_name")
+  schemaName String @map("schema_name")
+  embedding  Unsupported("vector(3072)")?
+  metadata   Json?
+
+  @@map("schema_table_embeddings")
+}
+
 // Tabela para os Tokens JWT
 model Token {
   id         String   @id @default(cuid())

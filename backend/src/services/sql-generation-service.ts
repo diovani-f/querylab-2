@@ -5,6 +5,7 @@ import { GroqService } from './groq-service'
 import { OpenRouterService } from './openrouter-service'
 import { QueryExecutionService } from './query-execution-service'
 import { SmartSchemaReducer } from './smart-schema-reducer'
+import { SchemaEmbeddingService } from './schema-embedding-service'
 
 export interface SQLGenerationRequest {
   question: string
@@ -147,16 +148,10 @@ export class SQLGenerationService {
         }
       }
 
-      // 4. Gerar explicação
-      const explanation = await this.generateExplanation(
-        request.question,
-        validationResult.sanitizedSQL!
-      )
-
       return {
         success: true,
         sql: validationResult.sanitizedSQL!,
-        explanation,
+        explanation: sqlResult.explanation || '',
         reducedSchema: schemaResult.reducedSchema,
         processingTime: Date.now() - startTime,
         validationWarnings: validationResult.warnings
@@ -413,6 +408,39 @@ export class SQLGenerationService {
       console.log('📊 Obtendo schema compacto...')
 
       if (question && question.trim().length > 0) {
+        // Tentativa 1: RAG semântico
+        try {
+          const ragService = SchemaEmbeddingService.getInstance()
+          if (await ragService.isIndexed()) {
+            console.log('🔍 Utilizando RAG semântico para seleção de tabelas...')
+            const ragTables = await ragService.findSimilarTables(question)
+            if (ragTables.length > 0) {
+              const bySchema = new Map<string, string[]>()
+              for (const { tableName, schemaName } of ragTables) {
+                if (!bySchema.has(schemaName)) bySchema.set(schemaName, [])
+                bySchema.get(schemaName)!.push(tableName)
+              }
+
+              const allTables: any[] = []
+              for (const [schema, tables] of bySchema) {
+                const ragResult = await this.schemaReducer.reduceSchemaFromSeed(tables, schema, false)
+                if (ragResult.success && ragResult.reducedSchema) {
+                  const parsed = JSON.parse(ragResult.reducedSchema)
+                  allTables.push(...(parsed.tables || []))
+                }
+              }
+
+              if (allTables.length > 0) {
+                console.log(`✅ RAG selecionou ${allTables.length} tabelas de ${bySchema.size} schema(s): ${[...bySchema.keys()].join(', ')}`)
+                return { success: true, reducedSchema: this.formatSchemaToText({ tables: allTables }) }
+              }
+            }
+          }
+        } catch (ragError) {
+          console.warn('⚠️ RAG falhou, usando keyword matching:', ragError instanceof Error ? ragError.message : ragError)
+        }
+
+        // Tentativa 2: keyword matching
         console.log('🧠 Utilizando SmartSchemaReducer baseado na pergunta...')
         const reductionResult = await this.schemaReducer.reduceSchema({
           question,
@@ -423,74 +451,20 @@ export class SQLGenerationService {
 
         if (reductionResult.success && reductionResult.reducedSchema) {
           console.log(`✅ Schema reduzido com sucesso! Tabelas selecionadas: ${reductionResult.selectedTables?.length}`)
-
-          const parsedSchema = JSON.parse(reductionResult.reducedSchema)
-
-          const cestaSchemaSet = new Set(['uf_ibge', 'idhms', 'pibs_per_capita', 'variaveis_pib_municipios_ibge', 'ibge_demografia_municipios'])
-          const dictionary = this.buildSchemaColumnDict()
-
-          const lines: string[] = []
-          lines.push('SCHEMAS DISPONÍVEIS: inep e cesta')
-
-          if (parsedSchema.tables && Array.isArray(parsedSchema.tables)) {
-            parsedSchema.tables.forEach((table: any) => {
-              const enrichedCols = (table.columns || []).map((col: string) =>
-                this.formatColumnForPrompt(col, dictionary)
-              )
-
-              const schemaPrefix = cestaSchemaSet.has(table.name) ? 'cesta' : 'inep'
-              const colsStr = enrichedCols.join(', ')
-              lines.push(`Tabela \`${schemaPrefix}.${table.name}\`: Colunas [ ${colsStr} ]`)
-            })
-          }
-
-          lines.push(this.buildJoinRelationships())
-          const schemaStr = lines.join('\n')
-          console.log(`📏 Tamanho do schema reduzido em texto: ${(schemaStr.length / 1024).toFixed(1)}KB`)
-
-          return {
-            success: true,
-            reducedSchema: schemaStr
-          }
-        } else {
-          console.warn(`⚠️ SmartSchemaReducer falhou: ${reductionResult.error}, fazendo fallback para schema completo`)
+          return { success: true, reducedSchema: this.formatSchemaToText(JSON.parse(reductionResult.reducedSchema)) }
         }
+
+        console.warn(`⚠️ SmartSchemaReducer falhou: ${reductionResult.error}, fazendo fallback para schema completo`)
       }
 
-      // Obter schema completo (fallback)
+      // Fallback: schema completo
       const fullSchema = await this.schemaService.getSchemaForLLM('inep')
-
       if (!fullSchema || !fullSchema.tables || fullSchema.tables.length === 0) {
-        return {
-          success: false,
-          error: 'Schema do banco não encontrado'
-        }
+        return { success: false, error: 'Schema do banco não encontrado' }
       }
 
       console.log(`✅ Schema inteiro obtido: ${fullSchema.tables.length} tabelas`)
-
-      // Criar versão compacta em texto (DDL-like) para otimizar tokens e reduzir alucinações
-      const cestaSchemaSet = new Set(['uf_ibge', 'idhms', 'pibs_per_capita', 'variaveis_pib_municipios_ibge', 'ibge_demografia_municipios'])
-      const dictionary = this.buildSchemaColumnDict()
-
-      const lines: string[] = []
-      lines.push('SCHEMAS DISPONÍVEIS: inep e cesta')
-      fullSchema.tables.forEach((table: any) => {
-        const enrichedCols = (table.columns || []).map((colStr: string) =>
-          this.formatColumnForPrompt(colStr, dictionary)
-        )
-        const schemaPrefix = cestaSchemaSet.has(table.name) ? 'cesta' : 'inep'
-        lines.push(`Tabela \`${schemaPrefix}.${table.name}\`: Colunas [ ${enrichedCols.join(', ')} ]`)
-      })
-
-      lines.push(this.buildJoinRelationships())
-      const schemaStr = lines.join('\n')
-      console.log(`📏 Tamanho do schema inteiro em texto: ${(schemaStr.length / 1024).toFixed(1)}KB`)
-
-      return {
-        success: true,
-        reducedSchema: schemaStr
-      }
+      return { success: true, reducedSchema: this.formatSchemaToText(fullSchema) }
 
     } catch (error) {
       console.error('❌ Erro ao obter schema:', error)
@@ -499,6 +473,28 @@ export class SQLGenerationService {
         error: error instanceof Error ? error.message : 'Erro ao processar schema'
       }
     }
+  }
+
+  private formatSchemaToText(parsedSchema: any): string {
+    const cestaSchemaSet = new Set(['uf_ibge', 'idhms', 'pibs_per_capita', 'variaveis_pib_municipios_ibge', 'ibge_demografia_municipios'])
+    const dictionary = this.buildSchemaColumnDict()
+
+    const lines: string[] = ['SCHEMAS DISPONÍVEIS: inep e cesta']
+
+    if (parsedSchema.tables && Array.isArray(parsedSchema.tables)) {
+      parsedSchema.tables.forEach((table: any) => {
+        const enrichedCols = (table.columns || []).map((col: string) =>
+          this.formatColumnForPrompt(col, dictionary)
+        )
+        const schemaPrefix = cestaSchemaSet.has(table.name) ? 'cesta' : 'inep'
+        lines.push(`Tabela \`${schemaPrefix}.${table.name}\`: Colunas [ ${enrichedCols.join(', ')} ]`)
+      })
+    }
+
+    lines.push(this.buildJoinRelationships())
+    const schemaStr = lines.join('\n')
+    console.log(`📏 Schema em texto: ${(schemaStr.length / 1024).toFixed(1)}KB`)
+    return schemaStr
   }
 
   /**
@@ -551,6 +547,7 @@ ${contextLines.join('\n')}
   ): Promise<{
     success: boolean
     sql?: string
+    explanation?: string
     error?: string
   }> {
     try {
@@ -559,7 +556,7 @@ ${contextLines.join('\n')}
 
       if (model === 'deepseek-v3') {
         const r = await this.generateWithDeepSeek(question, reducedSchema, conversationContext)
-        return { success: r.success, sql: r.sql, error: r.error }
+        return { success: r.success, sql: r.sql, explanation: r.explanation, error: r.error }
       } else {
         return await this.generateWithLLM(question, model, reducedSchema, conversationContext)
       }
@@ -623,7 +620,7 @@ ${contextLines.join('\n')}
         }
       }
 
-      const explanation = await this.generateExplanation(question, validation.sanitizedSQL!)
+      const explanation = this.extractExplanation(result.content || '')
 
       return {
         provider: 'deepseek',
@@ -754,7 +751,8 @@ ${this.getDynamicExamples(question)}
 🧠 SUA TAREFA (CHAIN OF THOUGHT):
 1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
 2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
-3. Em seguida, dê a resposta final em formato SQL padrão isolado por \`\`\`sql. Não coloque \`;\` após a query, não adicione comentários adicionais dentro do bloco da query.`;
+3. Em seguida, dê a resposta final em formato SQL padrão isolado por \`\`\`sql. Não coloque \`;\` após a query, não adicione comentários adicionais dentro do bloco da query.
+4. Por fim, em uma única linha iniciada exatamente com "EXPLICAÇÃO:", descreva em linguagem simples e amigável o que a query retorna, sem usar termos técnicos ou nomes de tabelas.`;
   }
 
   /**
@@ -1026,6 +1024,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
   ): Promise<{
     success: boolean
     sql?: string
+    explanation?: string
     error?: string
   }> {
     const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext)
@@ -1043,10 +1042,11 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
       }
     }
 
-    const sql = this.extractSQL(result.content || '')
+    const content = result.content || ''
     return {
       success: true,
-      sql
+      sql: this.extractSQL(content),
+      explanation: this.extractExplanation(content)
     }
   }
 
@@ -1056,6 +1056,11 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
   private extractSQL(response: string): string {
     // Usar o método já testado do CloudflareAI
     return this.cloudflareAI.extractSQL(response)
+  }
+
+  private extractExplanation(response: string): string {
+    const match = response.match(/^EXPLICA[ÇC][ÃA]O:\s*(.+)$/im)
+    return match ? match[1].trim() : ''
   }
 
   /**
@@ -1104,8 +1109,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
         }
       }
 
-      // Gerar explicação
-      const explanation = await this.generateExplanation(question, validation.sanitizedSQL!)
+      const explanation = this.extractExplanation(result.content || '')
 
       return {
         provider: 'gemini',
@@ -1186,8 +1190,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
         }
       }
 
-      // Gerar explicação
-      const explanation = await this.generateExplanation(question, validation.sanitizedSQL!)
+      const explanation = this.extractExplanation(result.content || '')
 
       return {
         provider: 'groq',
@@ -1212,36 +1215,6 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
     }
   }
 
-  /**
-   * Gera explicação da query usando Groq preferencialmente
-   */
-  private async generateExplanation(question: string, sql: string): Promise<string> {
-    try {
-      // Tentar usar Groq primeiro (otimizado para resumos)
-      if (this.groqService) {
-        console.log('🔄 Gerando explicação SQL com Groq...')
-        const groqResponse = await this.groqService.generateSQLSummary({
-          question,
-          sql
-        })
-
-        if (groqResponse.success && groqResponse.content) {
-          console.log('✅ Explicação SQL gerada com Groq')
-          return groqResponse.content.trim()
-        }
-      }
-
-      // Fallback para LLMService (que usa Gemini)
-      console.log('🔄 Gerando explicação SQL com LLMService (fallback)...')
-      return await this.llmService.generateQueryExplanation({
-        prompt: question,
-        sql
-      })
-    } catch (error) {
-      console.error('❌ Erro ao gerar explicação:', error)
-      return 'Explicação não disponível'
-    }
-  }
 
   /**
    * Corrige automaticamente alucinações comuns do LLM

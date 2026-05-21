@@ -58,7 +58,7 @@ router.post('/discover/:schemaName', authMiddleware, async (req, res) => {
 
     // Salvar em arquivo se solicitado
     if (saveToFile) {
-      const outputDir = path.join(__dirname, '..', 'data', 'schema-discovery')
+      const outputDir = path.join(__dirname, '..', '..', 'data', 'schema-discovery')
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true })
       }
@@ -99,7 +99,7 @@ router.post('/discover/:schemaName', authMiddleware, async (req, res) => {
  */
 router.get('/saved', authMiddleware, async (req, res) => {
   try {
-    const outputDir = path.join(__dirname, '..', 'data', 'schema-discovery')
+    const outputDir = path.join(__dirname, '..', '..', 'data', 'schema-discovery')
 
     if (!fs.existsSync(outputDir)) {
       return res.json({
@@ -157,7 +157,7 @@ router.get('/saved/:schemaName', authMiddleware, async (req, res) => {
     const schemaName = req.params.schemaName as string
     const { type = 'summary' } = req.query
 
-    const outputDir = path.join(__dirname, '..', 'data', 'schema-discovery')
+    const outputDir = path.join(__dirname, '..', '..', 'data', 'schema-discovery')
     const fileName = type === 'full'
       ? `${schemaName.toLowerCase()}-schema-full.json`
       : `${schemaName.toLowerCase()}-schema-summary.json`
