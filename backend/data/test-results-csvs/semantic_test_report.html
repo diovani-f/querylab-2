@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QueryLab — Relatório de Testes Semânticos</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --card: #21253a;
+    --border: #2e3352; --text: #e2e8f0; --muted: #8892a4;
+    --correto: #22c55e; --parcial: #f59e0b; --incorreto: #ef4444;
+    --erro: #8b5cf6; --errogab: #06b6d4;
+    --deepseek: #3b82f6; --gemini: #f97316; --groq: #a855f7;
+    --facil: #22c55e; --medio: #f59e0b; --dificil: #ef4444;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
+  a { color: inherit; }
+
+  /* Layout */
+  .page { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+  .header { margin-bottom: 28px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+  .header h1 { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .header .sub { color: var(--muted); font-size: 13px; }
+  .meta-bar { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 12px; }
+  .meta-item { font-size: 12px; color: var(--muted); }
+  .meta-item span { color: var(--text); font-weight: 600; }
+
+  /* Section */
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 14px; }
+
+  /* Provider cards */
+  .provider-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .pcard { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .pcard-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .pcard-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .pcard-name { font-size: 15px; font-weight: 700; }
+  .pcard-model { font-size: 11px; color: var(--muted); }
+  .score-ring { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+  .ring-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+  .ring-label small { font-size: 10px; color: var(--muted); font-weight: 400; }
+  .score-stats { flex: 1; }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { color: var(--muted); }
+  .stat-val { font-weight: 600; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+  .badge-correto { background: #14532d; color: var(--correto); }
+  .badge-parcial { background: #451a03; color: var(--parcial); }
+  .badge-incorreto { background: #450a0a; color: var(--incorreto); }
+  .badge-erro { background: #2e1065; color: var(--erro); }
+  .badge-errogab { background: #083344; color: var(--errogab); }
+  .diff-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 10px; gap: 2px; }
+  .diff-seg { height: 100%; border-radius: 2px; }
+
+  /* Charts */
+  .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; }
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .chart-card h3 { font-size: 13px; color: var(--muted); margin-bottom: 16px; font-weight: 600; }
+  .chart-wrap { position: relative; height: 220px; }
+
+  /* Difficulty breakdown */
+  .diff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .diff-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .diff-card-title { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 13px; font-weight: 600; }
+  .diff-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .diff-table { width: 100%; font-size: 12px; }
+  .diff-table td { padding: 3px 6px; }
+  .diff-table tr:nth-child(odd) { background: rgba(255,255,255,.03); }
+  .diff-table .num { text-align: right; font-weight: 600; }
+
+  /* Filters */
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .filter-group { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 11px; color: var(--muted); margin-right: 2px; }
+  .fchip { padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--muted); transition: all .15s; user-select: none; }
+  .fchip.active { color: #fff; border-color: transparent; }
+  .fchip.active.all { background: #374151; }
+  .fchip.active.deepseek { background: var(--deepseek); }
+  .fchip.active.gemini { background: var(--gemini); }
+  .fchip.active.groq { background: var(--groq); }
+  .fchip.active.correto { background: #15803d; }
+  .fchip.active.parcial { background: #b45309; }
+  .fchip.active.incorreto { background: #b91c1c; }
+  .fchip.active.erro_ia { background: #7c3aed; }
+  .fchip.active.erro_gabarito { background: #0e7490; }
+  .fchip.active.facil { background: #15803d; }
+  .fchip.active.medio { background: #b45309; }
+  .fchip.active.dificil { background: #b91c1c; }
+  .search-input { padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 13px; outline: none; margin-left: auto; width: 220px; }
+  .search-input:focus { border-color: var(--deepseek); }
+
+  /* Results table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--surface); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; cursor: pointer; white-space: nowrap; }
+  thead th:hover { color: var(--text); }
+  thead th .sort-icon { opacity: .4; margin-left: 4px; }
+  thead th.sorted .sort-icon { opacity: 1; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; cursor: pointer; }
+  tbody tr:hover { background: var(--card); }
+  tbody tr.expanded { background: var(--card); }
+  tbody td { padding: 9px 12px; vertical-align: top; }
+  .qid { font-weight: 700; color: var(--muted); font-size: 12px; }
+  .pergunta-cell { max-width: 320px; }
+  .pergunta-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .provider-chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .provider-deepseek { background: rgba(59,130,246,.2); color: #93c5fd; }
+  .provider-gemini { background: rgba(249,115,22,.2); color: #fdba74; }
+  .provider-groq { background: rgba(168,85,247,.2); color: #d8b4fe; }
+  .dif-chip { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .dif-facil { background: rgba(34,197,94,.15); color: #86efac; }
+  .dif-medio { background: rgba(245,158,11,.15); color: #fcd34d; }
+  .dif-dificil { background: rgba(239,68,68,.15); color: #fca5a5; }
+  .score-bar { display: flex; align-items: center; gap: 8px; }
+  .score-bar-bg { flex: 1; height: 6px; background: var(--border); border-radius: 3px; max-width: 80px; }
+  .score-bar-fill { height: 100%; border-radius: 3px; }
+  .score-num { font-size: 12px; font-weight: 600; min-width: 34px; text-align: right; }
+
+  /* Expanded SQL row */
+  .expand-row td { padding: 0; }
+  .expand-content { padding: 12px 16px 16px; }
+  .sql-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+  .sql-block { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .sql-block h4 { font-size: 11px; color: var(--muted); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
+  .sql-block pre { font-size: 11px; white-space: pre-wrap; word-break: break-word; color: #93c5fd; font-family: 'Cascadia Code', 'Fira Code', monospace; line-height: 1.6; max-height: 200px; overflow-y: auto; }
+  .exec-info { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+  .exec-item { font-size: 11px; }
+  .exec-item label { color: var(--muted); }
+  .exec-item span { font-weight: 600; }
+  .err-msg { background: #1c0a0a; border: 1px solid #7f1d1d; border-radius: 6px; padding: 8px 10px; font-size: 11px; color: #f87171; margin-top: 8px; word-break: break-word; }
+
+  /* Questions view */
+  .q-list { display: flex; flex-direction: column; gap: 12px; }
+  .q-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .q-card-header { padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+  .q-card-header:hover { background: rgba(255,255,255,.03); }
+  .q-num { font-size: 12px; font-weight: 700; color: var(--muted); flex-shrink: 0; padding-top: 2px; }
+  .q-title { flex: 1; font-size: 14px; font-weight: 500; }
+  .q-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+  .q-arrow { color: var(--muted); font-size: 12px; transition: transform .2s; flex-shrink: 0; }
+  .q-arrow.open { transform: rotate(90deg); }
+  .q-body { display: none; border-top: 1px solid var(--border); }
+  .q-body.open { display: block; }
+  .q-providers { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0; }
+  .q-provider { padding: 14px 16px; border-right: 1px solid var(--border); }
+  .q-provider:last-child { border-right: none; }
+  .q-provider-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .q-provider-name { font-size: 12px; font-weight: 700; }
+  .q-model { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .q-exec-row { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; margin-bottom: 8px; }
+  .q-exec-item label { color: var(--muted); }
+  .q-sql { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+  .q-sql pre { font-size: 10.5px; white-space: pre-wrap; word-break: break-word; color: #93c5fd; font-family: 'Cascadia Code', 'Fira Code', monospace; line-height: 1.5; max-height: 160px; overflow-y: auto; }
+  .q-err { font-size: 11px; color: #f87171; background: #1c0a0a; border: 1px solid #7f1d1d; border-radius: 6px; padding: 6px 8px; margin-top: 4px; word-break: break-word; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { padding: 10px 20px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: #fff; border-bottom-color: var(--deepseek); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Footer */
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); text-align: center; font-size: 12px; color: var(--muted); }
+
+  /* Misc */
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .count-badge { display: inline-block; background: var(--border); color: var(--muted); border-radius: 99px; font-size: 11px; padding: 1px 7px; margin-left: 6px; }
+  .no-results { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+  @media (max-width: 700px) {
+    .diff-grid { grid-template-columns: 1fr; }
+    .sql-grid { grid-template-columns: 1fr; }
+    .q-providers { grid-template-columns: 1fr; }
+    .q-provider { border-right: none; border-bottom: 1px solid var(--border); }
+    .q-provider:last-child { border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>QueryLab — Relatório de Testes Semânticos</h1>
+    <div class="sub">Avaliação de geração SQL por múltiplos provedores LLM contra banco INEP</div>
+    <div class="meta-bar">
+      <div class="meta-item">Perguntas <span id="meta-q"></span></div>
+      <div class="meta-item">Resultados <span id="meta-r"></span></div>
+      <div class="meta-item">Arquivos <span id="meta-f"></span></div>
+      <div class="meta-item">Primeiro run <span id="meta-first"></span></div>
+      <div class="meta-item">Último run <span id="meta-last"></span></div>
+      <div class="meta-item">Gerado em <span id="meta-gen"></span></div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('overview')">Visão Geral</div>
+    <div class="tab" onclick="switchTab('table')">Tabela de Resultados</div>
+    <div class="tab" onclick="switchTab('questions')">Por Pergunta</div>
+  </div>
+
+  <!-- TAB: OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+
+    <!-- Provider Cards -->
+    <div class="section">
+      <div class="section-title">Performance por Provedor</div>
+      <div class="provider-grid" id="provider-cards"></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="section">
+      <div class="section-title">Análise Comparativa</div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <h3>Distribuição de Resultados por Provedor</h3>
+          <div class="chart-wrap"><canvas id="chartResults"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Score Médio de Acerto (%) por Provedor e Dificuldade</h3>
+          <div class="chart-wrap"><canvas id="chartScore"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- By Difficulty -->
+    <div class="section">
+      <div class="section-title">Desempenho por Dificuldade</div>
+      <div class="diff-grid" id="diff-cards"></div>
+    </div>
+
+  </div><!-- /tab-overview -->
+
+  <!-- TAB: TABLE -->
+  <div class="tab-content" id="tab-table">
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Provedor:</span>
+        <div class="fchip active all" data-filter="provider" data-val="all" onclick="toggleFilter(this)">Todos</div>
+        <div class="fchip active deepseek" data-filter="provider" data-val="deepseek" onclick="toggleFilter(this)">DeepSeek</div>
+        <div class="fchip active gemini" data-filter="provider" data-val="gemini" onclick="toggleFilter(this)">Gemini</div>
+        <div class="fchip active groq" data-filter="provider" data-val="groq" onclick="toggleFilter(this)">Groq</div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Dificuldade:</span>
+        <div class="fchip active facil" data-filter="dif" data-val="facil" onclick="toggleFilter(this)">Fácil</div>
+        <div class="fchip active medio" data-filter="dif" data-val="medio" onclick="toggleFilter(this)">Médio</div>
+        <div class="fchip active dificil" data-filter="dif" data-val="dificil" onclick="toggleFilter(this)">Difícil</div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Veredito:</span>
+        <div class="fchip active correto" data-filter="veredito" data-val="CORRETO" onclick="toggleFilter(this)">Correto</div>
+        <div class="fchip active parcial" data-filter="veredito" data-val="PARCIAL" onclick="toggleFilter(this)">Parcial</div>
+        <div class="fchip active incorreto" data-filter="veredito" data-val="INCORRETO" onclick="toggleFilter(this)">Incorreto</div>
+        <div class="fchip active erro_ia" data-filter="veredito" data-val="ERRO_IA" onclick="toggleFilter(this)">Erro IA</div>
+        <div class="fchip active erro_gabarito" data-filter="veredito" data-val="ERRO_GABARITO" onclick="toggleFilter(this)">Erro Gabarito</div>
+      </div>
+      <input class="search-input" type="text" placeholder="Buscar pergunta…" id="searchInput" oninput="renderTable()">
+    </div>
+    <div class="count-info" style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+      Mostrando <span id="table-count">0</span> resultados
+    </div>
+    <div class="table-wrap">
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th onclick="sortBy('questionId')">ID <span class="sort-icon">↕</span></th>
+            <th onclick="sortBy('pergunta')">Pergunta <span class="sort-icon">↕</span></th>
+            <th onclick="sortBy('dificuldade')">Dificuldade <span class="sort-icon">↕</span></th>
+            <th onclick="sortBy('provider')">Provedor <span class="sort-icon">↕</span></th>
+            <th onclick="sortBy('veredito')">Veredito <span class="sort-icon">↕</span></th>
+            <th onclick="sortBy('dataMatchScore')">Score <span class="sort-icon">↕</span></th>
+            <th>Linhas IA / Gabarito</th>
+            <th>Geração</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div><!-- /tab-table -->
+
+  <!-- TAB: QUESTIONS -->
+  <div class="tab-content" id="tab-questions">
+    <div class="q-list" id="q-list"></div>
+  </div>
+
+  <div class="footer">
+    QueryLab · Banco INEP · Gerado por Claude Code
+  </div>
+
+</div><!-- /page -->
+
+<script>
+const DATA = {"metadata":{"generatedAt":"2026-05-24T21:25:49.825Z","sourceFiles":9,"firstRun":"2026-05-21T21:29:41.024Z","lastRun":"2026-05-24T21:25:49.826Z","totalPerguntas":23,"totalResultados":69,"groqRetryAt":"2026-05-24T21:25:49.826Z"},"summary":[{"provider":"gemini","total":23,"corretos":6,"parciais":2,"incorretos":8,"errosIA":6,"avgDataMatchScore":23.7,"byDificuldade":[{"dificuldade":"facil","total":7,"corretos":3,"parciais":1,"incorretos":2,"errosIA":1,"avgDataMatchScore":42.1},{"dificuldade":"medio","total":8,"corretos":3,"parciais":0,"incorretos":2,"errosIA":3,"avgDataMatchScore":31.3},{"dificuldade":"dificil","total":8,"corretos":0,"parciais":1,"incorretos":4,"errosIA":2,"avgDataMatchScore":0}]},{"provider":"groq","total":23,"corretos":4,"parciais":2,"incorretos":7,"errosIA":9,"avgDataMatchScore":17.4,"byDificuldade":[{"dificuldade":"facil","total":7,"corretos":3,"parciais":0,"incorretos":3,"errosIA":1,"avgDataMatchScore":42.9},{"dificuldade":"medio","total":8,"corretos":1,"parciais":1,"incorretos":2,"errosIA":4,"avgDataMatchScore":12.5},{"dificuldade":"dificil","total":8,"corretos":0,"parciais":1,"incorretos":2,"errosIA":4,"avgDataMatchScore":0}]},{"provider":"deepseek","total":23,"corretos":7,"parciais":2,"incorretos":9,"errosIA":4,"avgDataMatchScore":26.1,"byDificuldade":[{"dificuldade":"facil","total":7,"corretos":4,"parciais":0,"incorretos":2,"errosIA":1,"avgDataMatchScore":57.1},{"dificuldade":"medio","total":8,"corretos":3,"parciais":1,"incorretos":3,"errosIA":1,"avgDataMatchScore":25},{"dificuldade":"dificil","total":8,"corretos":0,"parciais":1,"incorretos":4,"errosIA":2,"avgDataMatchScore":0}]}],"results":[{"questionId":"P1","dificuldade":"facil","pergunta":"Quantas universidades existem no estado de Minas Gerais?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT COUNT(DISTINCT co_ies) AS total_universidades\nFROM inep.censo_ies_bruto\nWHERE tp_organizacao_academica = 1\n  AND sg_uf_ies = 'MG'\n  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P1","dificuldade":"facil","pergunta":"Quantas universidades existem no estado de Minas Gerais?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  COUNT(DISTINCT co_ies)\nFROM inep.censo_ies_bruto\nWHERE\n  tp_organizacao_academica = 1\n  AND sg_uf_ies = 'MG'\n  AND nu_ano_censo = (\n    SELECT\n      MAX(nu_ano_censo)\n    FROM inep.censo_ies_bruto\n  )","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P1","dificuldade":"facil","pergunta":"Quantas universidades existem no estado de Minas Gerais?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT COUNT(DISTINCT co_ies) AS total_universidades\nFROM inep.censo_ies_bruto\nWHERE sg_uf_ies = 'MG'\n  AND tp_organizacao_academica = 1\n  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P2","dificuldade":"facil","pergunta":"Quais são os nomes e siglas das faculdades localizadas em Curitiba?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT DISTINCT no_ies AS nome_faculdade, sg_ies AS sigla\nFROM inep.censo_ies_bruto\nWHERE no_municipio_ies ILIKE '%Curitiba%'\n  AND tp_organizacao_academica = 3\n  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\nORDER BY no_ies\nLIMIT 100","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":38,"execucaoIARowCountSemLimit":38,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":38,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":0,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P2","dificuldade":"facil","pergunta":"Quais são os nomes e siglas das faculdades localizadas em Curitiba?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  no_ies,\n  sg_ies\nFROM\n  inep.censo_ies_bruto\nWHERE\n  no_municipio_ies ILIKE '%Curitiba%' AND nu_ano_censo = (\n    SELECT\n      MAX(nu_ano_censo)\n    FROM\n      inep.censo_ies_bruto\n  )\nGROUP BY\n  no_ies,\n  sg_ies\nLIMIT 100","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":57,"execucaoIARowCountSemLimit":57,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":38,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":19,"columnOverlap":100,"dataMatchScore":45,"veredito":"PARCIAL"},{"questionId":"P2","dificuldade":"facil","pergunta":"Quais são os nomes e siglas das faculdades localizadas em Curitiba?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT no_ies, sg_ies\nFROM inep.censo_ies_bruto\nWHERE no_municipio_ies ILIKE '%Curitiba%' \n  AND tp_organizacao_academica = 3\n  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":38,"execucaoIARowCountSemLimit":38,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":38,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P3","dificuldade":"facil","pergunta":"Quantos alunos estão matriculados em cursos presenciais no Brasil em 2022?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT SUM(qt_mat) AS total_alunos_presenciais\nFROM inep.censo_curso_vagas_bruto\nWHERE nu_ano_censo = 2022\n  AND tp_modalidade_ensino = 1\nLIMIT 1","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":true,"execucaoIAErro":"Query timeout após 30000ms","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P3","dificuldade":"facil","pergunta":"Quantos alunos estão matriculados em cursos presenciais no Brasil em 2022?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT SUM(qt_mat)\nFROM inep.censo_curso_vagas_bruto\nWHERE nu_ano_censo = 2022\n  AND tp_modalidade_ensino = 1","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"Query timeout após 30000ms","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P3","dificuldade":"facil","pergunta":"Quantos alunos estão matriculados em cursos presenciais no Brasil em 2022?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT SUM(v.qt_mat) AS total_matriculados\nFROM inep.censo_curso_vagas_bruto v\nJOIN inep.censo_cursos c ON v.co_curso = c.cod_curso\nWHERE v.nu_ano_censo = 2022\n  AND c.id_modalidade_ensino = 1\nLIMIT 1","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":true,"execucaoIAErro":"Query timeout após 30000ms","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P4","dificuldade":"facil","pergunta":"Liste os 10 cursos com maior número de vagas ofertadas em 2022.","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT c.nome_curso, SUM(v.qt_vg_total) AS total_vagas\nFROM inep.censo_curso_vagas_bruto v\nJOIN inep.censo_cursos c ON v.co_curso = c.cod_curso\nWHERE v.nu_ano_censo = 2022\nGROUP BY c.nome_curso\nORDER BY total_vagas DESC\nLIMIT 10","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":10,"execucaoIARowCountSemLimit":1659,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":10,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1649,"columnOverlap":50,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P4","dificuldade":"facil","pergunta":"Liste os 10 cursos com maior número de vagas ofertadas em 2022.","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  no_curso,\n  qt_vg_total\nFROM inep.censo_curso_vagas_bruto\nWHERE\n  nu_ano_censo = 2022\nORDER BY\n  qt_vg_total DESC\nLIMIT 10","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":10,"execucaoIARowCountSemLimit":573019,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":10,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":573009,"columnOverlap":100,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P4","dificuldade":"facil","pergunta":"Liste os 10 cursos com maior número de vagas ofertadas em 2022.","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT cc.nome_curso, SUM(v.qt_vg_total) AS total_vagas\nFROM inep.censo_curso_vagas_bruto v\nJOIN inep.censo_cursos cc ON v.co_curso = cc.cod_curso\nWHERE v.nu_ano_censo = 2022\nGROUP BY cc.nome_curso\nORDER BY total_vagas DESC\nLIMIT 10","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":10,"execucaoIARowCountSemLimit":1659,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":10,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1649,"columnOverlap":50,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P5","dificuldade":"facil","pergunta":"Qual é a nota IGC contínua mais recente da UFRGS?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT ig.igc_continuo AS nota_igc, ig.ano\nFROM inep.dados_igc ig\nJOIN inep.emec_instituicoes e ON ig.co_ies = e.co_ies\nWHERE e.no_ies ILIKE '%UNIVERSIDADE FEDERAL DO RIO GRANDE DO SUL%'\nORDER BY ig.ano DESC\nLIMIT 1","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":13,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":12,"columnOverlap":50,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P5","dificuldade":"facil","pergunta":"Qual é a nota IGC contínua mais recente da UFRGS?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  di.igc_continuo\nFROM inep.dados_igc AS di\nJOIN inep.emec_instituicoes AS ei\n  ON di.co_ies = ei.co_ies\nWHERE\n  ei.no_ies ILIKE '%Universidade Federal do Rio Grande do Sul%'\nORDER BY\n  di.ano DESC\nLIMIT 1","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":13,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":12,"columnOverlap":50,"dataMatchScore":50,"veredito":"CORRETO"},{"questionId":"P5","dificuldade":"facil","pergunta":"Qual é a nota IGC contínua mais recente da UFRGS?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT di.igc_continuo\nFROM inep.dados_igc di\nJOIN inep.censo_ies_bruto cib ON di.co_ies = cib.co_ies AND di.ano = cib.nu_ano_censo\nWHERE cib.no_ies ILIKE '%UFRGS%' AND di.ano = (SELECT MAX(ano) FROM inep.dados_igc)","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P6","dificuldade":"facil","pergunta":"Quantos programas de pós-graduação existem na região Nordeste?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT COUNT(DISTINCT cd_programa_ies) AS total_programas_pos\nFROM inep.capes_programas_bruto\nWHERE nm_regiao = 'Nordeste'\nAND an_base = (SELECT MAX(an_base) FROM inep.capes_programas_bruto)","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P6","dificuldade":"facil","pergunta":"Quantos programas de pós-graduação existem na região Nordeste?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT COUNT(DISTINCT cd_programa_ies)\nFROM inep.capes_programas_bruto\nWHERE nm_regiao = 'Nordeste'","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P6","dificuldade":"facil","pergunta":"Quantos programas de pós-graduação existem na região Nordeste?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT COUNT(DISTINCT cp.cd_programa_ies) AS total_programas\nFROM inep.capes_programas_bruto cp\nJOIN inep.municipios_ibge m ON cp.nm_municipio_programa_ies = m.nome_municipio\nJOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge\nJOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge\nJOIN cesta.uf_ibge u ON me.cod_uf_ibge = u.co_uf_ibge\nJOIN inep.regioes_ibge r ON u.co_regiao_ibge = r.cod_regiao_ibge\nWHERE r.descr_regiao_ibge ILIKE 'Nordeste'","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P7","dificuldade":"facil","pergunta":"Quais instituições possuem IGC faixa 5 no ano mais recente disponível?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT DISTINCT b.no_ies AS instituicao\nFROM inep.dados_igc d\nJOIN inep.censo_ies_bruto b ON d.co_ies = b.co_ies\nWHERE d.igc_faixa = 5\n  AND d.ano = (SELECT MAX(ano) FROM inep.dados_igc)\nORDER BY b.no_ies","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":67,"execucaoIARowCountSemLimit":67,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":66,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P7","dificuldade":"facil","pergunta":"Quais instituições possuem IGC faixa 5 no ano mais recente disponível?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  b.no_ies,\n  b.sg_ies\nFROM inep.dados_igc AS d\nJOIN inep.censo_ies_bruto AS b\n  ON d.co_ies = b.co_ies AND d.ano = b.nu_ano_censo\nWHERE\n  d.igc_faixa = 5 AND d.ano = (\n    SELECT\n      MAX(ano)\n    FROM inep.dados_igc\n  )\nGROUP BY\n  b.no_ies,\n  b.sg_ies\nORDER BY\n  b.no_ies\nLIMIT 50","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":50,"execucaoIARowCountSemLimit":54,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":66,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":12,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P7","dificuldade":"facil","pergunta":"Quais instituições possuem IGC faixa 5 no ano mais recente disponível?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT DISTINCT c.no_ies\nFROM inep.dados_igc i\nJOIN inep.censo_ies_bruto c ON i.co_ies = c.co_ies\nWHERE i.igc_faixa = 5\n  AND c.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":76,"execucaoIARowCountSemLimit":76,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":66,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":10,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P8","dificuldade":"medio","pergunta":"Qual é o total de ingressantes por região do Brasil em 2022?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT r.descr_regiao_ibge AS regiao, SUM(v.qt_ing) AS total_ingressantes\nFROM inep.censo_curso_vagas_bruto v\nJOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\nJOIN inep.municipios_ibge m ON b.co_municipio_ies::text = m.cod_ibge\nJOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge\nJOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge\nJOIN cesta.uf_ibge u ON me.cod_uf_ibge = u.co_uf_ibge\nJOIN inep.regioes_ibge r ON u.co_regiao_ibge = r.cod_regiao_ibge\nWHERE v.nu_ano_censo = 2022\nGROUP BY r.descr_regiao_ibge\nORDER BY total_ingressantes DESC","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":5,"execucaoIARowCountSemLimit":5,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":6,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1,"columnOverlap":50,"dataMatchScore":0,"veredito":"PARCIAL"},{"questionId":"P8","dificuldade":"medio","pergunta":"Qual é o total de ingressantes por região do Brasil em 2022?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"","geracaoSucesso":false,"geracaoErro":"SQL inválido: A coluna 'no_regiao' não existe na tabela 'censo_ies_bruto'. Tente uma destas: nu_ano_censo, no_regiao_ies, co_regiao_ies, no_uf_ies, sg_uf_ies., A coluna 'no_regiao' não existe na tabela 'censo_ies_bruto'. Tente uma destas: nu_ano_censo, no_regiao_ies, co_regiao_ies, no_uf_ies, sg_uf_ies., A coluna 'no_regiao' não existe na tabela 'censo_ies_bruto'. Tente uma destas: nu_ano_censo, no_regiao_ies, co_regiao_ies, no_uf_ies, sg_uf_ies.","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":6,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":6,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P8","dificuldade":"medio","pergunta":"Qual é o total de ingressantes por região do Brasil em 2022?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT \n  b.no_regiao_ies, \n  SUM(v.qt_ing) AS total_ingressantes\nFROM \n  inep.censo_curso_vagas_bruto v\nJOIN \n  inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\nWHERE \n  v.nu_ano_censo = 2022\nGROUP BY \n  b.no_regiao_ies\nORDER BY \n  total_ingressantes DESC","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":5,"execucaoIARowCountSemLimit":5,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":6,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1,"columnOverlap":50,"dataMatchScore":0,"veredito":"PARCIAL"},{"questionId":"P9","dificuldade":"medio","pergunta":"Qual a proporção de homens e mulheres matriculados em cursos de Engenharia Civil em 2022?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT\n  SUM(v.qt_mat_fem) AS total_matriculas_femininas,\n  SUM(v.qt_mat_masc) AS total_matriculas_masculinas,\n  SUM(v.qt_mat_fem + v.qt_mat_masc) AS total_matriculas,\n  ROUND(100.0 * SUM(v.qt_mat_fem) / NULLIF(SUM(v.qt_mat_fem + v.qt_mat_masc), 0), 2) AS percentual_feminino,\n  ROUND(100.0 * SUM(v.qt_mat_masc) / NULLIF(SUM(v.qt_mat_fem + v.qt_mat_masc), 0), 2) AS percentual_masculino\nFROM inep.censo_curso_vagas_bruto v\nJOIN inep.censo_cursos cc ON v.co_curso = cc.cod_curso\nWHERE v.nu_ano_censo = 2022\n  AND cc.nome_curso ILIKE '%Engenharia Civil%'","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P9","dificuldade":"medio","pergunta":"Qual a proporção de homens e mulheres matriculados em cursos de Engenharia Civil em 2022?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  ROUND(100.0 * SUM(v.qt_mat_fem) / NULLIF(SUM(v.qt_mat_fem + v.qt_mat_masc), 0), 2) AS proporcao_mulheres,\n  ROUND(100.0 * SUM(v.qt_mat_masc) / NULLIF(SUM(v.qt_mat_fem + v.qt_mat_masc), 0), 2) AS proporcao_homens\nFROM inep.censo_curso_vagas_bruto AS v\nJOIN inep.censo_cursos AS c\n  ON v.co_curso = c.cod_curso\nWHERE\n  v.nu_ano_censo = 2022 AND c.nome_curso ILIKE '%Engenharia Civil%'","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":0,"dataMatchScore":50,"veredito":"CORRETO"},{"questionId":"P9","dificuldade":"medio","pergunta":"Qual a proporção de homens e mulheres matriculados em cursos de Engenharia Civil em 2022?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT \n  cc.nome_curso,\n  v.qt_mat_masc,\n  v.qt_mat_fem,\n  CASE \n    WHEN (v.qt_mat_masc + v.qt_mat_fem) = 0 THEN NULL\n    ELSE ROUND(v.qt_mat_masc::numeric / (v.qt_mat_masc + v.qt_mat_fem), 2)\n  END AS prop_masc,\n  CASE \n    WHEN (v.qt_mat_masc + v.qt_mat_fem) = 0 THEN NULL\n    ELSE ROUND(v.qt_mat_fem::numeric / (v.qt_mat_masc + v.qt_mat_fem), 2)\n  END AS prop_fem\nFROM \n  inep.censo_curso_vagas_bruto v\nJOIN \n  inep.censo_cursos cc ON v.co_curso = cc.cod_curso\nWHERE \n  v.nu_ano_censo = 2022\n  AND cc.nome_curso ILIKE '%engenharia civil%' LIMIT 100","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":100,"execucaoIARowCountSemLimit":6367,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":6366,"columnOverlap":75,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P10","dificuldade":"medio","pergunta":"Quais são as 5 instituições privadas com a maior quantidade de alunos matriculados em EAD no último censo?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT b.no_ies AS instituicao, SUM(v.qt_mat) AS total_matriculas_ead\nFROM inep.censo_curso_vagas_bruto v\nJOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\nWHERE v.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_curso_vagas_bruto)\n  AND v.tp_modalidade_ensino = 2\n  AND b.tp_categoria_administrativa IN (4, 5, 6, 7, 8)\nGROUP BY b.no_ies\nORDER BY total_matriculas_ead DESC\nLIMIT 5","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":true,"execucaoIAErro":"Query timeout após 45000ms","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":5,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":5,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P10","dificuldade":"medio","pergunta":"Quais são as 5 instituições privadas com a maior quantidade de alunos matriculados em EAD no último censo?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  b.no_ies,\n  SUM(v.qt_mat) AS total_matriculas_ead\nFROM\n  inep.censo_curso_vagas_bruto AS v\nJOIN\n  inep.censo_ies_bruto AS b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\nWHERE\n  v.nu_ano_censo = (\n    SELECT\n      MAX(nu_ano_censo)\n    FROM\n      inep.censo_curso_vagas_bruto\n  )\n  AND v.tp_modalidade_ensino = 2\n  AND b.tp_categoria_administrativa IN (4, 5, 6, 7)\nGROUP BY\n  b.no_ies\nORDER BY\n  total_matriculas_ead DESC\nLIMIT 5","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":5,"execucaoIARowCountSemLimit":570,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":5,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":565,"columnOverlap":67,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P10","dificuldade":"medio","pergunta":"Quais são as 5 instituições privadas com a maior quantidade de alunos matriculados em EAD no último censo?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT b.no_ies, b.sg_ies, SUM(v.qt_inscrito_total_ead) AS total_matriculados\nFROM inep.censo_curso_vagas_bruto v\nJOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\nWHERE v.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_curso_vagas_bruto)\n  AND v.tp_modalidade_ensino = 2\n  AND b.tp_categoria_administrativa IN (4, 5, 6, 7)\nGROUP BY b.no_ies, b.sg_ies\nORDER BY total_matriculados DESC\nLIMIT 5","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":true,"execucaoIAErro":"Query timeout após 45000ms","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":5,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":5,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P11","dificuldade":"medio","pergunta":"Qual a média da nota CPC contínua dos cursos de Direito, agrupada por estado?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT \n    b.sg_uf_ies AS estado,\n    ROUND(AVG(dc.cpc_continuo)::numeric, 2) AS media_cpc_continuo\nFROM \n    inep.dados_cpc dc\nJOIN \n    inep.censo_cursos cc ON dc.co_curso = cc.cod_curso\nJOIN \n    inep.censo_ies_bruto b ON dc.co_ies = b.co_ies AND dc.ano = b.nu_ano_censo\nWHERE \n    cc.nome_curso ILIKE '%direito%'\nGROUP BY \n    b.sg_uf_ies\nORDER BY \n    media_cpc_continuo DESC","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":27,"execucaoIARowCountSemLimit":27,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":27,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":50,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P11","dificuldade":"medio","pergunta":"Qual a média da nota CPC contínua dos cursos de Direito, agrupada por estado?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"","geracaoSucesso":false,"geracaoErro":"SQL inválido: A coluna 'sg_uf_ies' não existe na tabela 'censo_curso_vagas_bruto'. Tente uma destas: nu_ano_censo, no_regiao, co_regiao, no_uf, sg_uf., A coluna 'sg_uf_ies' não existe na tabela 'censo_curso_vagas_bruto'. Tente uma destas: nu_ano_censo, no_regiao, co_regiao, no_uf, sg_uf., A coluna 'sg_uf_ies' não existe na tabela 'censo_curso_vagas_bruto'. Tente uma destas: nu_ano_censo, no_regiao, co_regiao, no_uf, sg_uf.","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":27,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":27,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P11","dificuldade":"medio","pergunta":"Qual a média da nota CPC contínua dos cursos de Direito, agrupada por estado?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT \n  c.sg_uf_ies AS estado,\n  AVG(d.cpc_continuo) AS media_cpc\nFROM \n  inep.dados_cpc d\n  JOIN inep.censo_cursos cc ON d.co_curso = cc.cod_curso\n  JOIN inep.censo_ies_bruto c ON d.co_ies = c.co_ies AND d.ano = c.nu_ano_censo\nWHERE \n  cc.nome_curso ILIKE '%Direito%'\nGROUP BY \n  c.sg_uf_ies\nORDER BY \n  media_cpc DESC","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":27,"execucaoIARowCountSemLimit":27,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":27,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":50,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P12","dificuldade":"medio","pergunta":"Quais estados formaram mais profissionais de Enfermagem em 2022?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT \n    b.sg_uf_ies AS estado,\n    SUM(v.qt_conc) AS total_concluintes\nFROM \n    inep.censo_curso_vagas_bruto v\nJOIN \n    inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\nWHERE \n    v.nu_ano_censo = 2022\n    AND v.no_cine_area_geral ILIKE '%enfermagem%'\nGROUP BY \n    b.sg_uf_ies\nORDER BY \n    total_concluintes DESC\nLIMIT 50","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":10,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":10,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P12","dificuldade":"medio","pergunta":"Quais estados formaram mais profissionais de Enfermagem em 2022?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n    cib.sg_uf_ies AS estado,\n    SUM(ccvb.qt_conc) AS total_concluintes_enfermagem\nFROM\n    inep.censo_curso_vagas_bruto AS ccvb\nJOIN\n    inep.censo_cursos AS cc ON ccvb.co_curso = cc.cod_curso\nJOIN\n    inep.censo_ies_bruto AS cib ON ccvb.co_ies = cib.co_ies AND ccvb.nu_ano_censo = cib.nu_ano_censo\nWHERE\n    ccvb.nu_ano_censo = 2022\n    AND cc.nome_curso ILIKE '%Enfermagem%'\nGROUP BY\n    cib.sg_uf_ies\nORDER BY\n    total_concluintes_enfermagem DESC\nLIMIT 10","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":10,"execucaoIARowCountSemLimit":27,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":10,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":17,"columnOverlap":50,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P12","dificuldade":"medio","pergunta":"Quais estados formaram mais profissionais de Enfermagem em 2022?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"","geracaoSucesso":false,"geracaoErro":"SQL inválido: A coluna 'sg_uf_ies' não existe na tabela 'censo_curso_vagas_bruto'. Tente uma destas: nu_ano_censo, no_regiao, co_regiao, no_uf, sg_uf., A coluna 'sg_uf_ies' não existe na tabela 'censo_curso_vagas_bruto'. Tente uma destas: nu_ano_censo, no_regiao, co_regiao, no_uf, sg_uf.","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":10,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":10,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P13","dificuldade":"medio","pergunta":"Qual é a evolução do número total de vagas em EAD de 2018 a 2022?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT \n    nu_ano_censo AS ano,\n    SUM(qt_vg_total_ead) AS total_vagas_ead\nFROM \n    inep.censo_curso_vagas_bruto\nWHERE \n    nu_ano_censo BETWEEN 2018 AND 2022\n    AND tp_modalidade_ensino = 2\nGROUP BY \n    nu_ano_censo\nORDER BY \n    nu_ano_censo","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":5,"execucaoIARowCountSemLimit":5,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":5,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":50,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P13","dificuldade":"medio","pergunta":"Qual é a evolução do número total de vagas em EAD de 2018 a 2022?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  nu_ano_censo,\n  SUM(qt_vg_total_ead) AS total_vagas_ead\nFROM\n  inep.censo_curso_vagas_bruto\nWHERE\n  nu_ano_censo BETWEEN 2018 AND 2022\n  AND tp_modalidade_ensino = 2\nGROUP BY\n  nu_ano_censo\nORDER BY\n  nu_ano_censo","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":5,"execucaoIARowCountSemLimit":5,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":5,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P13","dificuldade":"medio","pergunta":"Qual é a evolução do número total de vagas em EAD de 2018 a 2022?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT nu_ano_censo, SUM(qt_vg_total_ead) AS total_vagas_ead\nFROM inep.censo_curso_vagas_bruto\nWHERE nu_ano_censo BETWEEN 2018 AND 2022\n  AND tp_modalidade_ensino = 2  -- 2 representa EAD\nGROUP BY nu_ano_censo\nORDER BY nu_ano_censo","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":5,"execucaoIARowCountSemLimit":5,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":5,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P14","dificuldade":"medio","pergunta":"Qual é a taxa de evasão média dos cursos de Administração em universidades públicas federais?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT ROUND(AVG(f.tda)::numeric * 100, 2) AS taxa_evasao_media_percentual\nFROM inep.fluxo_tda f\nJOIN inep.censo_ies_bruto b ON f.co_ies = b.co_ies\nWHERE f.no_curso ILIKE '%administracao%'\n  AND b.tp_categoria_administrativa = 1\n  AND f.nu_ano_referencia = (SELECT MAX(nu_ano_referencia) FROM inep.fluxo_tda)","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":100,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P14","dificuldade":"medio","pergunta":"Qual é a taxa de evasão média dos cursos de Administração em universidades públicas federais?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"","geracaoSucesso":false,"geracaoErro":"SQL inválido: A coluna 'sg_uf_ies' não existe na tabela 'fluxo_tda'. Tente uma destas: co_ies, no_ies, tp_categoria_administrativa, tp_organizacao_academica, co_curso., A coluna 'sg_uf_ies' não existe na tabela 'fluxo_tda'. Tente uma destas: co_ies, no_ies, tp_categoria_administrativa, tp_organizacao_academica, co_curso.","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P14","dificuldade":"medio","pergunta":"Qual é a taxa de evasão média dos cursos de Administração em universidades públicas federais?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT \n    AVG((v.qt_mat - v.qt_conc) / v.qt_mat::numeric) AS taxa_evasao_media\nFROM \n    inep.censo_curso_vagas_bruto v\nJOIN \n    inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\nJOIN \n    inep.censo_cursos c ON v.co_curso = c.cod_curso\nWHERE \n    b.tp_organizacao_academica = 1 AND b.tp_categoria_administrativa = 1\n    AND c.nome_curso ILIKE '%Administração%'\n    AND v.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_curso_vagas_bruto)","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"division by zero","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":1,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P15","dificuldade":"medio","pergunta":"Quantos docentes com doutorado existem em cada estado no último censo?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT \n    sg_uf_ies AS estado,\n    SUM(qt_doc_ex_femi) AS docentes_doutorado_feminino,\n    SUM(qt_doc_ex_masc) AS docentes_doutorado_masculino,\n    SUM(qt_doc_ex_dout) AS total_docentes_doutorado\nFROM inep.censo_ies_bruto\nWHERE nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\nGROUP BY sg_uf_ies\nORDER BY total_docentes_doutorado DESC","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":27,"execucaoIARowCountSemLimit":27,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":27,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":50,"dataMatchScore":0,"veredito":"CORRETO"},{"questionId":"P15","dificuldade":"medio","pergunta":"Quantos docentes com doutorado existem em cada estado no último censo?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  sg_uf_ies AS estado,\n  SUM(qt_doc_ex_dout) AS total_docentes_doutorado\nFROM\n  inep.censo_ies_bruto\nWHERE\n  nu_ano_censo = (\n    SELECT\n      MAX(nu_ano_censo)\n    FROM\n      inep.censo_ies_bruto\n  )\nGROUP BY\n  sg_uf_ies\nORDER BY\n  total_docentes_doutorado DESC\nLIMIT 50","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":27,"execucaoIARowCountSemLimit":27,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":27,"execucaoGabaritoErro":"","rowCountMatch":true,"rowCountDiff":0,"columnOverlap":50,"dataMatchScore":100,"veredito":"CORRETO"},{"questionId":"P15","dificuldade":"medio","pergunta":"Quantos docentes com doutorado existem em cada estado no último censo?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"","geracaoSucesso":false,"geracaoErro":"429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kjx3n4xtfg29efdy57p1587x` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98968, Requested 9481. Please try again in 2h1m39.936s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":27,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":27,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P16","dificuldade":"dificil","pergunta":"Qual é a taxa de concorrência para Sistemas de Informação no Rio Grande do Sul?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT \n    ROUND(SUM(qt_inscrito_total)::numeric / NULLIF(SUM(qt_vg_total), 0), 2) AS taxa_concorrencia\nFROM \n    inep.censo_curso_vagas_bruto v\nJOIN \n    inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\nWHERE \n    v.no_curso ILIKE '%Sistemas de Informação%'\n    AND b.sg_uf_ies = 'RS'\n    AND v.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_curso_vagas_bruto)","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"Query timeout após 37000ms","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":43,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":43,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P16","dificuldade":"dificil","pergunta":"Qual é a taxa de concorrência para Sistemas de Informação no Rio Grande do Sul?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  CAST(SUM(qt_inscrito_total) AS NUMERIC) / SUM(qt_vg_total) AS taxa_concorrencia\nFROM inep.censo_curso_vagas_bruto\nWHERE\n  no_curso ILIKE '%Sistemas de Informação%' AND sg_uf = 'RS' AND qt_vg_total > 0 AND nu_ano_censo = (\n    SELECT\n      MAX(nu_ano_censo)\n    FROM inep.censo_curso_vagas_bruto\n  )\nLIMIT 1","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":true,"execucaoIAErro":"Query timeout após 37000ms","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":43,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":43,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P16","dificuldade":"dificil","pergunta":"Qual é a taxa de concorrência para Sistemas de Informação no Rio Grande do Sul?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"","geracaoSucesso":false,"geracaoErro":"413 {\"error\":{\"message\":\"Request too large for model `llama-3.3-70b-versatile` in organization `org_01kjx3n4xtfg29efdy57p1587x` service tier `on_demand` on tokens per minute (TPM): Limit 12000, Requested 12061, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":43,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":43,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P17","dificuldade":"dificil","pergunta":"Quais cursos de Ciência da Computação tiveram nota no ENADE acima da média nacional nesse mesmo curso?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"WITH media_nacional AS (\n    SELECT AVG(de.enade_continuo) AS media_enade\n    FROM inep.dados_enade de\n    JOIN inep.censo_cursos cc ON de.co_curso = cc.cod_curso\n    WHERE cc.nome_curso ILIKE '%ciência da computação%'\n)\n\nSELECT cc.nome_curso, \n       cib.no_ies AS instituicao,\n       cib.sg_uf_ies AS uf,\n       de.enade_continuo AS nota_enade,\n       mn.media_enade AS media_nacional\nFROM inep.dados_enade de\nJOIN inep.censo_cursos cc ON de.co_curso = cc.cod_curso\nJOIN inep.censo_ies_bruto cib ON de.co_ies = cib.co_ies AND de.ano = cib.nu_ano_censo\nCROSS JOIN media_nacional mn\nWHERE cc.nome_curso ILIKE '%ciência da computação%'\n  AND de.enade_continuo > mn.media_enade\nORDER BY de.enade_continuo DESC\nLIMIT 100","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":100,"execucaoIARowCountSemLimit":286,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":139,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":147,"columnOverlap":25,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P17","dificuldade":"dificil","pergunta":"Quais cursos de Ciência da Computação tiveram nota no ENADE acima da média nacional nesse mesmo curso?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"WITH MediaNacionalCienciaComputacao AS (\n    SELECT\n        dc.ano,\n        AVG(dc.enade_continuo) AS media_nacional_enade\n    FROM\n        inep.dados_cpc dc\n    JOIN\n        inep.censo_cursos cc ON dc.co_curso = cc.cod_curso\n    WHERE\n        cc.nome_curso ILIKE '%ciência da computação%'\n    GROUP BY\n        dc.ano\n)\nSELECT\n    t.ano,\n    t.no_ies AS nome_instituicao,\n    t.nome_curso AS nome_do_curso,\n    t.nota_enade_curso,\n    mn.media_nacional_enade\nFROM (\n    SELECT\n        dc.ano,\n        ci.no_ies,\n        cc.nome_curso,\n        dc.enade_continuo AS nota_enade_curso,\n        dc.co_ies,\n        dc.co_curso\n    FROM\n        inep.dados_cpc dc\n    JOIN\n        inep.censo_cursos cc ON dc.co_curso = cc.cod_curso\n    JOIN\n        inep.censo_ies_bruto ci ON dc.co_ies = ci.co_ies AND dc.ano = ci.nu_ano_censo\n    WHERE\n        cc.nome_curso ILIKE '%ciência da computação%'\n) AS t\nJOIN\n    MediaNacionalCienciaComputacao mn ON t.ano = mn.ano\nWHERE\n    t.nota_enade_curso > mn.media_nacional_enade\nORDER BY\n    t.ano DESC, t.nota_enade_curso DESC\nLIMIT 50","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":50,"execucaoIARowCountSemLimit":280,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":139,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":141,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P17","dificuldade":"dificil","pergunta":"Quais cursos de Ciência da Computação tiveram nota no ENADE acima da média nacional nesse mesmo curso?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT cc.nome_curso, dc.enade_continuo\nFROM inep.dados_cpc dc\nJOIN inep.censo_cursos cc ON dc.co_curso = cc.cod_curso\nWHERE dc.enade_continuo > (SELECT AVG(enade_continuo) FROM inep.dados_cpc)\n  AND cc.nome_curso ILIKE '%Ciência da Computação%'","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":429,"execucaoIARowCountSemLimit":429,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":139,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":290,"columnOverlap":50,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P18","dificuldade":"dificil","pergunta":"Quais são as 10 cidades com o maior número de instituições de ensino superior e qual o IDHM médio dessas cidades?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"WITH cidades_ies AS (\n    SELECT \n        b.no_municipio_ies AS cidade,\n        COUNT(DISTINCT b.co_ies) AS num_instituicoes\n    FROM inep.censo_ies_bruto b\n    WHERE b.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\n    GROUP BY b.no_municipio_ies\n    ORDER BY num_instituicoes DESC\n    LIMIT 10\n)\nSELECT \n    c.cidade,\n    c.num_instituicoes,\n    AVG(h.idhm) AS idhm_medio\nFROM cidades_ies c\nJOIN inep.censo_ies_bruto b ON b.no_municipio_ies = c.cidade AND b.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\nJOIN inep.municipios_ibge m ON b.co_municipio_ies::text = m.cod_ibge\nJOIN cesta.idhms h ON m.cod_ibge = h.cod_ibge\nGROUP BY c.cidade, c.num_instituicoes\nORDER BY c.num_instituicoes DESC","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":true,"execucaoIAErro":"relation \"cesta.idhms\" does not exist","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":10,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":10,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P18","dificuldade":"dificil","pergunta":"Quais são as 10 cidades com o maior número de instituições de ensino superior e qual o IDHM médio dessas cidades?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n    cib.no_municipio_ies,\n    COUNT(DISTINCT cib.co_ies) AS numero_instituicoes\nFROM\n    inep.censo_ies_bruto cib\nWHERE\n    cib.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\nGROUP BY\n    cib.no_municipio_ies\nORDER BY\n    numero_instituicoes DESC\nLIMIT 10","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":10,"execucaoIARowCountSemLimit":711,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":10,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":701,"columnOverlap":25,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P18","dificuldade":"dificil","pergunta":"Quais são as 10 cidades com o maior número de instituições de ensino superior e qual o IDHM médio dessas cidades?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"","geracaoSucesso":false,"geracaoErro":"429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kjx3n4xtfg29efdy57p1587x` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98936, Requested 9959. Please try again in 2h8m5.28s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":10,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":10,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P19","dificuldade":"dificil","pergunta":"Comparando universidades públicas e privadas, qual tipo tem a melhor nota média no IGC contínuo nos últimos 3 anos disponíveis?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"WITH ultimos_anos AS (\n    SELECT DISTINCT ano \n    FROM inep.dados_igc \n    ORDER BY ano DESC \n    LIMIT 3\n),\ncategorias AS (\n    SELECT \n        CASE \n            WHEN b.tp_categoria_administrativa IN (1, 2, 3) THEN 'Pública'\n            ELSE 'Privada'\n        END AS tipo_instituicao,\n        i.ano,\n        i.igc_continuo,\n        i.co_ies\n    FROM inep.dados_igc i\n    JOIN inep.censo_ies_bruto b ON i.co_ies = b.co_ies AND b.nu_ano_censo = i.ano\n    WHERE i.ano IN (SELECT ano FROM ultimos_anos)\n)\nSELECT \n    tipo_instituicao,\n    ROUND(AVG(igc_continuo), 2) AS media_igc,\n    COUNT(DISTINCT co_ies) AS total_instituicoes\nFROM categorias\nGROUP BY tipo_instituicao\nORDER BY media_igc DESC","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":2,"execucaoIARowCountSemLimit":2,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":7,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":5,"columnOverlap":50,"dataMatchScore":0,"veredito":"PARCIAL"},{"questionId":"P19","dificuldade":"dificil","pergunta":"Comparando universidades públicas e privadas, qual tipo tem a melhor nota média no IGC contínuo nos últimos 3 anos disponíveis?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n    CASE\n        WHEN ci.tp_categoria_administrativa IN (1, 2, 3) THEN 'Pública'\n        WHEN ci.tp_categoria_administrativa IN (4, 5, 6, 8) THEN 'Privada'\n        ELSE 'Outro'\n    END AS tipo_instituicao,\n    AVG(di.igc_continuo) AS nota_media_igc\nFROM\n    inep.dados_igc di\nJOIN\n    inep.censo_ies_bruto ci ON di.co_ies = ci.co_ies AND di.ano = ci.nu_ano_censo\nWHERE\n    di.ano >= (SELECT MAX(ano) - 2 FROM inep.dados_igc)\n    AND ci.tp_categoria_administrativa IN (1, 2, 3, 4, 5, 6, 8)\nGROUP BY\n    CASE\n        WHEN ci.tp_categoria_administrativa IN (1, 2, 3) THEN 'Pública'\n        WHEN ci.tp_categoria_administrativa IN (4, 5, 6, 8) THEN 'Privada'\n        ELSE 'Outro'\n    END\nORDER BY\n    nota_media_igc DESC\nLIMIT 2","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":2,"execucaoIARowCountSemLimit":2,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":7,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":5,"columnOverlap":50,"dataMatchScore":0,"veredito":"PARCIAL"},{"questionId":"P19","dificuldade":"dificil","pergunta":"Comparando universidades públicas e privadas, qual tipo tem a melhor nota média no IGC contínuo nos últimos 3 anos disponíveis?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT \n    CASE \n        WHEN b.tp_categoria_administrativa IN (1, 2, 3) THEN 'Pública'\n        WHEN b.tp_categoria_administrativa IN (4, 5, 6, 7, 8) THEN 'Privada'\n    END AS tipo_instituicao,\n    AVG(a.igc_continuo) AS media_igc\nFROM \n    inep.dados_igc a\nJOIN \n    inep.censo_ies_bruto b ON a.co_ies = b.co_ies AND a.ano = b.nu_ano_censo\nWHERE \n    a.ano >= (SELECT MAX(ano) - 2 FROM inep.dados_igc)\nGROUP BY \n    tipo_instituicao\nORDER BY \n    media_igc DESC\nLIMIT 2","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":2,"execucaoIARowCountSemLimit":2,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":7,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":5,"columnOverlap":50,"dataMatchScore":0,"veredito":"PARCIAL"},{"questionId":"P20","dificuldade":"dificil","pergunta":"Qual é a relação entre o percentual de doutores no corpo docente e a nota CPC dos cursos de Pedagogia?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT \n    c.nome_curso,\n    i.no_ies,\n    i.sg_uf_ies AS estado,\n    ROUND((i.qt_doc_ex_dout::numeric / NULLIF(i.qt_doc_exe, 0)) * 100, 2) AS percentual_doutores,\n    cpc.cpc_continuo AS nota_cpc,\n    cpc.nb_doutores AS nota_padronizada_doutores\nFROM inep.censo_cursos c\nJOIN inep.dados_cpc cpc ON c.cod_curso = cpc.co_curso\nJOIN inep.censo_ies_bruto i ON cpc.co_ies = i.co_ies AND cpc.ano = i.nu_ano_censo\nWHERE c.nome_curso ILIKE '%pedagogia%'\n  AND i.nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)\n  AND i.qt_doc_exe > 0\nORDER BY percentual_doutores DESC\nLIMIT 100","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":20,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":20,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P20","dificuldade":"dificil","pergunta":"Qual é a relação entre o percentual de doutores no corpo docente e a nota CPC dos cursos de Pedagogia?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n  cc.nome_curso,\n  ci.sg_uf_ies,\n  ci.no_ies,\n  ci.nu_ano_censo,\n  ROUND(AVG(dc.cpc_continuo)::numeric, 2) AS media_cpc_continuo,\n  dc.cpc_faixa,\n  CASE\n    WHEN ci.qt_doc_total > 0 THEN ROUND((ci.qt_doc_ex_dout::numeric / ci.qt_doc_total::numeric) * 100, 2)\n    ELSE 0\n  END AS percentual_doutores\nFROM inep.censo_ies_bruto AS ci\nJOIN inep.censo_cursos AS cc\n  ON ci.co_ies = cc.cod_ies\nJOIN inep.dados_cpc AS dc\n  ON ci.co_ies = dc.co_ies AND cc.cod_curso = dc.co_curso AND ci.nu_ano_censo = dc.ano\nWHERE\n  cc.nome_curso ILIKE '%Pedagogia%' AND ci.nu_ano_censo >= 2017 AND ci.qt_doc_total > 0\nGROUP BY\n  cc.nome_curso,\n  ci.sg_uf_ies,\n  ci.no_ies,\n  ci.nu_ano_censo,\n  dc.cpc_faixa,\n  ci.qt_doc_ex_dout,\n  ci.qt_doc_total\nORDER BY\n  ci.nu_ano_censo,\n  dc.cpc_faixa,\n  percentual_doutores DESC\nLIMIT 100","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":100,"execucaoIARowCountSemLimit":1893,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":20,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":1873,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P20","dificuldade":"dificil","pergunta":"Qual é a relação entre o percentual de doutores no corpo docente e a nota CPC dos cursos de Pedagogia?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"","geracaoSucesso":false,"geracaoErro":"429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kjx3n4xtfg29efdy57p1587x` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98902, Requested 10243. Please try again in 2h11m41.28s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":20,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":20,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P21","dificuldade":"dificil","pergunta":"Qual a taxa de conclusão acumulada média dos cursos de Medicina versus Enfermagem por região?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT \n    b.no_regiao_ies AS regiao,\n    CASE \n        WHEN f.no_curso ILIKE '%medicina%' THEN 'Medicina'\n        WHEN f.no_curso ILIKE '%enfermagem%' THEN 'Enfermagem'\n    END AS tipo_curso,\n    ROUND(AVG(f.tca)::numeric * 100, 2) AS taxa_conclusao_acumulada_pct\nFROM inep.fluxo_tda f\nJOIN inep.censo_ies_bruto b ON f.co_ies = b.co_ies AND f.nu_ano_referencia = b.nu_ano_censo\nWHERE (f.no_curso ILIKE '%medicina%' OR f.no_curso ILIKE '%enfermagem%')\n  AND f.nu_ano_referencia = (SELECT MAX(nu_ano_referencia) FROM inep.fluxo_tda)\nGROUP BY b.no_regiao_ies, tipo_curso\nORDER BY b.no_regiao_ies, tipo_curso","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":10,"execucaoIARowCountSemLimit":10,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":35,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":25,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P21","dificuldade":"dificil","pergunta":"Qual a taxa de conclusão acumulada média dos cursos de Medicina versus Enfermagem por região?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT\n    r.descr_regiao_ibge AS regiao,\n    f.no_curso AS curso,\n    ROUND(AVG(f.tca)::numeric * 100, 2) AS taxa_conclusao_acumulada_media\nFROM\n    inep.fluxo_tda AS f\nJOIN\n    inep.regioes_ibge AS r ON f.co_regiao = r.cod_regiao_ibge::varchar\nWHERE\n    f.no_curso ILIKE '%Medicina%' OR f.no_curso ILIKE '%Enfermagem%'\n    AND f.nu_ano_referencia = (SELECT MAX(nu_ano_referencia) FROM inep.fluxo_tda)\nGROUP BY\n    r.descr_regiao_ibge,\n    f.no_curso\nORDER BY\n    r.descr_regiao_ibge,\n    f.no_curso\nLIMIT 100","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":24,"execucaoIARowCountSemLimit":24,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":35,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":11,"columnOverlap":25,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P21","dificuldade":"dificil","pergunta":"Qual a taxa de conclusão acumulada média dos cursos de Medicina versus Enfermagem por região?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"","geracaoSucesso":false,"geracaoErro":"429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kjx3n4xtfg29efdy57p1587x` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98863, Requested 10120. Please try again in 2h9m21.311999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":35,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":35,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P22","dificuldade":"dificil","pergunta":"Quais instituições do Sul do Brasil possuem programas de pós-graduação com conceito CAPES igual ou superior a 6?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT DISTINCT p.nm_entidade_ensino AS instituicao, \n       p.sg_uf_programa AS uf,\n       p.nm_programa_ies AS programa_pos,\n       p.cd_conceito_programa AS conceito_capes\nFROM inep.capes_programas_bruto p\nWHERE p.nm_regiao = 'Sul'\n  AND p.cd_conceito_programa >= '6'\n  AND p.an_base = (SELECT MAX(an_base) FROM inep.capes_programas_bruto)\nORDER BY p.cd_conceito_programa DESC, p.nm_entidade_ensino\nLIMIT 100","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":false,"execucaoGabaritoRowCount":0,"execucaoGabaritoErro":"for SELECT DISTINCT, ORDER BY expressions must appear in select list","rowCountMatch":false,"rowCountDiff":0,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_GABARITO"},{"questionId":"P22","dificuldade":"dificil","pergunta":"Quais instituições do Sul do Brasil possuem programas de pós-graduação com conceito CAPES igual ou superior a 6?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"SELECT DISTINCT nm_entidade_ensino\nFROM inep.capes_cursos_bruto\nWHERE nm_regiao IN ('Sul') AND cd_conceito_curso >= 6\nLIMIT 100","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":true,"execucaoIAErro":"","execucaoGabaritoSucesso":false,"execucaoGabaritoRowCount":0,"execucaoGabaritoErro":"for SELECT DISTINCT, ORDER BY expressions must appear in select list","rowCountMatch":false,"rowCountDiff":0,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_GABARITO"},{"questionId":"P22","dificuldade":"dificil","pergunta":"Quais instituições do Sul do Brasil possuem programas de pós-graduação com conceito CAPES igual ou superior a 6?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT DISTINCT c.sg_entidade_ensino, c.nm_entidade_ensino\nFROM inep.capes_programas_bruto c\nWHERE c.nm_regiao = 'Sul' AND c.cd_conceito_programa >= 6","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"operator does not exist: character varying >= integer","execucaoGabaritoSucesso":false,"execucaoGabaritoRowCount":0,"execucaoGabaritoErro":"for SELECT DISTINCT, ORDER BY expressions must appear in select list","rowCountMatch":false,"rowCountDiff":0,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_GABARITO"},{"questionId":"P23","dificuldade":"dificil","pergunta":"Para as universidades federais, qual é a proporção de alunos que ingressaram por cotas de escola pública em relação ao total de ingressantes em 2022?","provider":"deepseek","model":"deepseek-v3","sqlGerado":"SELECT \n    SUM(v.qt_ing_rvredepublica)::float / NULLIF(SUM(v.qt_ing), 0) AS proporcao_cotas_escola_publica\nFROM \n    inep.censo_curso_vagas_bruto v\nJOIN \n    inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\nWHERE \n    v.nu_ano_censo = 2022\n    AND b.tp_categoria_administrativa = 1\n    AND b.tp_organizacao_academica = 1","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":15,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":14,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"},{"questionId":"P23","dificuldade":"dificil","pergunta":"Para as universidades federais, qual é a proporção de alunos que ingressaram por cotas de escola pública em relação ao total de ingressantes em 2022?","provider":"gemini","model":"gemini-2.5-flash-lite","sqlGerado":"","geracaoSucesso":false,"geracaoErro":"SQL inválido: Apenas consultas SELECT são permitidas","execucaoIASucesso":false,"execucaoIARowCount":0,"execucaoIARowCountSemLimit":0,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":15,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":15,"columnOverlap":0,"dataMatchScore":0,"veredito":"ERRO_IA"},{"questionId":"P23","dificuldade":"dificil","pergunta":"Para as universidades federais, qual é a proporção de alunos que ingressaram por cotas de escola pública em relação ao total de ingressantes em 2022?","provider":"groq","model":"llama-3.3-70b-versatile","sqlGerado":"SELECT \n    SUM(v.qt_ing_rvredepublica) / SUM(v.qt_ing) AS proporcao_cotas_escola_publica\nFROM \n    inep.censo_curso_vagas_bruto v\nJOIN \n    inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo\nWHERE \n    v.nu_ano_censo = 2022 AND b.tp_categoria_administrativa = 1","geracaoSucesso":true,"geracaoErro":"","execucaoIASucesso":true,"execucaoIARowCount":1,"execucaoIARowCountSemLimit":1,"temLimit":false,"execucaoIAErro":"","execucaoGabaritoSucesso":true,"execucaoGabaritoRowCount":15,"execucaoGabaritoErro":"","rowCountMatch":false,"rowCountDiff":14,"columnOverlap":0,"dataMatchScore":0,"veredito":"INCORRETO"}]}
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+const fmtDate = iso => {
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+};
+const escHtml = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const verdClass = v => ({CORRETO:'correto',PARCIAL:'parcial',INCORRETO:'incorreto',ERRO_IA:'erro',ERRO_GABARITO:'errogab'}[v]||'');
+const verdLabel = v => ({CORRETO:'Correto',PARCIAL:'Parcial',INCORRETO:'Incorreto',ERRO_IA:'Erro IA',ERRO_GABARITO:'Err. Gabarito'}[v]||v);
+const provColor = {'deepseek':'var(--deepseek)','gemini':'var(--gemini)','groq':'var(--groq)'};
+const difColor  = {'facil':'var(--facil)','medio':'var(--parcial)','dificil':'var(--incorreto)'};
+const difLabel  = {'facil':'Fácil','medio':'Médio','dificil':'Difícil'};
+const models    = {'deepseek':'deepseek-v3','gemini':'gemini-2.5-flash-lite','groq':'llama-3.3-70b'};
+
+function scoreColor(s) {
+  if (s >= 80) return '#22c55e';
+  if (s >= 50) return '#f59e0b';
+  if (s > 0)   return '#ef4444';
+  return '#4b5563';
+}
+
+// ── metadata ─────────────────────────────────────────────────────────────────
+document.getElementById('meta-q').textContent = DATA.metadata.totalPerguntas;
+document.getElementById('meta-r').textContent = DATA.metadata.totalResultados;
+document.getElementById('meta-f').textContent = DATA.metadata.sourceFiles;
+document.getElementById('meta-first').textContent = fmtDate(DATA.metadata.firstRun);
+document.getElementById('meta-last').textContent  = fmtDate(DATA.metadata.lastRun);
+document.getElementById('meta-gen').textContent   = fmtDate(DATA.metadata.generatedAt);
+
+// ── tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['overview','table','questions'][i] === id));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + id));
+  if (id === 'table') renderTable();
+  if (id === 'questions') renderQuestions();
+}
+
+// ── provider cards ────────────────────────────────────────────────────────────
+function buildProviderCards() {
+  const el = document.getElementById('provider-cards');
+  DATA.summary.forEach(p => {
+    const total = p.total;
+    const acc = Math.round((p.corretos + p.parciais * 0.5) / total * 100);
+    const pct = s => Math.round(s / total * 100);
+    const color = provColor[p.provider];
+
+    // SVG ring
+    const r = 34, cx = 40, cy = 40, circ = 2 * Math.PI * r;
+    const dash = (acc / 100) * circ;
+
+    const difRows = p.byDificuldade.map(d => `
+      <tr>
+        <td style="color:var(--muted)">${difLabel[d.dificuldade]}</td>
+        <td class="num" style="color:${difColor[d.dificuldade]}">${d.corretos}/${d.total}</td>
+        <td class="num" style="color:var(--muted)">${d.avgDataMatchScore}%</td>
+      </tr>`).join('');
+
+    el.insertAdjacentHTML('beforeend', `
+    <div class="pcard">
+      <div class="pcard-header">
+        <div class="pcard-dot" style="background:${color}"></div>
+        <div>
+          <div class="pcard-name">${p.provider.charAt(0).toUpperCase()+p.provider.slice(1)}</div>
+          <div class="pcard-model">${models[p.provider]}</div>
+        </div>
+      </div>
+      <div class="score-ring">
+        <div class="ring-wrap">
+          <svg width="80" height="80">
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="8"/>
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="8"
+              stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
+          </svg>
+          <div class="ring-label">${acc}%<small>acc.</small></div>
+        </div>
+        <div class="score-stats">
+          <div class="stat-row"><span class="stat-label">Correto</span><span class="stat-val" style="color:var(--correto)">${p.corretos} <small>(${pct(p.corretos)}%)</small></span></div>
+          <div class="stat-row"><span class="stat-label">Parcial</span><span class="stat-val" style="color:var(--parcial)">${p.parciais} <small>(${pct(p.parciais)}%)</small></span></div>
+          <div class="stat-row"><span class="stat-label">Incorreto</span><span class="stat-val" style="color:var(--incorreto)">${p.incorretos} <small>(${pct(p.incorretos)}%)</small></span></div>
+          <div class="stat-row"><span class="stat-label">Erro IA</span><span class="stat-val" style="color:var(--erro)">${p.errosIA} <small>(${pct(p.errosIA)}%)</small></span></div>
+          <div class="stat-row"><span class="stat-label">Avg Score</span><span class="stat-val">${p.avgDataMatchScore}%</span></div>
+        </div>
+      </div>
+      <div class="diff-bar">
+        <div class="diff-seg" style="flex:${p.corretos};background:var(--correto)" title="Correto: ${p.corretos}"></div>
+        <div class="diff-seg" style="flex:${p.parciais};background:var(--parcial)" title="Parcial: ${p.parciais}"></div>
+        <div class="diff-seg" style="flex:${p.incorretos};background:var(--incorreto)" title="Incorreto: ${p.incorretos}"></div>
+        <div class="diff-seg" style="flex:${p.errosIA};background:var(--erro)" title="Erro IA: ${p.errosIA}"></div>
+      </div>
+      <table class="diff-table" style="margin-top:12px">
+        <thead><tr><th style="color:var(--muted);font-size:11px;text-align:left">Dificuldade</th><th style="color:var(--muted);font-size:11px;text-align:right">Acerto</th><th style="color:var(--muted);font-size:11px;text-align:right">Avg Score</th></tr></thead>
+        <tbody>${difRows}</tbody>
+      </table>
+    </div>`);
+  });
+}
+
+// ── charts ────────────────────────────────────────────────────────────────────
+function buildCharts() {
+  const providers = DATA.summary.map(p => p.provider.charAt(0).toUpperCase()+p.provider.slice(1));
+  const colors = DATA.summary.map(p => provColor[p.provider]);
+
+  // Chart 1 – stacked bar results
+  new Chart(document.getElementById('chartResults'), {
+    type: 'bar',
+    data: {
+      labels: providers,
+      datasets: [
+        { label: 'Correto',     data: DATA.summary.map(p=>p.corretos),  backgroundColor: '#22c55e' },
+        { label: 'Parcial',     data: DATA.summary.map(p=>p.parciais),  backgroundColor: '#f59e0b' },
+        { label: 'Incorreto',   data: DATA.summary.map(p=>p.incorretos),backgroundColor: '#ef4444' },
+        { label: 'Erro IA',     data: DATA.summary.map(p=>p.errosIA),   backgroundColor: '#8b5cf6' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892a4', font: {size:11} } } },
+      scales: {
+        x: { stacked: true, ticks: { color: '#8892a4' }, grid: { color: '#2e3352' } },
+        y: { stacked: true, ticks: { color: '#8892a4', stepSize: 1 }, grid: { color: '#2e3352' }, max: 23 }
+      }
+    }
+  });
+
+  // Chart 2 – grouped score by difficulty
+  const difs = ['facil','medio','dificil'];
+  const difLabels = ['Fácil','Médio','Difícil'];
+  const datasets = DATA.summary.map((p, i) => ({
+    label: p.provider.charAt(0).toUpperCase()+p.provider.slice(1),
+    data: difs.map(d => {
+      const found = p.byDificuldade.find(x => x.dificuldade === d);
+      return found ? found.avgDataMatchScore : 0;
+    }),
+    backgroundColor: colors[i],
+    borderRadius: 4,
+  }));
+
+  new Chart(document.getElementById('chartScore'), {
+    type: 'bar',
+    data: { labels: difLabels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892a4', font:{size:11} } } },
+      scales: {
+        x: { ticks: { color: '#8892a4' }, grid: { color: '#2e3352' } },
+        y: { ticks: { color: '#8892a4', callback: v => v+'%' }, grid: { color: '#2e3352' }, max: 100 }
+      }
+    }
+  });
+}
+
+// ── difficulty cards ──────────────────────────────────────────────────────────
+function buildDiffCards() {
+  const el = document.getElementById('diff-cards');
+  const difs = ['facil','medio','dificil'];
+  difs.forEach(dif => {
+    const rows = DATA.summary.map(p => {
+      const d = p.byDificuldade.find(x => x.dificuldade === dif);
+      if (!d) return '';
+      return `<tr>
+        <td><span style="color:${provColor[p.provider]};font-weight:600">${p.provider}</span></td>
+        <td class="num">${d.corretos}<span style="color:var(--muted);">/${d.total}</span></td>
+        <td class="num">${d.parciais}</td>
+        <td class="num">${d.incorretos}</td>
+        <td class="num">${d.errosIA}</td>
+        <td class="num">${d.avgDataMatchScore}%</td>
+      </tr>`;
+    }).join('');
+
+    const count = DATA.results.filter(r => r.dificuldade === dif).length / 3;
+    el.insertAdjacentHTML('beforeend', `
+    <div class="diff-card">
+      <div class="diff-card-title">
+        <div class="diff-dot" style="background:${difColor[dif]}"></div>
+        ${difLabel[dif]} <span class="count-badge">${count} perguntas</span>
+      </div>
+      <table class="diff-table">
+        <thead><tr>
+          <th style="text-align:left;color:var(--muted);font-size:10px">Provedor</th>
+          <th style="text-align:right;color:var(--correto);font-size:10px">✓</th>
+          <th style="text-align:right;color:var(--parcial);font-size:10px">~</th>
+          <th style="text-align:right;color:var(--incorreto);font-size:10px">✗</th>
+          <th style="text-align:right;color:var(--erro);font-size:10px">!</th>
+          <th style="text-align:right;color:var(--muted);font-size:10px">Score</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`);
+  });
+}
+
+// ── table ─────────────────────────────────────────────────────────────────────
+let activeFilters = {
+  provider: new Set(['deepseek','gemini','groq']),
+  dif: new Set(['facil','medio','dificil']),
+  veredito: new Set(['CORRETO','PARCIAL','INCORRETO','ERRO_IA','ERRO_GABARITO']),
+};
+let sortCol = 'questionId', sortDir = 1;
+let expandedRow = null;
+
+function toggleFilter(chip) {
+  const filter = chip.dataset.filter;
+  const val = chip.dataset.val;
+  if (val === 'all') return;
+  const set = activeFilters[filter];
+  if (set.has(val)) set.delete(val); else set.add(val);
+  chip.classList.toggle('active');
+  // update "all" chip
+  const allChip = document.querySelector(`.fchip[data-filter="${filter}"][data-val="all"]`);
+  if (allChip) {
+    const allVals = [...document.querySelectorAll(`.fchip[data-filter="${filter}"]:not([data-val="all"])`)].map(c=>c.dataset.val);
+    const allActive = allVals.every(v => activeFilters[filter].has(v));
+    allChip.classList.toggle('active', allActive);
+  }
+  renderTable();
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+  document.querySelectorAll('thead th').forEach(th => {
+    const thCol = th.getAttribute('onclick')?.match(/sortBy\('(.*?)'\)/)?.[1];
+    th.classList.toggle('sorted', thCol === sortCol);
+    if (thCol === sortCol) th.querySelector('.sort-icon').textContent = sortDir > 0 ? '↑' : '↓';
+    else if (th.querySelector('.sort-icon')) th.querySelector('.sort-icon').textContent = '↕';
+  });
+  renderTable();
+}
+
+function filteredResults() {
+  const q = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+  return DATA.results.filter(r =>
+    activeFilters.provider.has(r.provider) &&
+    activeFilters.dif.has(r.dificuldade) &&
+    activeFilters.veredito.has(r.veredito) &&
+    (!q || r.pergunta.toLowerCase().includes(q) || r.questionId.toLowerCase().includes(q))
+  ).sort((a,b) => {
+    let av = a[sortCol], bv = b[sortCol];
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av < bv) return -sortDir;
+    if (av > bv) return sortDir;
+    return 0;
+  });
+}
+
+function renderTable() {
+  const tbody = document.getElementById('table-body');
+  const results = filteredResults();
+  document.getElementById('table-count').textContent = results.length;
+  if (!results.length) { tbody.innerHTML = '<tr><td colspan="8" class="no-results">Nenhum resultado encontrado.</td></tr>'; return; }
+  tbody.innerHTML = results.map((r, i) => {
+    const vc = verdClass(r.veredito);
+    const sc = r.dataMatchScore;
+    return `
+    <tr onclick="toggleExpand(${i}, event)" data-idx="${i}">
+      <td class="qid">${r.questionId}</td>
+      <td class="pergunta-cell"><div class="pergunta-text" title="${escHtml(r.pergunta)}">${escHtml(r.pergunta)}</div></td>
+      <td><span class="dif-chip dif-${r.dificuldade}">${difLabel[r.dificuldade]}</span></td>
+      <td><span class="provider-chip provider-${r.provider}">${r.provider}</span></td>
+      <td><span class="badge badge-${vc}">${verdLabel(r.veredito)}</span></td>
+      <td>
+        <div class="score-bar">
+          <div class="score-bar-bg"><div class="score-bar-fill" style="width:${sc}%;background:${scoreColor(sc)}"></div></div>
+          <span class="score-num" style="color:${scoreColor(sc)}">${sc}%</span>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--muted)">${r.execucaoIARowCount} / ${r.execucaoGabaritoRowCount}</td>
+      <td><span style="font-size:11px;color:${r.geracaoSucesso?'var(--correto)':'var(--erro)'}">${r.geracaoSucesso?'OK':'Falhou'}</span></td>
+    </tr>
+    <tr class="expand-row" id="expand-${i}" style="display:none">
+      <td colspan="8">
+        <div class="expand-content">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">${escHtml(r.pergunta)}</div>
+          ${buildExpandContent(r)}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleExpand(idx, e) {
+  const row = document.getElementById('expand-' + idx);
+  const isOpen = row.style.display !== 'none';
+  // close all
+  document.querySelectorAll('.expand-row').forEach(r => r.style.display = 'none');
+  document.querySelectorAll('tbody tr[data-idx]').forEach(r => r.classList.remove('expanded'));
+  if (!isOpen) {
+    row.style.display = '';
+    e.currentTarget.classList.add('expanded');
+  }
+}
+
+function buildExpandContent(r) {
+  const sqlHtml = r.sqlGerado
+    ? `<pre>${escHtml(r.sqlGerado)}</pre>`
+    : `<span style="color:var(--erro);font-size:11px">SQL não gerado</span>`;
+  const erroIA = r.geracaoErro ? `<div class="err-msg"><b>Erro geração:</b> ${escHtml(r.geracaoErro)}</div>` : '';
+  const erroExec = r.execucaoIAErro ? `<div class="err-msg"><b>Erro execução:</b> ${escHtml(r.execucaoIAErro)}</div>` : '';
+  const erroGab = r.execucaoGabaritoErro ? `<div class="err-msg"><b>Erro gabarito:</b> ${escHtml(r.execucaoGabaritoErro)}</div>` : '';
+  return `
+    <div class="exec-info">
+      <div class="exec-item"><label>Modelo: </label><span>${r.model}</span></div>
+      <div class="exec-item"><label>Linhas IA: </label><span>${r.execucaoIARowCount}</span></div>
+      <div class="exec-item"><label>Linhas sem limit: </label><span>${r.execucaoIARowCountSemLimit}</span></div>
+      <div class="exec-item"><label>Linhas gabarito: </label><span>${r.execucaoGabaritoRowCount}</span></div>
+      <div class="exec-item"><label>Diff linhas: </label><span style="color:${r.rowCountDiff>0?'var(--incorreto)':'var(--correto)'}">${r.rowCountDiff}</span></div>
+      <div class="exec-item"><label>Col. overlap: </label><span>${r.columnOverlap}%</span></div>
+      <div class="exec-item"><label>Tem LIMIT: </label><span>${r.temLimit?'Sim':'Não'}</span></div>
+    </div>
+    ${erroIA}${erroExec}${erroGab}
+    <div class="sql-grid">
+      <div class="sql-block"><h4>SQL Gerado</h4>${sqlHtml}</div>
+    </div>`;
+}
+
+// ── questions view ────────────────────────────────────────────────────────────
+function renderQuestions() {
+  const el = document.getElementById('q-list');
+  if (el.children.length > 0) return; // already rendered
+
+  const questions = [...new Set(DATA.results.map(r => r.questionId))];
+  questions.forEach(qid => {
+    const qResults = DATA.results.filter(r => r.questionId === qid);
+    const first = qResults[0];
+    const allVereditos = qResults.map(r => r.veredito);
+    const hasCorrecto = allVereditos.includes('CORRETO');
+    const allWrong = allVereditos.every(v => v === 'INCORRETO' || v === 'ERRO_IA' || v === 'ERRO_GABARITO');
+
+    const verdBadges = qResults.map(r =>
+      `<span class="badge badge-${verdClass(r.veredito)}" style="font-size:10px">${r.provider}: ${verdLabel(r.veredito)}</span>`
+    ).join(' ');
+
+    const providersCols = qResults.map(r => {
+      const vc = verdClass(r.veredito);
+      const sqlHtml = r.sqlGerado
+        ? `<div class="q-sql"><pre>${escHtml(r.sqlGerado)}</pre></div>`
+        : `<div class="q-err">SQL não gerado</div>`;
+      const erros = [
+        r.geracaoErro && `<div class="q-err"><b>Geração:</b> ${escHtml(r.geracaoErro)}</div>`,
+        r.execucaoIAErro && `<div class="q-err"><b>Execução:</b> ${escHtml(r.execucaoIAErro)}</div>`,
+        r.execucaoGabaritoErro && `<div class="q-err"><b>Gabarito:</b> ${escHtml(r.execucaoGabaritoErro)}</div>`,
+      ].filter(Boolean).join('');
+      return `
+      <div class="q-provider">
+        <div class="q-provider-header">
+          <span class="q-provider-name" style="color:${provColor[r.provider]}">${r.provider}</span>
+          <span class="badge badge-${vc}">${verdLabel(r.veredito)}</span>
+        </div>
+        <div class="q-model">${r.model}</div>
+        <div class="q-exec-row">
+          <div class="q-exec-item"><label>Score: </label><span style="color:${scoreColor(r.dataMatchScore)};font-weight:700">${r.dataMatchScore}%</span></div>
+          <div class="q-exec-item"><label>Linhas IA: </label><span>${r.execucaoIARowCount}</span></div>
+          <div class="q-exec-item"><label>Linhas Gab: </label><span>${r.execucaoGabaritoRowCount}</span></div>
+          <div class="q-exec-item"><label>Diff: </label><span style="color:${r.rowCountDiff>0?'var(--incorreto)':'var(--correto)'}">${r.rowCountDiff}</span></div>
+        </div>
+        ${sqlHtml}
+        ${erros}
+      </div>`;
+    }).join('');
+
+    const borderColor = hasCorrecto ? 'var(--correto)' : (allWrong ? 'var(--border)' : 'var(--parcial)');
+    el.insertAdjacentHTML('beforeend', `
+    <div class="q-card" style="border-left: 3px solid ${borderColor}">
+      <div class="q-card-header" onclick="toggleQ('${qid}')">
+        <div class="q-num">${qid}</div>
+        <div class="q-title">${escHtml(first.pergunta)}</div>
+        <div class="q-badges">
+          <span class="dif-chip dif-${first.dificuldade}">${difLabel[first.dificuldade]}</span>
+          ${verdBadges}
+        </div>
+        <div class="q-arrow" id="arrow-${qid}">▶</div>
+      </div>
+      <div class="q-body" id="body-${qid}">
+        <div class="q-providers">${providersCols}</div>
+      </div>
+    </div>`);
+  });
+}
+
+function toggleQ(qid) {
+  const body = document.getElementById('body-' + qid);
+  const arrow = document.getElementById('arrow-' + qid);
+  const open = body.classList.toggle('open');
+  arrow.classList.toggle('open', open);
+}
+
+// ── init ──────────────────────────────────────────────────────────────────────
+buildProviderCards();
+buildCharts();
+buildDiffCards();
+</script>
+</body>
+</html>

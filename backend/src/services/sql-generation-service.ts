@@ -651,7 +651,8 @@ ${contextLines.join('\n')}
   private buildSQLGenerationPrompt(
     question: string,
     reducedSchema: string,
-    conversationContext: string = ""
+    conversationContext: string = "",
+    maxExamples: number = 3
   ): string {
     return `Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
 Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
@@ -746,7 +747,7 @@ ${reducedSchema}
    CONSEQUÊNCIA: Chaves têm formatos diferentes (7 vs 4 chars) → 0 linhas retornadas
 
 💡 EXEMPLOS PRÁTICOS ESPERADOS:
-${this.getDynamicExamples(question)}
+${this.getDynamicExamples(question, maxExamples)}
 
 🧠 SUA TAREFA (CHAIN OF THOUGHT):
 1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
@@ -759,7 +760,7 @@ ${this.getDynamicExamples(question)}
    * Seleciona os melhores exemplos (Few-Shot Dinâmico) baseado em palavras-chave.
    * Pool expandido para cobrir os padrões mais comuns do test set.
    */
-  private getDynamicExamples(question: string): string {
+  private getDynamicExamples(question: string, maxExamples: number = 3): string {
     const q = question.toLowerCase()
     const pool = [
       {
@@ -944,8 +945,7 @@ LIMIT 20
 
     scored.sort((a, b) => b.score - a.score)
 
-    // Top 3 examples
-    return scored.slice(0, 3).map(ex => ex.text).join('\n\n')
+    return scored.slice(0, maxExamples).map(ex => ex.text).join('\n\n')
   }
 
   /**
@@ -965,7 +965,8 @@ LIMIT 20
 
     const { hint } = this.classifyPostgresError(error, failedSql)
 
-    const basePrompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext)
+    const maxExamples = provider === 'groq' ? 1 : 3
+    const basePrompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext, maxExamples)
     const correctionPrompt = `${basePrompt}
 
 🚨 CORREÇÃO NECESSÁRIA: A consulta SQL abaixo falhou na execução.
@@ -1156,7 +1157,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
     }
 
     try {
-      const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext)
+      const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext, 1)
 
       const result = await this.groqService.generateResponse({
         prompt,
