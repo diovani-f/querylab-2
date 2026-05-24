@@ -476,7 +476,7 @@ export class SQLGenerationService {
   }
 
   private formatSchemaToText(parsedSchema: any): string {
-    const cestaSchemaSet = new Set(['uf_ibge', 'idhms', 'pibs_per_capita', 'variaveis_pib_municipios_ibge', 'ibge_demografia_municipios'])
+    const cestaSchemaSet = new Set(['uf_ibge', 'pibs_per_capita', 'variaveis_pib_municipios_ibge', 'ibge_demografia_municipios'])
     const dictionary = this.buildSchemaColumnDict()
 
     const lines: string[] = ['SCHEMAS DISPONÍVEIS: inep e cesta']
@@ -697,12 +697,14 @@ ${reducedSchema}
    - ❌ NUNCA USE: \`censo_ies.cod_categoria_administrativa\` (O nome correto no schema é \`id_categoria_administrativa\`).
    - ❌ NUNCA USE: \`uf_ibge.nome_uf\` ou \`uf_ibge.sigla_uf\` (O nome correto é \`no_uf_ibge\` e o PK é \`co_uf_ibge\`).
    - ❌ NUNCA USE: \`emec_instituicoes.in_capital\` (Só existe na \`censo_ies\`).
+   - ❌ NUNCA USE: \`censo_curso_vagas_bruto.sg_uf_ies\` ou \`censo_curso_vagas_bruto.no_regiao_ies\` — essas colunas NÃO EXISTEM em vagas_bruto. Para estado/região de curso ou vaga use \`sg_uf\` e \`no_regiao\` (existem diretamente em \`censo_curso_vagas_bruto\`).
+   - ❌ NUNCA USE: \`fluxo_tda.sg_uf_ies\` — \`fluxo_tda\` não tem coluna de UF/estado. Para filtrar por estado, faça JOIN com \`censo_ies_bruto b ON f.co_ies = b.co_ies\` e use \`b.sg_uf_ies\`.
    - Use os tipos de dados originais. Para strings, sempre utilize \`ILIKE\` em buscas textuais para ser case-insensitive.
 
 4. **PREFIXO DE SCHEMA (ATENÇÃO)**:
    - A maioria das tabelas usa o prefixo \`inep.\`: \`censo_ies\`, \`censo_cursos\`, \`censo_curso_vagas_bruto\`, \`emec_instituicoes\`, \`municipios_ibge\`, \`microregioes_ibge\`, \`mesoregioes_ibge\`, \`regioes_ibge\`, \`dados_cpc\`, \`dados_enade\`, \`dados_igc\`.
    - ⚠️ EXCEÇÃO CRÍTICA: A tabela \`uf_ibge\` pertence ao schema \`cesta\` — SEMPRE use \`cesta.uf_ibge\`, NUNCA \`inep.uf_ibge\`.
-   - Também são do schema \`cesta\`: \`idhms\`, \`pibs_per_capita\`, \`variaveis_pib_municipios_ibge\`.
+   - Também são do schema \`cesta\`: \`pibs_per_capita\`, \`variaveis_pib_municipios_ibge\`. A tabela \`idhms\` usa prefixo \`inep.\` — SEMPRE use \`inep.idhms\`, NUNCA \`cesta.idhms\`.
 
 5. **PERFORMANCE**:
    - Sempre limite os resultados: \`LIMIT 50\` em queries com JOINs abertos, ou \`LIMIT 100\` em consultas simples.
@@ -745,6 +747,12 @@ ${reducedSchema}
    CORRETO: JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
             JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
    CONSEQUÊNCIA: Chaves têm formatos diferentes (7 vs 4 chars) → 0 linhas retornadas
+
+❌ ANTI-PADRÃO 4 — DIVISÃO SEM NULLIF (divisão por zero):
+   ERRADO:  (qt_mat - qt_conc) / qt_mat::numeric
+   CORRETO: (qt_mat - qt_conc) / NULLIF(qt_mat, 0)::numeric
+   CONSEQUÊNCIA: Se qt_mat = 0 (curso sem matrículas) → division by zero → query falha
+   REGRA: SEMPRE envolva o denominador em NULLIF(denominador, 0) em qualquer divisão.
 
 💡 EXEMPLOS PRÁTICOS ESPERADOS:
 ${this.getDynamicExamples(question, maxExamples)}
@@ -1793,7 +1801,14 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
       'id_categoria_administrativa': '[int — em censo_ies: 1=Pública Federal, 2=Pública Estadual, 3=Municipal, 4=Privada c/fins lucrativos, 5=Privada s/fins lucrativos, 6=Privada Confessional, 7=Especial, 8=Comunitária]',
       'id_organizacao_academica':    '[int — em censo_ies: 1=Universidade, 2=Centro Universitário, 3=Faculdade, 4=Instituto Federal, 5=CEFET]',
       'id_grau_academico':           '[int — em censo_cursos: 1=Bacharelado, 2=Licenciatura, 3=Tecnológico, 4=Bacharelado+Licenciatura]',
-      'id_modalidade_ensino':        '[int — em censo_cursos: 1=Presencial, 2=EAD]',
+      'id_modalidade_ensino':        '[int — em censo_cursos: 1=Presencial, 2=EAD — NÃO USE para filtrar vagas/matrículas; para isso use tp_modalidade_ensino em censo_curso_vagas_bruto]',
+      // Localização em censo_ies_bruto — NÃO existem em censo_curso_vagas_bruto ou fluxo_tda
+      'sg_uf_ies':        '[varchar — SOMENTE em censo_ies_bruto — sigla do estado da IES (ex: "SP"). NÃO use em censo_curso_vagas_bruto ou fluxo_tda]',
+      'no_regiao_ies':    '[varchar — SOMENTE em censo_ies_bruto — nome da região da IES]',
+      'no_municipio_ies': '[varchar — SOMENTE em censo_ies_bruto — nome do município da IES. Use ILIKE para filtrar]',
+      // Localização em censo_curso_vagas_bruto — NÃO existem em censo_ies_bruto
+      'sg_uf':    '[varchar — SOMENTE em censo_curso_vagas_bruto — sigla do estado do curso/polo. Use esta (não sg_uf_ies) ao filtrar vagas/matrículas por estado]',
+      'no_regiao':'[varchar — SOMENTE em censo_curso_vagas_bruto — nome da região do curso. Use esta (não no_regiao_ies) para agregações por região em vagas/matrículas]',
       // Categorias em censo_ies_bruto e censo_curso_vagas_bruto (sem JOIN extra)
       'tp_organizacao_academica':    '[int — em censo_ies_bruto: 1=Universidade, 2=Centro Universitário, 3=Faculdade, 4=Instituto Federal, 5=CEFET]',
       'tp_categoria_administrativa': '[int — em censo_ies_bruto/vagas_bruto: 1=Federal, 2=Estadual, 3=Municipal, 4=Privada c/lucro, 5=Privada s/lucro, 6=Confessional, 7=Especial, 8=Comunitária]',
@@ -1836,9 +1851,10 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
       'cod_ibge':             '[character PK — em municipios_ibge — use aspas simples]',
       'cod_microregiao_ibge': '[character — join entre municipios_ibge e microregioes_ibge]',
       // CAPES pós-graduação
-      'an_base':             '[int — ano base — em capes_programas_bruto, range 2013–2022]',
-      'cd_nivel_formacao':   '[char — em capes_programas_bruto: M=Mestrado, D=Doutorado, F=Mestrado Profissional]',
-      'nm_grau_academico':   '[varchar — em capes_programas_bruto: "MESTRADO", "DOUTORADO", "MESTRADO PROFISSIONAL"]',
+      'an_base':               '[int — ano base — em capes_programas_bruto, range 2013–2022]',
+      'cd_nivel_formacao':     '[char — em capes_programas_bruto: M=Mestrado, D=Doutorado, F=Mestrado Profissional]',
+      'nm_grau_academico':     '[varchar — em capes_programas_bruto: "MESTRADO", "DOUTORADO", "MESTRADO PROFISSIONAL"]',
+      'cd_conceito_programa':  '[varchar — em capes_programas_bruto — para comparação numérica use cast: cd_conceito_programa::int >= 6. NUNCA compare diretamente com inteiro sem cast]',
       // IBGE socioeconômico (schema cesta)
       'cod_ibge_mun':  '[character — em idhms e pibs_per_capita — equivale a municipios_ibge.cod_ibge]',
     }
@@ -1893,7 +1909,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
 - dados_igc.co_ies = emec_instituicoes.co_ies
 - igc_bruto.cod_ies = censo_ies_bruto.co_ies  (NOTE: igc_bruto tem 'cod_ies', censo_ies_bruto tem 'co_ies')
 - fluxo_tda.co_ies = censo_ies_bruto.co_ies  |  fluxo_tda.co_curso = censo_cursos.cod_curso
-- municipios_ibge.cod_ibge = idhms.cod_ibge
+- municipios_ibge.cod_ibge = inep.idhms.cod_ibge  (schema inep, NÃO cesta)
 - municipios_ibge.cod_ibge = pibs_per_capita.cod_ibge`
   }
 
@@ -1910,7 +1926,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
       const tbl = tblMatch?.[1] || ''
       return {
         type: 'column_not_found',
-        hint: `❌ COLUNA "${col}" NÃO EXISTE${tbl ? ` na tabela "${tbl}"` : ''}. Verifique o schema acima e use EXATAMENTE o nome listado. Atenção: 'cod_ies' existe em censo_ies/censo_cursos; 'co_ies' existe em emec_instituicoes/censo_ies_bruto/dados_cpc — são colunas diferentes.`
+        hint: `❌ COLUNA "${col}" NÃO EXISTE${tbl ? ` na tabela "${tbl}"` : ''}. Verifique o schema acima e use EXATAMENTE o nome listado. Atenção: 'cod_ies' existe em censo_ies/censo_cursos; 'co_ies' existe em emec_instituicoes/censo_ies_bruto/dados_cpc — são colunas diferentes. Atenção especial: 'sg_uf_ies' e 'no_regiao_ies' existem SOMENTE em censo_ies_bruto — em censo_curso_vagas_bruto use 'sg_uf' e 'no_regiao'. Em fluxo_tda não há coluna de UF — faça JOIN com censo_ies_bruto para obter sg_uf_ies.`
       }
     }
 
@@ -1935,7 +1951,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
     if (lower.includes('operator does not exist') || lower.includes('cannot cast') || lower.includes('invalid input syntax for type')) {
       return {
         type: 'type_mismatch',
-        hint: `❌ TIPO DE DADO INCOMPATÍVEL. Possíveis causas: (1) comparando int com varchar sem cast — lembre que cod_municipio e cod_ibge são character, use aspas simples: cod_municipio = '123456'; (2) tp_grau_academico em fluxo_tda é varchar, não int.`
+        hint: `❌ TIPO DE DADO INCOMPATÍVEL. Possíveis causas: (1) comparando int com varchar sem cast — cod_municipio/cod_ibge são character, use aspas simples: cod_municipio = '123456'; (2) tp_grau_academico em fluxo_tda é varchar, não int; (3) cd_conceito_programa em capes_programas_bruto é varchar — para comparação numérica use cast: cd_conceito_programa::int >= 6.`
       }
     }
 
@@ -1961,7 +1977,7 @@ CORRETO: JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo =
       }
       return {
         type: 'timeout',
-        hint: `❌ TIMEOUT: A query demorou mais de 45s. Verifique: (1) JOINs sem condição de ano entre tabelas temporais, (2) ausência de LIMIT, (3) produto cartesiano acidental entre tabelas grandes.`
+        hint: `❌ TIMEOUT: A query demorou mais de 45s. Verifique: (1) JOINs sem condição de ano entre tabelas temporais — adicione AND v.nu_ano_censo = b.nu_ano_censo; (2) ausência de LIMIT; (3) produto cartesiano acidental entre tabelas grandes; (4) SUM() ou COUNT() sem filtro WHERE em censo_curso_vagas_bruto (~5M linhas) — sempre adicione filtro de ano (nu_ano_censo = X) ou outro predicado seletivo antes de agregar.`
       }
     }
 
