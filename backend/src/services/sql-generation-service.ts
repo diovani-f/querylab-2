@@ -659,7 +659,7 @@ Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente o
 
 📋 CONTEXTO DA CONVERSA:
 ${conversationContext || "Nenhum contexto anterior."}
-${conversationContext ? `\n⚠️ ATENÇÃO CRÍTICA: A pergunta abaixo é NOVA e DIFERENTE das perguntas anteriores mostradas no contexto. Você DEVE gerar SQL APENAS para esta pergunta específica, NUNCA reutilize ou adapte SQL de perguntas anteriores.\n` : ""}
+${conversationContext ? `\n💡 Use o contexto acima para entender referências implícitas da pergunta atual (ex: "e no Sul?", "agora filtre por universidades"). Se a pergunta for um follow-up, adapte o SQL anterior; se for uma pergunta nova e independente, gere um SQL novo do zero.\n` : ""}
 🎯 PERGUNTA ATUAL: ${question}
 
 📊 SCHEMA DO BANCO DE DADOS DISPONÍVEL:
@@ -754,12 +754,19 @@ ${reducedSchema}
    CONSEQUÊNCIA: Se qt_mat = 0 (curso sem matrículas) → division by zero → query falha
    REGRA: SEMPRE envolva o denominador em NULLIF(denominador, 0) em qualquer divisão.
 
+❌ ANTI-PADRÃO 5 — FILTRO DE ESTADO EM fluxo_tda SEM JOIN:
+   ERRADO:  FROM inep.fluxo_tda f WHERE f.sg_uf_ies = 'SP'
+   CORRETO: FROM inep.fluxo_tda f
+            JOIN inep.censo_ies_bruto b ON f.co_ies = b.co_ies AND b.nu_ano_censo = f.nu_ano_referencia
+            WHERE b.sg_uf_ies = 'SP'
+   CONSEQUÊNCIA: fluxo_tda não tem coluna sg_uf_ies → query falha com "column does not exist"
+
 💡 EXEMPLOS PRÁTICOS ESPERADOS:
 ${this.getDynamicExamples(question, maxExamples)}
 
 🧠 SUA TAREFA (CHAIN OF THOUGHT):
 1. Primeiro, pense passo-a-passo. Escreva um parágrafo conciso explicando qual intenção você entendeu, quais tabelas serão escolhidas e por que.
-2. Liste explicitamente as colunas que você vai usar e confirme visualmente que elas **existem** no schema fornecido acima. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos.
+2. Verifique mentalmente cada coluna que usará — confirme que ela **existe** no schema acima com o nome exato. NUNCA invente colunas como 'co_municipio' ou 'nome_uf', sempre cheque os nomes corretos no schema.
 3. Em seguida, dê a resposta final em formato SQL padrão isolado por \`\`\`sql. Não coloque \`;\` após a query, não adicione comentários adicionais dentro do bloco da query.
 4. Por fim, em uma única linha iniciada exatamente com "EXPLICAÇÃO:", descreva em linguagem simples e amigável o que a query retorna, sem usar termos técnicos ou nomes de tabelas.`;
   }
@@ -773,10 +780,14 @@ ${this.getDynamicExamples(question, maxExamples)}
     const pool = [
       {
         tags: ['capital', 'capitais', 'cidade'],
-        text: `Exemplo (Uso correto da censo_ies para capitais):
+        text: `Exemplo (Contagem de IES em capitais — use censo_ies_bruto com filtro de ano):
 \`\`\`sql
-SELECT COUNT(*) FROM inep.censo_ies WHERE in_capital = 1
-\`\`\``
+SELECT COUNT(DISTINCT co_ies) AS total_ies_capitais
+FROM inep.censo_ies_bruto
+WHERE in_capital_ies = 1
+  AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)
+\`\`\`
+Nota: in_capital_ies (int: 1=Capital, 0=Interior) existe SOMENTE em censo_ies_bruto. Use sempre filtro de nu_ano_censo para dados atuais.`
       },
       {
         tags: ['contato', 'telefone', 'email', 'site'],
@@ -787,18 +798,16 @@ SELECT no_ies, telefone, email FROM inep.emec_instituicoes WHERE no_ies ILIKE '%
       },
       {
         tags: ['regiao', 'nordeste', 'sul', 'sudeste', 'norte', 'centro-oeste'],
-        text: `Exemplo (Cadeia geográfica obrigatória via censo_ies — note cesta.uf_ibge):
+        text: `Exemplo (Contagem de IES por região — use censo_ies_bruto com no_regiao_ies, sem cadeia geográfica):
 \`\`\`sql
-SELECT r.descr_regiao_ibge AS regiao, COUNT(DISTINCT c.cod_ies) AS total_instituicoes
-FROM inep.censo_ies c
-JOIN inep.municipios_ibge m ON c.cod_municipio = m.cod_ibge
-JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
-JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
-JOIN cesta.uf_ibge u ON me.cod_uf_ibge = u.co_uf_ibge
-JOIN inep.regioes_ibge r ON u.co_regiao_ibge = r.cod_regiao_ibge
-WHERE r.descr_regiao_ibge ILIKE 'Nordeste'
-GROUP BY r.descr_regiao_ibge
-\`\`\``
+SELECT no_regiao_ies AS regiao, COUNT(DISTINCT co_ies) AS total_instituicoes
+FROM inep.censo_ies_bruto
+WHERE nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)
+  AND no_regiao_ies ILIKE '%Nordeste%'
+GROUP BY no_regiao_ies
+ORDER BY total_instituicoes DESC
+\`\`\`
+Nota: Para contagens simples por região/estado/cidade, use censo_ies_bruto com no_regiao_ies/sg_uf_ies/no_municipio_ies — sem necessidade de cadeia geográfica. A cadeia municipios→microregioes→mesoregioes→uf_ibge→regioes_ibge é SOMENTE para cruzamentos com outras tabelas geográficas externas.`
       },
       {
         tags: ['estado', 'uf', 'minas gerais', 'sao paulo', 'rio de janeiro', 'bahia', 'parana', 'rs', 'mg', 'sp', 'rj'],
