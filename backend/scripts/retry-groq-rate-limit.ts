@@ -10,8 +10,13 @@ import * as path from 'path'
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 
-// IDs das perguntas que falharam por rate limit no groq
-const RATE_LIMIT_IDS = ['P8', 'P9', 'P13', 'P14', 'P15', 'P18', 'P20', 'P21']
+const unifiedDatedPath = path.resolve(__dirname, '../data/test-results-csvs/semantic_test_results_unified_2026-05-28.json')
+
+// Detecta automaticamente os IDs do groq com falha de rate limit no arquivo unificado
+const unifiedData = JSON.parse(fs.readFileSync(unifiedDatedPath, 'utf8'))
+const RATE_LIMIT_IDS: string[] = unifiedData.results
+  .filter((r: any) => r.provider === 'groq' && typeof r.geracaoErro === 'string' && r.geracaoErro.includes('rate_limit_exceeded'))
+  .map((r: any) => r.questionId)
 
 interface Pergunta {
   id: string
@@ -346,8 +351,7 @@ async function main() {
   }
 
   // ── Atualizar o JSON unificado ──
-  const unifiedPath = path.resolve(__dirname, '../data/test-results-csvs/semantic_test_results_unified.json')
-  const unified = JSON.parse(fs.readFileSync(unifiedPath, 'utf8'))
+  const unified = JSON.parse(fs.readFileSync(unifiedDatedPath, 'utf8'))
 
   // Substituir as entradas groq das perguntas re-testadas
   const updatedResults: ComparisonResult[] = unified.results.map((r: ComparisonResult) => {
@@ -372,8 +376,8 @@ async function main() {
     results: updatedResults
   }
 
-  fs.writeFileSync(unifiedPath, JSON.stringify(updatedUnified, null, 2), 'utf8')
-  console.log(`\n✅ JSON unificado atualizado: ${unifiedPath}`)
+  fs.writeFileSync(unifiedDatedPath, JSON.stringify(updatedUnified, null, 2), 'utf8')
+  console.log(`\n✅ JSON unificado atualizado: ${unifiedDatedPath}`)
 
   // Sumário das mudanças
   console.log('\n' + '═'.repeat(60))

@@ -242,17 +242,19 @@ export class QueryExecutionService {
     const hasOrderBy = sqlLower.includes('order by')
     const hasSubquery = sqlLower.includes('select') &&
                        (sqlLower.match(/select/g) || []).length > 1
+    const hasILIKEWildcard = /ilike\s+'%[^']+%'/i.test(sql)
 
     let timeoutMs = this.DEFAULT_TIMEOUT_MS
 
     // Ajustar baseado na complexidade
-    if (joinCount > 2) timeoutMs += 10000 // +10s para múltiplos JOINs
-    if (hasGroupBy) timeoutMs += 5000     // +5s para GROUP BY
-    if (hasOrderBy) timeoutMs += 3000     // +3s para ORDER BY
-    if (hasSubquery) timeoutMs += 7000    // +7s para subqueries
+    if (joinCount > 2) timeoutMs += 10000   // +10s para múltiplos JOINs
+    if (hasGroupBy) timeoutMs += 5000       // +5s para GROUP BY
+    if (hasOrderBy) timeoutMs += 3000       // +3s para ORDER BY
+    if (hasSubquery) timeoutMs += 7000      // +7s para subqueries
+    if (hasILIKEWildcard) timeoutMs += 20000 // +20s — ILIKE com wildcard = full scan sem índice
 
-    // Máximo de 60 segundos
-    return Math.min(timeoutMs, 60000)
+    // Máximo de 120 segundos
+    return Math.min(timeoutMs, 120000)
   }
 
   /**

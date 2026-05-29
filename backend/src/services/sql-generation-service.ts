@@ -143,6 +143,7 @@ export class SQLGenerationService {
       if (!validationResult.isValid) {
         return {
           success: false,
+          sql: sqlResult.sql,
           error: `SQL inválido: ${validationResult.errors.join(', ')}`,
           processingTime: Date.now() - startTime
         }
@@ -218,9 +219,10 @@ export class SQLGenerationService {
       ]
 
       // 3. Gerar SQL em paralelo com Promise.allSettled
+      const groqSchema = schemaResult.compactSchema ?? schemaResult.reducedSchema!
       const promises = [
         this.generateWithGemini(request.question, schemaResult.reducedSchema!, conversationContext),
-        this.generateWithGroq(request.question, schemaResult.reducedSchema!, conversationContext),
+        this.generateWithGroq(request.question, groqSchema, conversationContext),
         this.generateWithDeepSeek(request.question, schemaResult.reducedSchema!, conversationContext)
       ]
 
@@ -402,6 +404,7 @@ export class SQLGenerationService {
   private async getReducedSchema(question?: string): Promise<{
     success: boolean
     reducedSchema?: string
+    compactSchema?: string
     error?: string
   }> {
     try {
@@ -432,7 +435,12 @@ export class SQLGenerationService {
 
               if (allTables.length > 0) {
                 console.log(`✅ RAG selecionou ${allTables.length} tabelas de ${bySchema.size} schema(s): ${[...bySchema.keys()].join(', ')}`)
-                return { success: true, reducedSchema: this.formatSchemaToText({ tables: allTables }) }
+                const parsedForRag = { tables: allTables }
+                return {
+                  success: true,
+                  reducedSchema: this.formatSchemaToText(parsedForRag),
+                  compactSchema: this.formatSchemaToText(parsedForRag, true)
+                }
               }
             }
           }
@@ -451,7 +459,12 @@ export class SQLGenerationService {
 
         if (reductionResult.success && reductionResult.reducedSchema) {
           console.log(`✅ Schema reduzido com sucesso! Tabelas selecionadas: ${reductionResult.selectedTables?.length}`)
-          return { success: true, reducedSchema: this.formatSchemaToText(JSON.parse(reductionResult.reducedSchema)) }
+          const parsedReduced = JSON.parse(reductionResult.reducedSchema)
+          return {
+            success: true,
+            reducedSchema: this.formatSchemaToText(parsedReduced),
+            compactSchema: this.formatSchemaToText(parsedReduced, true)
+          }
         }
 
         console.warn(`⚠️ SmartSchemaReducer falhou: ${reductionResult.error}, fazendo fallback para schema completo`)
@@ -464,7 +477,11 @@ export class SQLGenerationService {
       }
 
       console.log(`✅ Schema inteiro obtido: ${fullSchema.tables.length} tabelas`)
-      return { success: true, reducedSchema: this.formatSchemaToText(fullSchema) }
+      return {
+        success: true,
+        reducedSchema: this.formatSchemaToText(fullSchema),
+        compactSchema: this.formatSchemaToText(fullSchema, true)
+      }
 
     } catch (error) {
       console.error('❌ Erro ao obter schema:', error)
@@ -475,25 +492,25 @@ export class SQLGenerationService {
     }
   }
 
-  private formatSchemaToText(parsedSchema: any): string {
+  private formatSchemaToText(parsedSchema: any, compact: boolean = false): string {
     const cestaSchemaSet = new Set(['uf_ibge', 'pibs_per_capita', 'variaveis_pib_municipios_ibge', 'ibge_demografia_municipios'])
-    const dictionary = this.buildSchemaColumnDict()
+    const dictionary = compact ? {} : this.buildSchemaColumnDict()
 
     const lines: string[] = ['SCHEMAS DISPONÍVEIS: inep e cesta']
 
     if (parsedSchema.tables && Array.isArray(parsedSchema.tables)) {
       parsedSchema.tables.forEach((table: any) => {
-        const enrichedCols = (table.columns || []).map((col: string) =>
-          this.formatColumnForPrompt(col, dictionary)
-        )
+        const enrichedCols = compact
+          ? (table.columns || []).map((col: string) => col.split(':')[0])
+          : (table.columns || []).map((col: string) => this.formatColumnForPrompt(col, dictionary))
         const schemaPrefix = cestaSchemaSet.has(table.name) ? 'cesta' : 'inep'
         lines.push(`Tabela \`${schemaPrefix}.${table.name}\`: Colunas [ ${enrichedCols.join(', ')} ]`)
       })
     }
 
-    lines.push(this.buildJoinRelationships())
+    if (!compact) lines.push(this.buildJoinRelationships())
     const schemaStr = lines.join('\n')
-    console.log(`📏 Schema em texto: ${(schemaStr.length / 1024).toFixed(1)}KB`)
+    console.log(`📏 Schema em texto${compact ? ' (compacto)' : ''}: ${(schemaStr.length / 1024).toFixed(1)}KB`)
     return schemaStr
   }
 
@@ -615,6 +632,7 @@ ${contextLines.join('\n')}
           model: 'deepseek-v3',
           success: false,
           status: 'error',
+          sql,
           error: `SQL inválido: ${validation.errors.join(', ')}`,
           processingTime: Date.now() - startTime
         }
@@ -652,7 +670,8 @@ ${contextLines.join('\n')}
     question: string,
     reducedSchema: string,
     conversationContext: string = "",
-    maxExamples: number = 3
+    maxExamples: number = 3,
+    isGroq: boolean = false
   ): string {
     return `Você é um Engenheiro de Dados Sênior e especialista em bancos de dados relacionais (PostgreSQL), focado exclusivamente nos dados educacionais do INEP (Brasil).
 Sua missão é traduzir a pergunta do usuário para uma consulta SQL altamente otimizada, precisa e segura.
@@ -699,7 +718,12 @@ ${reducedSchema}
    - ❌ NUNCA USE: \`emec_instituicoes.in_capital\` (Só existe na \`censo_ies\`).
    - ❌ NUNCA USE: \`censo_curso_vagas_bruto.sg_uf_ies\` ou \`censo_curso_vagas_bruto.no_regiao_ies\` — essas colunas NÃO EXISTEM em vagas_bruto. Para estado/região de curso ou vaga use \`sg_uf\` e \`no_regiao\` (existem diretamente em \`censo_curso_vagas_bruto\`).
    - ❌ NUNCA USE: \`fluxo_tda.sg_uf_ies\` — \`fluxo_tda\` não tem coluna de UF/estado. Para filtrar por estado, faça JOIN com \`censo_ies_bruto b ON f.co_ies = b.co_ies\` e use \`b.sg_uf_ies\`.
-   - Use os tipos de dados originais. Para strings, sempre utilize \`ILIKE\` em buscas textuais para ser case-insensitive.
+   - ✅ \`fluxo_tda\` JÁ TEM diretamente: \`tp_categoria_administrativa\`, \`tp_organizacao_academica\`, \`co_modalidade\` — **não precisa de JOIN** com \`censo_ies_bruto\` apenas para filtrar por tipo/categoria de instituição.
+   - ⚠️ ENADE vs CPC: Para nota ENADE específica do exame, use a tabela \`dados_enade\` (campo \`enade_continuo\`). A tabela \`dados_cpc\` também tem \`enade_continuo\` como componente do CPC — são fontes diferentes. Use \`dados_enade\` quando a pergunta for sobre "nota ENADE".
+   - ⚠️ JOIN DE MÉTRICAS COM censo_ies_bruto: Ao cruzar \`dados_igc\`, \`dados_cpc\` ou \`dados_enade\` com \`censo_ies_bruto\` para pegar nome/tipo/UF de IES, faça JOIN **SOMENTE por co_ies** — NÃO por \`d.ano = b.nu_ano_censo\`. O ano de avaliação pode não coincidir com um ano de censo, e o JOIN por ano elimina silenciosamente registros válidos.
+   - ⚠️ TABELAS IGC: Para consultas sobre IGC (faixa, nota contínua, ranking de IES), prefira usar \`igc_bruto\` DIRETAMENTE — ela já contém \`ies\` (nome), \`sigla_ies\`, \`uf_ies\`, \`igc_faixa\`, \`igc_continuo\`, \`dependencia_adm\` e \`ano\`, sem necessidade de JOIN com \`emec_instituicoes\` ou \`dados_igc\`. Use \`dados_igc\` apenas para cruzamentos com outras tabelas do censo.
+   - ⚠️ CPC POR ESTADO OU ÁREA: Use \`dados_cpc_brutos\` (tem \`uf\`, \`descr_area\`, \`nome_ies\`, \`sigla_ies\`, \`cpc_continuo\` direto) quando precisar do estado do curso ou filtrar por área em português. NÃO use JOIN \`dados_cpc\` + \`censo_ies_bruto.sg_uf_ies\` para "CPC por estado" — o estado da IES pode diferir do estado do curso avaliado e produz dados incorretos. Use \`dados_cpc\` (tabela normalizada) apenas para cruzamentos por \`co_ies\`/\`co_curso\` com outras tabelas do censo.
+   - Use os tipos de dados originais. Para strings, use \`ILIKE\` em buscas case-insensitive. Escreva a string de busca **com acentos corretos** (\`'%Administração%'\`, não \`'%administracao%'\`) — o banco usa collation sensível a acentos.
 
 4. **PREFIXO DE SCHEMA (ATENÇÃO)**:
    - A maioria das tabelas usa o prefixo \`inep.\`: \`censo_ies\`, \`censo_cursos\`, \`censo_curso_vagas_bruto\`, \`emec_instituicoes\`, \`municipios_ibge\`, \`microregioes_ibge\`, \`mesoregioes_ibge\`, \`regioes_ibge\`, \`dados_cpc\`, \`dados_enade\`, \`dados_igc\`.
@@ -714,6 +738,7 @@ ${reducedSchema}
    - \`censo_curso_vagas_bruto\` = FATOS ANUAIS (série temporal). **USE SEMPRE** para matrículas, vagas, ingressantes, concluintes ou qualquer dado com dimensão de ano.
    - JOIN entre elas: \`censo_curso_vagas_bruto.co_curso = censo_cursos.cod_curso\`
    - ❌ NUNCA coloque \`qt_mat\` ou \`nu_ano_censo\` em \`censo_cursos\` — o banco vai FALHAR.
+   - ✅ Para **agrupar ou rankear por nome de curso** com dados de vagas/matrículas, prefira \`no_curso\` diretamente de \`censo_curso_vagas_bruto\` (sem JOIN) — produz resultados consistentes com os dados de fatos. Use \`censo_cursos.nome_curso\` só quando precisar de atributos do dicionário de cursos (ex: código CINE, grau acadêmico).
 
 7. **JOIN TEMPORAL OBRIGATÓRIO (censo_ies_bruto × censo_curso_vagas_bruto)**:
    - 🚨 \`censo_ies_bruto\` também é uma série temporal (tem \`nu_ano_censo\`). Todo JOIN entre ela e \`censo_curso_vagas_bruto\` **DEVE** incluir a condição de ano, caso contrário cria produto cartesiano com 14x os dados.
@@ -729,6 +754,7 @@ ${reducedSchema}
      GROUP BY b.no_ies, b.sg_ies
      ORDER BY total_matriculados DESC LIMIT 10
      \`\`\`
+   - 🚨 SELEÇÃO DE IES: Ao selecionar instituições com dados agregados (matrículas, vagas, etc.), SEMPRE inclua TANTO \`no_ies\` QUANTO \`sg_ies\` no SELECT — nunca só um deles.
 
 🚫 ANTI-PADRÕES CONFIRMADOS — ESTES ERROS JÁ FORAM OBSERVADOS E CAUSAM FALHAS GRAVES:
 
@@ -742,7 +768,7 @@ ${reducedSchema}
    CORRETO: FROM inep.censo_ies_bruto WHERE no_municipio_ies ILIKE '%Curitiba%' AND nu_ano_censo = (SELECT MAX(nu_ano_censo) FROM inep.censo_ies_bruto)
    CONSEQUÊNCIA: census_ies não tem nu_ano_censo → retorna IES de TODAS as edições históricas (ex: 66 rows em vez de 38)
 
-❌ ANTI-PADRÃO 3 — SALTO NA CADEIA GEOGRÁFICA:
+${!isGroq ? `❌ ANTI-PADRÃO 3 — SALTO NA CADEIA GEOGRÁFICA:
    ERRADO:  JOIN inep.mesoregioes_ibge me ON m.cod_microregiao_ibge = me.cod_mesoregiao_ibge
    CORRETO: JOIN inep.microregioes_ibge mi ON m.cod_microregiao_ibge = mi.cod_microregiao_ibge
             JOIN inep.mesoregioes_ibge me ON mi.cod_mesoregiao_ibge = me.cod_mesoregiao_ibge
@@ -757,9 +783,28 @@ ${reducedSchema}
 ❌ ANTI-PADRÃO 5 — FILTRO DE ESTADO EM fluxo_tda SEM JOIN:
    ERRADO:  FROM inep.fluxo_tda f WHERE f.sg_uf_ies = 'SP'
    CORRETO: FROM inep.fluxo_tda f
-            JOIN inep.censo_ies_bruto b ON f.co_ies = b.co_ies AND b.nu_ano_censo = f.nu_ano_referencia
-            WHERE b.sg_uf_ies = 'SP'
-   CONSEQUÊNCIA: fluxo_tda não tem coluna sg_uf_ies → query falha com "column does not exist"
+            JOIN inep.censo_ies_bruto b ON f.co_ies = b.co_ies
+            WHERE b.sg_uf_ies = 'SP' AND b.nu_ano_censo = f.nu_ano_referencia
+   CONSEQUÊNCIA: fluxo_tda não tem sg_uf_ies → query falha. ATENÇÃO: fluxo_tda TEM tp_categoria_administrativa e tp_organizacao_academica — sem JOIN nesses casos.
+
+❌ ANTI-PADRÃO 6 — ESTADO/REGIÃO DO CURSO VIA sg_uf_ies (coluna de IES, não do curso):
+   ERRADO:  FROM inep.censo_curso_vagas_bruto v JOIN inep.censo_ies_bruto b ON v.co_ies = b.co_ies AND v.nu_ano_censo = b.nu_ano_censo WHERE v.nu_ano_censo = 2022 GROUP BY b.sg_uf_ies
+   CORRETO: FROM inep.censo_curso_vagas_bruto v WHERE v.nu_ano_censo = 2022 GROUP BY v.sg_uf
+   CONSEQUÊNCIA: Cursos EAD têm polo em estado diferente da IES → sg_uf_ies (da IES) ≠ sg_uf (do curso/vaga). Além disso, no_regiao de vagas_bruto pode ter valor 'Exterior' que não existe em no_regiao_ies.
+   REGRA: Para agregar matrículas/vagas/ingressantes/concluintes por estado ou região, SEMPRE use sg_uf e no_regiao diretamente de censo_curso_vagas_bruto — sem JOIN com censo_ies_bruto para esse fim.
+
+❌ ANTI-PADRÃO 7 — PRECEDÊNCIA OR/AND SEM PARÊNTESES (bug SQL silencioso):
+   ERRADO:  WHERE f.no_curso ILIKE '%Medicina%' OR f.no_curso ILIKE '%Enfermagem%' AND f.nu_ano_referencia = 2022
+   CORRETO: WHERE (f.no_curso ILIKE '%Medicina%' OR f.no_curso ILIKE '%Enfermagem%') AND f.nu_ano_referencia = 2022
+   CONSEQUÊNCIA: AND tem precedência maior que OR em SQL. Sem parênteses, o filtro de ano só aplica ao segundo termo, retornando todos os anos para o primeiro curso — resultado completamente errado e silencioso.
+   REGRA: SEMPRE use parênteses quando combinar OR e AND na mesma cláusula WHERE.
+
+❌ ANTI-PADRÃO 8 — JOIN DE MÉTRICAS COM censo_ies_bruto POR ANO (perde instituições):
+   ERRADO:  JOIN inep.censo_ies_bruto b ON d.co_ies = b.co_ies AND d.ano = b.nu_ano_censo
+   CORRETO: JOIN inep.censo_ies_bruto b ON d.co_ies = b.co_ies
+            (filtrar b.nu_ano_censo separadamente se necessário para o contexto de IES)
+   CONTEXTO: dados_igc, dados_cpc e dados_enade têm anos próprios que NÃO coincidem necessariamente com nu_ano_censo do censo. O join por ano elimina silenciosamente instituições válidas cujo ano de avaliação não tem entrada no censo do mesmo ano.
+   REGRA: Para pegar nome/tipo/UF de IES via censo_ies_bruto ao usar tabelas de métricas, faça JOIN somente por co_ies — sem AND de ano. Para IGC especificamente, prefira usar \`igc_bruto\` diretamente (já tem nome, sigla e UF da IES embutidos, sem necessidade de JOIN).` : ''}
 
 💡 EXEMPLOS PRÁTICOS ESPERADOS:
 ${this.getDynamicExamples(question, maxExamples)}
@@ -839,6 +884,42 @@ LIMIT 50
 Nota: qt_mat, qt_ing, qt_vg_total, nu_ano_censo existem APENAS em censo_curso_vagas_bruto (range 2010–2023).`
       },
       {
+        tags: ['estado', 'regiao', 'por estado', 'por regiao', 'ingressantes', 'concluintes', 'vagas', 'matriculas', 'formaram', 'formados', 'profissionais'],
+        text: `Exemplo (Agregação de dados de curso por estado/região — use sg_uf/no_regiao de vagas_bruto, NUNCA sg_uf_ies via JOIN):
+\`\`\`sql
+-- CORRETO: usa sg_uf e no_regiao diretamente de censo_curso_vagas_bruto
+SELECT sg_uf AS estado, SUM(qt_conc) AS total_concluintes
+FROM inep.censo_curso_vagas_bruto
+WHERE nu_ano_censo = 2022
+  AND no_curso ILIKE '%Enfermagem%'
+GROUP BY sg_uf
+ORDER BY total_concluintes DESC
+LIMIT 10
+\`\`\`
+ATENÇÃO: NÃO use sg_uf_ies de censo_ies_bruto via JOIN — para cursos EAD, o polo está em estado diferente da IES, e no_regiao de vagas_bruto pode ter valores extras como 'Exterior'.`
+      },
+      {
+        tags: ['enade', 'nota enade', 'exame nacional', 'media enade', 'acima da media'],
+        text: `Exemplo (Nota ENADE — use dados_enade, NÃO dados_cpc):
+\`\`\`sql
+SELECT c.nome_curso, e.no_ies, de.enade_continuo
+FROM inep.dados_enade de
+JOIN inep.censo_cursos c ON de.co_curso = c.cod_curso
+JOIN inep.censo_ies e ON de.co_ies = e.cod_ies
+WHERE c.nome_curso ILIKE '%Ciência da Computação%'
+  AND de.ano = (SELECT MAX(de2.ano) FROM inep.dados_enade de2
+                JOIN inep.censo_cursos c2 ON de2.co_curso = c2.cod_curso
+                WHERE c2.nome_curso ILIKE '%Ciência da Computação%' AND de2.enade_continuo IS NOT NULL)
+  AND de.enade_continuo > (SELECT AVG(de3.enade_continuo) FROM inep.dados_enade de3
+                           JOIN inep.censo_cursos c3 ON de3.co_curso = c3.cod_curso
+                           WHERE c3.nome_curso ILIKE '%Ciência da Computação%' AND de3.enade_continuo IS NOT NULL
+                           AND de3.ano = de.ano)
+ORDER BY de.enade_continuo DESC
+LIMIT 50
+\`\`\`
+Nota: Use SEMPRE dados_enade para comparar notas ENADE. dados_cpc tem enade_continuo como COMPONENTE, mas não é a tabela de referência para o exame.`
+      },
+      {
         tags: ['privado', 'privada', 'particular', 'ead', 'ies', 'instituicao', 'instituicoes', 'matriculados', 'maior', 'alunos', 'vagas', 'ano', 'censo', 'ultimo', 'bruto', 'ingressantes', 'concluintes', 'ranking'],
         text: `Exemplo (JOIN temporal obrigatório entre censo_ies_bruto e censo_curso_vagas_bruto):
 \`\`\`sql
@@ -896,38 +977,39 @@ LIMIT 50
 \`\`\``
       },
       {
-        tags: ['cpc', 'desempenho', 'qualidade', 'avaliacao', 'nota', 'conceito', 'score', 'ranking'],
-        text: `Exemplo (Notas CPC por curso e estado — use dados_cpc):
+        tags: ['cpc', 'desempenho', 'qualidade', 'avaliacao', 'nota', 'conceito', 'score', 'ranking', 'estado', 'por estado', 'uf', 'media cpc'],
+        text: `Exemplo (Notas CPC por curso e estado — use dados_cpc com JOIN simples por co_ies):
 \`\`\`sql
-SELECT b.sg_uf_ies AS estado, cc.nome_curso,
+SELECT b.sg_uf_ies AS estado,
        ROUND(AVG(cpc.cpc_continuo)::numeric, 2) AS media_cpc
 FROM inep.dados_cpc cpc
-JOIN inep.censo_curso_vagas_bruto b ON cpc.co_ies = b.co_ies AND cpc.co_curso = b.co_curso AND cpc.ano = b.nu_ano_censo
 JOIN inep.censo_cursos cc ON cpc.co_curso = cc.cod_curso
-WHERE cc.nome_curso ILIKE '%direito%'
-GROUP BY b.sg_uf_ies, cc.nome_curso
+JOIN inep.censo_ies_bruto b ON cpc.co_ies = b.co_ies
+WHERE cc.nome_curso ILIKE '%Direito%'
+GROUP BY b.sg_uf_ies
 ORDER BY media_cpc DESC
 LIMIT 50
 \`\`\`
-Nota: dados_cpc tem co_ies (int), co_curso (int), ano (int), cpc_continuo (numeric 0–5), cpc_faixa (1–5).`
+Nota: dados_cpc tem co_ies, co_curso, ano, cpc_continuo (0–5), cpc_faixa (1–5). JOIN com censo_ies_bruto SOMENTE por co_ies (sem AND de ano) para não perder registros cujo ano de avaliação difere do censo.`
       },
       {
         tags: ['evasao', 'desistencia', 'abandono', 'dropout', 'conclusao', 'taxa', 'fluxo', 'permanencia'],
         text: `Exemplo (Taxa de desistência por curso — use fluxo_tda):
 \`\`\`sql
-SELECT f.no_curso, f.no_ies, f.sg_uf_ies AS estado,
-       ROUND(AVG(f.tda)::numeric * 100, 1) AS taxa_desistencia_pct
+SELECT f.no_curso, f.no_ies,
+       ROUND(AVG(f.tda), 2) AS taxa_desistencia_media
 FROM inep.fluxo_tda f
-WHERE f.no_curso ILIKE '%administracao%'
-  AND f.nu_ano_referencia = (SELECT MAX(nu_ano_referencia) FROM inep.fluxo_tda)
-GROUP BY f.no_curso, f.no_ies, f.sg_uf_ies
-ORDER BY taxa_desistencia_pct DESC
+WHERE f.no_curso ILIKE '%Administração%'
+  AND f.tp_categoria_administrativa = 1
+  AND f.tp_organizacao_academica = 1
+GROUP BY f.no_curso, f.no_ies
+ORDER BY taxa_desistencia_media DESC
 LIMIT 50
 \`\`\`
-Nota: fluxo_tda tem tda (desistência 0–1), tca (conclusão 0–1), tap (permanência 0–1). sg_uf_ies é varchar.`
+Nota: fluxo_tda tem tda/tca/tap (valores 0–1, NÃO multiplique por 100). Tem tp_categoria_administrativa e tp_organizacao_academica diretamente — sem JOIN para filtros de tipo. NÃO tem sg_uf_ies (use JOIN com censo_ies_bruto para filtrar por estado). Use acento correto no ILIKE: 'Administração', não 'administracao'.`
       },
       {
-        tags: ['igc', 'indice', 'geral', 'cursos', 'ranking', 'melhor', 'pior'],
+        tags: ['igc', 'indice', 'geral', 'cursos', 'ranking', 'melhor', 'pior', 'faixa', 'igc faixa', 'igc continuo', 'classificacao ies'],
         text: `Exemplo (IGC das instituições — use dados_igc + emec_instituicoes):
 \`\`\`sql
 SELECT e.no_ies, ig.ano, ig.igc_continuo, ig.igc_faixa
@@ -1122,6 +1204,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
           model: 'gemini-2.5-flash-lite',
           success: false,
           status: 'error',
+          sql,
           error: `SQL inválido: ${validation.errors.join(', ')}`,
           processingTime: Date.now() - startTime
         }
@@ -1174,7 +1257,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
     }
 
     try {
-      const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext, 1)
+      const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext, 0, true)
 
       const result = await this.groqService.generateResponse({
         prompt,
@@ -1203,6 +1286,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
           model: 'llama-3.3-70b-versatile',
           success: false,
           status: 'error',
+          sql,
           error: `SQL inválido: ${validation.errors.join(', ')}`,
           processingTime: Date.now() - startTime
         }

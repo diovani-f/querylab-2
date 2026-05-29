@@ -44,7 +44,7 @@ export class OpenRouterService {
           model: request.model || this.defaultModel,
           messages: [{ role: 'user', content: request.prompt }],
           temperature: request.temperature ?? 0.1,
-          max_tokens: request.maxTokens ?? 2000,
+          max_tokens: request.maxTokens ?? 1500,
         },
         {
           headers: {
