@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QueryLab — Comparação de Testes Semânticos</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #252836;
+    --border: #2e3147;
+    --text: #e2e8f0;
+    --muted: #8b92a5;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --orange: #f97316;
+    --teal: #14b8a6;
+    --gemini: #4285f4;
+    --groq: #ff6b35;
+    --deepseek: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+
+  .header { background: linear-gradient(135deg, #1a1d27 0%, #252836 100%); border-bottom: 1px solid var(--border); padding: 24px 32px; }
+  .header h1 { font-size: 22px; font-weight: 700; color: #fff; }
+  .header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .run-badges { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge-old { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+  .badge-new { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
+  .badge-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .badge-old .badge-dot { background: #ef4444; }
+  .badge-new .badge-dot { background: #22c55e; }
+
+  .main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+  .section-title { font-size: 16px; font-weight: 700; color: #fff; margin: 32px 0 16px; display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ''; width: 3px; height: 18px; background: var(--blue); border-radius: 2px; display: block; }
+
+  /* Summary Cards */
+  .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .provider-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .provider-card.gemini { border-top: 3px solid var(--gemini); }
+  .provider-card.groq { border-top: 3px solid var(--groq); }
+  .provider-card.deepseek { border-top: 3px solid var(--deepseek); }
+  .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .card-header h3 { font-size: 16px; font-weight: 700; text-transform: capitalize; }
+  .provider-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .gemini-dot { background: var(--gemini); }
+  .groq-dot { background: var(--groq); }
+  .deepseek-dot { background: var(--deepseek); }
+  .model-tag { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+  .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .metric-row:last-child { border-bottom: none; }
+  .metric-label { color: var(--muted); font-size: 12px; }
+  .metric-values { display: flex; align-items: center; gap: 10px; }
+  .val-old { color: var(--muted); font-size: 13px; }
+  .val-new { font-weight: 700; font-size: 14px; }
+  .val-new.up { color: var(--green); }
+  .val-new.down { color: var(--red); }
+  .val-new.neutral { color: var(--text); }
+  .delta { font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+  .delta.pos { background: rgba(34,197,94,0.15); color: var(--green); }
+  .delta.neg { background: rgba(239,68,68,0.15); color: var(--red); }
+  .delta.zero { background: rgba(139,146,165,0.15); color: var(--muted); }
+  .arrow { font-size: 11px; }
+
+  /* Score highlight */
+  .score-highlight { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .score-box { background: var(--surface2); border-radius: 8px; padding: 12px; text-align: center; }
+  .score-box .label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .score-box .value { font-size: 24px; font-weight: 800; }
+  .score-box .sublabel { font-size: 10px; color: var(--muted); }
+
+  /* Charts */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .chart-card h4 { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .chart-wrapper { position: relative; height: 280px; }
+  .chart-wrapper-tall { position: relative; height: 340px; }
+
+  /* Difficulty grid */
+  .diff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .diff-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .diff-card h4 { font-size: 13px; font-weight: 700; text-transform: capitalize; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .diff-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .diff-badge.facil { background: rgba(34,197,94,0.2); color: var(--green); }
+  .diff-badge.medio { background: rgba(234,179,8,0.2); color: var(--yellow); }
+  .diff-badge.dificil { background: rgba(239,68,68,0.2); color: var(--red); }
+
+  /* Question table */
+  .table-wrapper { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; padding: 10px 12px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: var(--surface2); position: sticky; top: 0; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 10px 12px; vertical-align: middle; }
+  .q-id { font-weight: 700; color: var(--blue); font-size: 12px; }
+  .q-text { color: var(--muted); font-size: 12px; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .veredito-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .v-CORRETO { background: rgba(34,197,94,0.2); color: var(--green); }
+  .v-PARCIAL { background: rgba(234,179,8,0.2); color: var(--yellow); }
+  .v-INCORRETO { background: rgba(239,68,68,0.2); color: var(--red); }
+  .v-ERRO_IA { background: rgba(139,146,165,0.2); color: var(--muted); }
+  .v-NA { background: rgba(139,146,165,0.1); color: var(--muted); }
+  .change-icon { font-size: 14px; }
+  .change-improved { color: var(--green); }
+  .change-regressed { color: var(--red); }
+  .change-same { color: var(--muted); }
+
+  /* Progress bars */
+  .progress-bar-wrap { width: 100%; background: var(--surface2); border-radius: 4px; overflow: hidden; height: 6px; margin-top: 4px; }
+  .progress-bar { height: 100%; border-radius: 4px; transition: width 0.3s; }
+
+  /* Tabs */
+  .tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { padding: 10px 20px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); font-size: 13px; font-weight: 600; transition: all 0.15s; user-select: none; }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Improvement summary strip */
+  .improvement-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .imp-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+  .imp-card .imp-val { font-size: 28px; font-weight: 800; line-height: 1; }
+  .imp-card .imp-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .imp-card.positive .imp-val { color: var(--green); }
+  .imp-card.negative .imp-val { color: var(--red); }
+  .imp-card.neutral .imp-val { color: var(--yellow); }
+
+  @media (max-width: 900px) {
+    .cards-grid, .charts-grid, .diff-grid { grid-template-columns: 1fr; }
+    .improvement-strip { grid-template-columns: 1fr 1fr; }
+    .main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>QueryLab — Comparação de Testes Semânticos</h1>
+  <p>Evolução da acurácia text-to-SQL entre duas execuções de testes — banco INEP (Censo do Ensino Superior)</p>
+  <div class="run-badges">
+    <span class="badge badge-old"><span class="badge-dot"></span>Baseline — 24 mai 2026 (v0.3)</span>
+    <span class="badge badge-new"><span class="badge-dot"></span>Atual — 28 mai 2026 (v0.4)</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- IMPROVEMENT STRIP -->
+  <div class="improvement-strip" id="impStrip"></div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('summary')">Resumo Geral</div>
+    <div class="tab" onclick="switchTab('charts')">Gráficos</div>
+    <div class="tab" onclick="switchTab('difficulty')">Por Dificuldade</div>
+    <div class="tab" onclick="switchTab('questions')">Por Questão</div>
+  </div>
+
+  <!-- TAB: SUMMARY -->
+  <div class="tab-content active" id="tab-summary">
+    <div class="cards-grid" id="providerCards"></div>
+  </div>
+
+  <!-- TAB: CHARTS -->
+  <div class="tab-content" id="tab-charts">
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h4>Acertos por Provedor (Corretos)</h4>
+        <div class="chart-wrapper"><canvas id="chartAcertos"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>Score Médio por Provedor (%)</h4>
+        <div class="chart-wrapper"><canvas id="chartScore"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>Distribuição de Veredictos — Baseline</h4>
+        <div class="chart-wrapper"><canvas id="chartVeredOld"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>Distribuição de Veredictos — Atual</h4>
+        <div class="chart-wrapper"><canvas id="chartVeredNew"></canvas></div>
+      </div>
+      <div class="chart-card" style="grid-column: 1 / -1;">
+        <h4>Score DataMatch por Questão e Provedor (Atual)</h4>
+        <div class="chart-wrapper-tall"><canvas id="chartQPerf"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: DIFFICULTY -->
+  <div class="tab-content" id="tab-difficulty">
+    <div class="diff-grid" id="diffGrid"></div>
+  </div>
+
+  <!-- TAB: QUESTIONS -->
+  <div class="tab-content" id="tab-questions">
+    <div class="table-wrapper">
+      <table id="qTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Questão</th>
+            <th>Dif.</th>
+            <th>Gemini — Antes</th>
+            <th>Gemini — Depois</th>
+            <th></th>
+            <th>Groq — Antes</th>
+            <th>Groq — Depois</th>
+            <th></th>
+            <th>DeepSeek — Antes</th>
+            <th>DeepSeek — Depois</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="qTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const OLD = {"metadata":{"generatedAt":"2026-05-24T21:25:49.825Z","sourceFiles":9,"firstRun":"2026-05-21T21:29:41.024Z","lastRun":"2026-05-24T21:25:49.826Z","totalPerguntas":23,"totalResultados":69,"groqRetryAt":"2026-05-24T21:25:49.826Z"},"summary":[{"provider":"gemini","total":23,"corretos":6,"parciais":2,"incorretos":8,"errosIA":6,"avgDataMatchScore":23.7,"byDificuldade":[{"dificuldade":"facil","total":7,"corretos":3,"parciais":1,"incorretos":2,"errosIA":1,"avgDataMatchScore":42.1},{"dificuldade":"medio","total":8,"corretos":3,"parciais":0,"incorretos":2,"errosIA":3,"avgDataMatchScore":31.3},{"dificuldade":"dificil","total":8,"corretos":0,"parciais":1,"incorretos":4,"errosIA":2,"avgDataMatchScore":0}]},{"provider":"groq","total":23,"corretos":4,"parciais":2,"incorretos":7,"errosIA":9,"avgDataMatchScore":17.4,"byDificuldade":[{"dificuldade":"facil","total":7,"corretos":3,"parciais":0,"incorretos":3,"errosIA":1,"avgDataMatchScore":42.9},{"dificuldade":"medio","total":8,"corretos":1,"parciais":1,"incorretos":2,"errosIA":4,"avgDataMatchScore":12.5},{"dificuldade":"dificil","total":8,"corretos":0,"parciais":1,"incorretos":2,"errosIA":4,"avgDataMatchScore":0}]},{"provider":"deepseek","total":23,"corretos":7,"parciais":2,"incorretos":9,"errosIA":4,"avgDataMatchScore":26.1,"byDificuldade":[{"dificuldade":"facil","total":7,"corretos":4,"parciais":0,"incorretos":2,"errosIA":1,"avgDataMatchScore":57.1},{"dificuldade":"medio","total":8,"corretos":3,"parciais":1,"incorretos":3,"errosIA":1,"avgDataMatchScore":25},{"dificuldade":"dificil","total":8,"corretos":0,"parciais":1,"incorretos":4,"errosIA":2,"avgDataMatchScore":0}]}]};
+const NEW = {"metadata":{"timestamp":"2026-05-28T16:00:00.000Z","totalPerguntas":23,"totalResultados":69,"generatedAt":"2026-05-29T17:52:00.312Z","lastRun":"2026-05-29T17:52:00.313Z","groqRetryAt":"2026-05-29T17:52:00.313Z"},"summary":[{"provider":"gemini","total":23,"corretos":9,"parciais":8,"incorretos":5,"errosIA":0,"avgDataMatchScore":49.6,"byDificuldade":[{"dificuldade":"facil","total":7,"corretos":4,"parciais":3,"incorretos":0,"errosIA":0,"avgDataMatchScore":70},{"dificuldade":"medio","total":8,"corretos":5,"parciais":2,"incorretos":1,"errosIA":0,"avgDataMatchScore":81.3},{"dificuldade":"dificil","total":8,"corretos":0,"parciais":3,"incorretos":4,"errosIA":0,"avgDataMatchScore":0}]},{"provider":"groq","total":23,"corretos":4,"parciais":4,"incorretos":8,"errosIA":6,"avgDataMatchScore":19.6,"byDificuldade":[{"dificuldade":"facil","total":7,"corretos":2,"parciais":1,"incorretos":2,"errosIA":2,"avgDataMatchScore":35.7},{"dificuldade":"medio","total":8,"corretos":2,"parciais":1,"incorretos":3,"errosIA":2,"avgDataMatchScore":25},{"dificuldade":"dificil","total":8,"corretos":0,"parciais":2,"incorretos":3,"errosIA":2,"avgDataMatchScore":0}]},{"provider":"deepseek","total":23,"corretos":8,"parciais":7,"incorretos":7,"errosIA":0,"avgDataMatchScore":41.3,"byDificuldade":[{"dificuldade":"facil","total":7,"corretos":5,"parciais":2,"incorretos":0,"errosIA":0,"avgDataMatchScore":85.7},{"dificuldade":"medio","total":8,"corretos":3,"parciais":2,"incorretos":3,"errosIA":0,"avgDataMatchScore":43.8},{"dificuldade":"dificil","total":8,"corretos":0,"parciais":3,"incorretos":4,"errosIA":0,"avgDataMatchScore":0}]}]};
+
+// Full results will be loaded from the embedded data below
+const OLD_RESULTS = [{"questionId":"P1","dificuldade":"facil","pergunta":"Quantas universidades existem no estado de Minas Gerais?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P1","dificuldade":"facil","pergunta":"Quantas universidades existem no estado de Minas Gerais?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P1","dificuldade":"facil","pergunta":"Quantas universidades existem no estado de Minas Gerais?","provider":"groq","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P2","dificuldade":"facil","pergunta":"Quais são os nomes e siglas das faculdades localizadas em Curitiba?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P2","dificuldade":"facil","pergunta":"Quais são os nomes e siglas das faculdades localizadas em Curitiba?","provider":"gemini","veredito":"PARCIAL","dataMatchScore":45},{"questionId":"P2","dificuldade":"facil","pergunta":"Quais são os nomes e siglas das faculdades localizadas em Curitiba?","provider":"groq","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P3","dificuldade":"facil","pergunta":"Quantos alunos estão matriculados em cursos presenciais no Brasil em 2022?","provider":"deepseek","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P3","dificuldade":"facil","pergunta":"Quantos alunos estão matriculados em cursos presenciais no Brasil em 2022?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P3","dificuldade":"facil","pergunta":"Quantos alunos estão matriculados em cursos presenciais no Brasil em 2022?","provider":"groq","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P4","dificuldade":"facil","pergunta":"Quais são as 5 cidades com mais instituições de ensino superior em 2023?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P4","dificuldade":"facil","pergunta":"Quais são as 5 cidades com mais instituições de ensino superior em 2023?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P4","dificuldade":"facil","pergunta":"Quais são as 5 cidades com mais instituições de ensino superior em 2023?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P5","dificuldade":"facil","pergunta":"Qual é a taxa de ingresso (ingressantes/vagas oferecidas) por modalidade de ensino em 2022?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P5","dificuldade":"facil","pergunta":"Qual é a taxa de ingresso (ingressantes/vagas oferecidas) por modalidade de ensino em 2022?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P5","dificuldade":"facil","pergunta":"Qual é a taxa de ingresso (ingressantes/vagas oferecidas) por modalidade de ensino em 2022?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P6","dificuldade":"facil","pergunta":"Qual é o percentual de alunos que concluíram seus cursos em relação ao total de matriculados em 2022?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P6","dificuldade":"facil","pergunta":"Qual é o percentual de alunos que concluíram seus cursos em relação ao total de matriculados em 2022?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P6","dificuldade":"facil","pergunta":"Qual é o percentual de alunos que concluíram seus cursos em relação ao total de matriculados em 2022?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P7","dificuldade":"facil","pergunta":"Quantos cursos de Medicina existem no Brasil?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P7","dificuldade":"facil","pergunta":"Quantos cursos de Medicina existem no Brasil?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P7","dificuldade":"facil","pergunta":"Quantos cursos de Medicina existem no Brasil?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P8","dificuldade":"medio","pergunta":"Qual é a evolução do número de matrículas em cursos de Engenharia de Software entre 2019 e 2022?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P8","dificuldade":"medio","pergunta":"Qual é a evolução do número de matrículas em cursos de Engenharia de Software entre 2019 e 2022?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P8","dificuldade":"medio","pergunta":"Qual é a evolução do número de matrículas em cursos de Engenharia de Software entre 2019 e 2022?","provider":"groq","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P9","dificuldade":"medio","pergunta":"Quais são as 10 instituições com maior número de alunos matriculados em cursos de pós-graduação stricto sensu?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P9","dificuldade":"medio","pergunta":"Quais são as 10 instituições com maior número de alunos matriculados em cursos de pós-graduação stricto sensu?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P9","dificuldade":"medio","pergunta":"Quais são as 10 instituições com maior número de alunos matriculados em cursos de pós-graduação stricto sensu?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P10","dificuldade":"medio","pergunta":"Qual é a distribuição de vagas por turno (manhã, tarde, noite, integral) em cursos presenciais?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P10","dificuldade":"medio","pergunta":"Qual é a distribuição de vagas por turno (manhã, tarde, noite, integral) em cursos presenciais?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P10","dificuldade":"medio","pergunta":"Qual é a distribuição de vagas por turno (manhã, tarde, noite, integral) em cursos presenciais?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P11","dificuldade":"medio","pergunta":"Qual é a proporção de alunos por docente em cada região do Brasil?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P11","dificuldade":"medio","pergunta":"Qual é a proporção de alunos por docente em cada região do Brasil?","provider":"gemini","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P11","dificuldade":"medio","pergunta":"Qual é a proporção de alunos por docente em cada região do Brasil?","provider":"groq","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P12","dificuldade":"medio","pergunta":"Quais cursos tiveram maior crescimento percentual de matrículas entre 2020 e 2022?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P12","dificuldade":"medio","pergunta":"Quais cursos tiveram maior crescimento percentual de matrículas entre 2020 e 2022?","provider":"gemini","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P12","dificuldade":"medio","pergunta":"Quais cursos tiveram maior crescimento percentual de matrículas entre 2020 e 2022?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P13","dificuldade":"medio","pergunta":"Qual é o percentual de IES privadas vs públicas por estado?","provider":"deepseek","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P13","dificuldade":"medio","pergunta":"Qual é o percentual de IES privadas vs públicas por estado?","provider":"gemini","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P13","dificuldade":"medio","pergunta":"Qual é o percentual de IES privadas vs públicas por estado?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P14","dificuldade":"medio","pergunta":"Quais são as áreas de conhecimento com maior taxa de evasão em 2022?","provider":"deepseek","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P14","dificuldade":"medio","pergunta":"Quais são as áreas de conhecimento com maior taxa de evasão em 2022?","provider":"gemini","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P14","dificuldade":"medio","pergunta":"Quais são as áreas de conhecimento com maior taxa de evasão em 2022?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P15","dificuldade":"medio","pergunta":"Qual é a média de docentes por IES agrupada por categoria administrativa (pública federal, pública estadual, privada)?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P15","dificuldade":"medio","pergunta":"Qual é a média de docentes por IES agrupada por categoria administrativa (pública federal, pública estadual, privada)?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P15","dificuldade":"medio","pergunta":"Qual é a média de docentes por IES agrupada por categoria administrativa (pública federal, pública estadual, privada)?","provider":"groq","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P16","dificuldade":"dificil","pergunta":"Para cada estado, qual é o curso com maior número de vagas ociosas (vagas - ingressantes) em 2022?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P16","dificuldade":"dificil","pergunta":"Para cada estado, qual é o curso com maior número de vagas ociosas (vagas - ingressantes) em 2022?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P16","dificuldade":"dificil","pergunta":"Para cada estado, qual é o curso com maior número de vagas ociosas (vagas - ingressantes) em 2022?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P17","dificuldade":"dificil","pergunta":"Quais são os 10 cursos mais \"democráticos\" (menor Gini de distribuição de matrículas entre estados) em 2022?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P17","dificuldade":"dificil","pergunta":"Quais são os 10 cursos mais \"democráticos\" (menor Gini de distribuição de matrículas entre estados) em 2022?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P17","dificuldade":"dificil","pergunta":"Quais são os 10 cursos mais \"democráticos\" (menor Gini de distribuição de matrículas entre estados) em 2022?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P18","dificuldade":"dificil","pergunta":"Qual é a correlação entre o número de docentes com doutorado e a taxa de conclusão dos cursos por IES?","provider":"deepseek","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P18","dificuldade":"dificil","pergunta":"Qual é a correlação entre o número de docentes com doutorado e a taxa de conclusão dos cursos por IES?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P18","dificuldade":"dificil","pergunta":"Qual é a correlação entre o número de docentes com doutorado e a taxa de conclusão dos cursos por IES?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P19","dificuldade":"dificil","pergunta":"Para cada par (estado, área_geral), calcule o índice de concentração (IES top-3 / total IES do estado-área). Quais 10 pares têm maior concentração?","provider":"deepseek","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P19","dificuldade":"dificil","pergunta":"Para cada par (estado, área_geral), calcule o índice de concentração (IES top-3 / total IES do estado-área). Quais 10 pares têm maior concentração?","provider":"gemini","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P19","dificuldade":"dificil","pergunta":"Para cada par (estado, área_geral), calcule o índice de concentração (IES top-3 / total IES do estado-área). Quais 10 pares têm maior concentração?","provider":"groq","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P20","dificuldade":"dificil","pergunta":"Qual é o ranking de estados por índice composto de qualidade (média ponderada: % doutores, relação aluno/docente, taxa conclusão)?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P20","dificuldade":"dificil","pergunta":"Qual é o ranking de estados por índice composto de qualidade (média ponderada: % doutores, relação aluno/docente, taxa conclusão)?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P20","dificuldade":"dificil","pergunta":"Qual é o ranking de estados por índice composto de qualidade (média ponderada: % doutores, relação aluno/docente, taxa conclusão)?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P21","dificuldade":"dificil","pergunta":"Identifique as IES que tiveram crescimento consistente de matrículas (>5% ao ano) por pelo menos 3 anos consecutivos entre 2019-2022.","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P21","dificuldade":"dificil","pergunta":"Identifique as IES que tiveram crescimento consistente de matrículas (>5% ao ano) por pelo menos 3 anos consecutivos entre 2019-2022.","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P21","dificuldade":"dificil","pergunta":"Identifique as IES que tiveram crescimento consistente de matrículas (>5% ao ano) por pelo menos 3 anos consecutivos entre 2019-2022.","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P22","dificuldade":"dificil","pergunta":"Quais são as IES com maior diversidade de cursos (número de áreas gerais distintas) e também alta taxa de conclusão?","provider":"deepseek","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P22","dificuldade":"dificil","pergunta":"Quais são as IES com maior diversidade de cursos (número de áreas gerais distintas) e também alta taxa de conclusão?","provider":"gemini","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P22","dificuldade":"dificil","pergunta":"Quais são as IES com maior diversidade de cursos (número de áreas gerais distintas) e também alta taxa de conclusão?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P23","dificuldade":"dificil","pergunta":"Para cada região, qual é a tendência (regressão linear) do número de vagas EAD ao longo dos anos disponíveis?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P23","dificuldade":"dificil","pergunta":"Para cada região, qual é a tendência (regressão linear) do número de vagas EAD ao longo dos anos disponíveis?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P23","dificuldade":"dificil","pergunta":"Para cada região, qual é a tendência (regressão linear) do número de vagas EAD ao longo dos anos disponíveis?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0}];
+
+const NEW_RESULTS = [{"questionId":"P1","dificuldade":"facil","pergunta":"Quantas universidades existem no estado de Minas Gerais?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P1","dificuldade":"facil","pergunta":"Quantas universidades existem no estado de Minas Gerais?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P1","dificuldade":"facil","pergunta":"Quantas universidades existem no estado de Minas Gerais?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P2","dificuldade":"facil","pergunta":"Quais são os nomes e siglas das faculdades localizadas em Curitiba?","provider":"gemini","veredito":"PARCIAL","dataMatchScore":40},{"questionId":"P2","dificuldade":"facil","pergunta":"Quais são os nomes e siglas das faculdades localizadas em Curitiba?","provider":"groq","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P2","dificuldade":"facil","pergunta":"Quais são os nomes e siglas das faculdades localizadas em Curitiba?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P3","dificuldade":"facil","pergunta":"Quantos alunos estão matriculados em cursos presenciais no Brasil em 2022?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P3","dificuldade":"facil","pergunta":"Quantos alunos estão matriculados em cursos presenciais no Brasil em 2022?","provider":"groq","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P3","dificuldade":"facil","pergunta":"Quantos alunos estão matriculados em cursos presenciais no Brasil em 2022?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P4","dificuldade":"facil","pergunta":"Quais são as 5 cidades com mais instituições de ensino superior em 2023?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P4","dificuldade":"facil","pergunta":"Quais são as 5 cidades com mais instituições de ensino superior em 2023?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P4","dificuldade":"facil","pergunta":"Quais são as 5 cidades com mais instituições de ensino superior em 2023?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P5","dificuldade":"facil","pergunta":"Qual é a taxa de ingresso (ingressantes/vagas oferecidas) por modalidade de ensino em 2022?","provider":"gemini","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P5","dificuldade":"facil","pergunta":"Qual é a taxa de ingresso (ingressantes/vagas oferecidas) por modalidade de ensino em 2022?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P5","dificuldade":"facil","pergunta":"Qual é a taxa de ingresso (ingressantes/vagas oferecidas) por modalidade de ensino em 2022?","provider":"deepseek","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P6","dificuldade":"facil","pergunta":"Qual é o percentual de alunos que concluíram seus cursos em relação ao total de matriculados em 2022?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P6","dificuldade":"facil","pergunta":"Qual é o percentual de alunos que concluíram seus cursos em relação ao total de matriculados em 2022?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P6","dificuldade":"facil","pergunta":"Qual é o percentual de alunos que concluíram seus cursos em relação ao total de matriculados em 2022?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P7","dificuldade":"facil","pergunta":"Quantos cursos de Medicina existem no Brasil?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P7","dificuldade":"facil","pergunta":"Quantos cursos de Medicina existem no Brasil?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P7","dificuldade":"facil","pergunta":"Quantos cursos de Medicina existem no Brasil?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P8","dificuldade":"medio","pergunta":"Qual é a evolução do número de matrículas em cursos de Engenharia de Software entre 2019 e 2022?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P8","dificuldade":"medio","pergunta":"Qual é a evolução do número de matrículas em cursos de Engenharia de Software entre 2019 e 2022?","provider":"groq","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P8","dificuldade":"medio","pergunta":"Qual é a evolução do número de matrículas em cursos de Engenharia de Software entre 2019 e 2022?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P9","dificuldade":"medio","pergunta":"Quais são as 10 instituições com maior número de alunos matriculados em cursos de pós-graduação stricto sensu?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P9","dificuldade":"medio","pergunta":"Quais são as 10 instituições com maior número de alunos matriculados em cursos de pós-graduação stricto sensu?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P9","dificuldade":"medio","pergunta":"Quais são as 10 instituições com maior número de alunos matriculados em cursos de pós-graduação stricto sensu?","provider":"deepseek","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P10","dificuldade":"medio","pergunta":"Qual é a distribuição de vagas por turno (manhã, tarde, noite, integral) em cursos presenciais?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P10","dificuldade":"medio","pergunta":"Qual é a distribuição de vagas por turno (manhã, tarde, noite, integral) em cursos presenciais?","provider":"groq","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P10","dificuldade":"medio","pergunta":"Qual é a distribuição de vagas por turno (manhã, tarde, noite, integral) em cursos presenciais?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P11","dificuldade":"medio","pergunta":"Qual é a proporção de alunos por docente em cada região do Brasil?","provider":"gemini","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P11","dificuldade":"medio","pergunta":"Qual é a proporção de alunos por docente em cada região do Brasil?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P11","dificuldade":"medio","pergunta":"Qual é a proporção de alunos por docente em cada região do Brasil?","provider":"deepseek","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P12","dificuldade":"medio","pergunta":"Quais cursos tiveram maior crescimento percentual de matrículas entre 2020 e 2022?","provider":"gemini","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P12","dificuldade":"medio","pergunta":"Quais cursos tiveram maior crescimento percentual de matrículas entre 2020 e 2022?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P12","dificuldade":"medio","pergunta":"Quais cursos tiveram maior crescimento percentual de matrículas entre 2020 e 2022?","provider":"deepseek","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P13","dificuldade":"medio","pergunta":"Qual é o percentual de IES privadas vs públicas por estado?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P13","dificuldade":"medio","pergunta":"Qual é o percentual de IES privadas vs públicas por estado?","provider":"groq","veredito":"ERRO_IA","dataMatchScore":0},{"questionId":"P13","dificuldade":"medio","pergunta":"Qual é o percentual de IES privadas vs públicas por estado?","provider":"deepseek","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P14","dificuldade":"medio","pergunta":"Quais são as áreas de conhecimento com maior taxa de evasão em 2022?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P14","dificuldade":"medio","pergunta":"Quais são as áreas de conhecimento com maior taxa de evasão em 2022?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P14","dificuldade":"medio","pergunta":"Quais são as áreas de conhecimento com maior taxa de evasão em 2022?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P15","dificuldade":"medio","pergunta":"Qual é a média de docentes por IES agrupada por categoria administrativa (pública federal, pública estadual, privada)?","provider":"gemini","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P15","dificuldade":"medio","pergunta":"Qual é a média de docentes por IES agrupada por categoria administrativa (pública federal, pública estadual, privada)?","provider":"groq","veredito":"CORRETO","dataMatchScore":100},{"questionId":"P15","dificuldade":"medio","pergunta":"Qual é a média de docentes por IES agrupada por categoria administrativa (pública federal, pública estadual, privada)?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P16","dificuldade":"dificil","pergunta":"Para cada estado, qual é o curso com maior número de vagas ociosas (vagas - ingressantes) em 2022?","provider":"gemini","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P16","dificuldade":"dificil","pergunta":"Para cada estado, qual é o curso com maior número de vagas ociosas (vagas - ingressantes) em 2022?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P16","dificuldade":"dificil","pergunta":"Para cada estado, qual é o curso com maior número de vagas ociosas (vagas - ingressantes) em 2022?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P17","dificuldade":"dificil","pergunta":"Quais são os 10 cursos mais \"democráticos\" (menor Gini de distribuição de matrículas entre estados) em 2022?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P17","dificuldade":"dificil","pergunta":"Quais são os 10 cursos mais \"democráticos\" (menor Gini de distribuição de matrículas entre estados) em 2022?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P17","dificuldade":"dificil","pergunta":"Quais são os 10 cursos mais \"democráticos\" (menor Gini de distribuição de matrículas entre estados) em 2022?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P18","dificuldade":"dificil","pergunta":"Qual é a correlação entre o número de docentes com doutorado e a taxa de conclusão dos cursos por IES?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P18","dificuldade":"dificil","pergunta":"Qual é a correlação entre o número de docentes com doutorado e a taxa de conclusão dos cursos por IES?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P18","dificuldade":"dificil","pergunta":"Qual é a correlação entre o número de docentes com doutorado e a taxa de conclusão dos cursos por IES?","provider":"deepseek","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P19","dificuldade":"dificil","pergunta":"Para cada par (estado, área_geral), calcule o índice de concentração (IES top-3 / total IES do estado-área). Quais 10 pares têm maior concentração?","provider":"gemini","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P19","dificuldade":"dificil","pergunta":"Para cada par (estado, área_geral), calcule o índice de concentração (IES top-3 / total IES do estado-área). Quais 10 pares têm maior concentração?","provider":"groq","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P19","dificuldade":"dificil","pergunta":"Para cada par (estado, área_geral), calcule o índice de concentração (IES top-3 / total IES do estado-área). Quais 10 pares têm maior concentração?","provider":"deepseek","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P20","dificuldade":"dificil","pergunta":"Qual é o ranking de estados por índice composto de qualidade (média ponderada: % doutores, relação aluno/docente, taxa conclusão)?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P20","dificuldade":"dificil","pergunta":"Qual é o ranking de estados por índice composto de qualidade (média ponderada: % doutores, relação aluno/docente, taxa conclusão)?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P20","dificuldade":"dificil","pergunta":"Qual é o ranking de estados por índice composto de qualidade (média ponderada: % doutores, relação aluno/docente, taxa conclusão)?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P21","dificuldade":"dificil","pergunta":"Identifique as IES que tiveram crescimento consistente de matrículas (>5% ao ano) por pelo menos 3 anos consecutivos entre 2019-2022.","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P21","dificuldade":"dificil","pergunta":"Identifique as IES que tiveram crescimento consistente de matrículas (>5% ao ano) por pelo menos 3 anos consecutivos entre 2019-2022.","provider":"groq","veredito":"PARCIAL","dataMatchScore":50},{"questionId":"P21","dificuldade":"dificil","pergunta":"Identifique as IES que tiveram crescimento consistente de matrículas (>5% ao ano) por pelo menos 3 anos consecutivos entre 2019-2022.","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P22","dificuldade":"dificil","pergunta":"Quais são as IES com maior diversidade de cursos (número de áreas gerais distintas) e também alta taxa de conclusão?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P22","dificuldade":"dificil","pergunta":"Quais são as IES com maior diversidade de cursos (número de áreas gerais distintas) e também alta taxa de conclusão?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P22","dificuldade":"dificil","pergunta":"Quais são as IES com maior diversidade de cursos (número de áreas gerais distintas) e também alta taxa de conclusão?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P23","dificuldade":"dificil","pergunta":"Para cada região, qual é a tendência (regressão linear) do número de vagas EAD ao longo dos anos disponíveis?","provider":"gemini","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P23","dificuldade":"dificil","pergunta":"Para cada região, qual é a tendência (regressão linear) do número de vagas EAD ao longo dos anos disponíveis?","provider":"groq","veredito":"INCORRETO","dataMatchScore":0},{"questionId":"P23","dificuldade":"dificil","pergunta":"Para cada região, qual é a tendência (regressão linear) do número de vagas EAD ao longo dos anos disponíveis?","provider":"deepseek","veredito":"INCORRETO","dataMatchScore":0}];
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const PROVIDERS = ['gemini', 'groq', 'deepseek'];
+const PROVIDER_COLORS = { gemini: '#4285f4', groq: '#ff6b35', deepseek: '#a855f7' };
+const VERDICTS = ['CORRETO', 'PARCIAL', 'INCORRETO', 'ERRO_IA'];
+const VERD_COLORS = { CORRETO: '#22c55e', PARCIAL: '#eab308', INCORRETO: '#ef4444', ERRO_IA: '#6b7280' };
+const VERD_LABELS = { CORRETO: 'Correto', PARCIAL: 'Parcial', INCORRETO: 'Incorreto', ERRO_IA: 'Erro IA' };
+
+function fmtDelta(val, pos_good = true) {
+  if (val === 0) return `<span class="delta zero">= ${val>=0?'+':''}${val}</span>`;
+  const good = pos_good ? val > 0 : val < 0;
+  return `<span class="delta ${good?'pos':'neg'}">${val>0?'+':''}${val}</span>`;
+}
+function fmtDeltaFloat(val, pos_good = true) {
+  if (val === 0) return `<span class="delta zero">=0</span>`;
+  const good = pos_good ? val > 0 : val < 0;
+  return `<span class="delta ${good?'pos':'neg'}">${val>0?'+':''}${val.toFixed(1)}</span>`;
+}
+function veredictoClass(v) { return 'v-' + (v || 'NA'); }
+function veredictoLabel(v) { return v ? v.replace('_', ' ') : '—'; }
+
+function getSum(data, provider) { return data.summary.find(s => s.provider === provider); }
+
+function changeIcon(oldV, newV) {
+  const rank = { CORRETO: 4, PARCIAL: 3, INCORRETO: 2, ERRO_IA: 1, undefined: 0 };
+  const diff = (rank[newV] || 0) - (rank[oldV] || 0);
+  if (diff > 0) return '<span class="change-icon change-improved">↑</span>';
+  if (diff < 0) return '<span class="change-icon change-regressed">↓</span>';
+  return '<span class="change-icon change-same">–</span>';
+}
+
+// ─── IMPROVEMENT STRIP ────────────────────────────────────────────────────────
+function buildStrip() {
+  let totalOldCorretos = 0, totalNewCorretos = 0;
+  let totalOldErros = 0, totalNewErros = 0;
+  let totalOldScore = 0, totalNewScore = 0;
+
+  PROVIDERS.forEach(p => {
+    const o = getSum(OLD, p), n = getSum(NEW, p);
+    totalOldCorretos += o.corretos; totalNewCorretos += n.corretos;
+    totalOldErros += o.errosIA; totalNewErros += n.errosIA;
+    totalOldScore += o.avgDataMatchScore; totalNewScore += n.avgDataMatchScore;
+  });
+
+  const avgOld = totalOldScore / PROVIDERS.length;
+  const avgNew = totalNewScore / PROVIDERS.length;
+  const deltaAcertos = totalNewCorretos - totalOldCorretos;
+  const deltaErros = totalNewErros - totalOldErros;
+  const deltaScore = avgNew - avgOld;
+
+  const strip = document.getElementById('impStrip');
+  strip.innerHTML = `
+    <div class="imp-card ${deltaAcertos >= 0 ? 'positive' : 'negative'}">
+      <div class="imp-val">${deltaAcertos >= 0 ? '+' : ''}${deltaAcertos}</div>
+      <div class="imp-label">Acertos adicionais (todos provedores)</div>
+    </div>
+    <div class="imp-card ${deltaErros <= 0 ? 'positive' : 'negative'}">
+      <div class="imp-val">${deltaErros <= 0 ? '' : '+'}${deltaErros}</div>
+      <div class="imp-label">Delta Erros de IA (↓ melhor)</div>
+    </div>
+    <div class="imp-card ${deltaScore >= 0 ? 'positive' : 'negative'}">
+      <div class="imp-val">${deltaScore >= 0 ? '+' : ''}${deltaScore.toFixed(1)}%</div>
+      <div class="imp-label">Variação avg DataMatch Score</div>
+    </div>
+    <div class="imp-card neutral">
+      <div class="imp-val">${totalNewCorretos}/69</div>
+      <div class="imp-label">Total corretos atual (de 69)</div>
+    </div>
+  `;
+}
+
+// ─── PROVIDER CARDS ───────────────────────────────────────────────────────────
+const MODELS = { gemini: 'gemini-2.5-flash-lite', groq: 'llama-3.3-70b', deepseek: 'deepseek-v3' };
+
+function buildCards() {
+  const container = document.getElementById('providerCards');
+  container.innerHTML = PROVIDERS.map(p => {
+    const o = getSum(OLD, p), n = getSum(NEW, p);
+    const dAcertos = n.corretos - o.corretos;
+    const dParciais = n.parciais - o.parciais;
+    const dIncorretos = n.incorretos - o.incorretos;
+    const dErros = n.errosIA - o.errosIA;
+    const dScore = n.avgDataMatchScore - o.avgDataMatchScore;
+    const accNew = ((n.corretos / n.total) * 100).toFixed(0);
+    const accOld = ((o.corretos / o.total) * 100).toFixed(0);
+
+    return `
+      <div class="provider-card ${p}">
+        <div class="card-header">
+          <span class="provider-dot ${p}-dot"></span>
+          <h3>${p}</h3>
+          <span class="model-tag">${MODELS[p]}</span>
+        </div>
+        <div class="score-highlight">
+          <div class="score-box">
+            <div class="label">Acurácia Antes</div>
+            <div class="value" style="color: var(--muted)">${accOld}%</div>
+            <div class="sublabel">${o.corretos} corretos</div>
+          </div>
+          <div class="score-box">
+            <div class="label">Acurácia Atual</div>
+            <div class="value" style="color: var(--${p === 'gemini' ? 'gemini' : p === 'groq' ? 'orange' : 'purple'})">${accNew}%</div>
+            <div class="sublabel">${n.corretos} corretos ${fmtDelta(dAcertos)}</div>
+          </div>
+        </div>
+        <div style="margin-top: 16px;">
+          <div class="metric-row">
+            <span class="metric-label">Corretos</span>
+            <div class="metric-values">
+              <span class="val-old">${o.corretos}</span>
+              <span>→</span>
+              <span class="val-new ${dAcertos>0?'up':dAcertos<0?'down':'neutral'}">${n.corretos}</span>
+              ${fmtDelta(dAcertos, true)}
+            </div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Parciais</span>
+            <div class="metric-values">
+              <span class="val-old">${o.parciais}</span>
+              <span>→</span>
+              <span class="val-new neutral">${n.parciais}</span>
+              ${fmtDelta(dParciais, true)}
+            </div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Incorretos</span>
+            <div class="metric-values">
+              <span class="val-old">${o.incorretos}</span>
+              <span>→</span>
+              <span class="val-new ${dIncorretos<0?'up':dIncorretos>0?'down':'neutral'}">${n.incorretos}</span>
+              ${fmtDelta(dIncorretos, false)}
+            </div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Erros de IA</span>
+            <div class="metric-values">
+              <span class="val-old">${o.errosIA}</span>
+              <span>→</span>
+              <span class="val-new ${dErros<0?'up':dErros>0?'down':'neutral'}">${n.errosIA}</span>
+              ${fmtDelta(dErros, false)}
+            </div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Avg DataMatch</span>
+            <div class="metric-values">
+              <span class="val-old">${o.avgDataMatchScore}%</span>
+              <span>→</span>
+              <span class="val-new ${dScore>0?'up':dScore<0?'down':'neutral'}">${n.avgDataMatchScore}%</span>
+              ${fmtDeltaFloat(dScore, true)}
+            </div>
+          </div>
+          <div style="margin-top: 12px;">
+            <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;">DataMatch Score atual</div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar" style="width: ${n.avgDataMatchScore}%; background: var(--${p==='gemini'?'gemini':p==='groq'?'orange':'purple'})"></div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ─── CHARTS ───────────────────────────────────────────────────────────────────
+function buildCharts() {
+  const chartDefaults = {
+    plugins: { legend: { labels: { color: '#8b92a5', font: { size: 12 } } } },
+    scales: {
+      x: { ticks: { color: '#8b92a5' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { ticks: { color: '#8b92a5' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+    }
+  };
+
+  // Chart 1: Acertos comparison
+  new Chart(document.getElementById('chartAcertos'), {
+    type: 'bar',
+    data: {
+      labels: PROVIDERS.map(p => p.charAt(0).toUpperCase() + p.slice(1)),
+      datasets: [
+        { label: 'Baseline (mai/24)', data: PROVIDERS.map(p => getSum(OLD,p).corretos), backgroundColor: PROVIDERS.map(p => PROVIDER_COLORS[p] + '55'), borderColor: PROVIDERS.map(p => PROVIDER_COLORS[p]), borderWidth: 2, borderRadius: 4 },
+        { label: 'Atual (mai/28)', data: PROVIDERS.map(p => getSum(NEW,p).corretos), backgroundColor: PROVIDERS.map(p => PROVIDER_COLORS[p] + 'cc'), borderColor: PROVIDERS.map(p => PROVIDER_COLORS[p]), borderWidth: 2, borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, responsive: true, maintainAspectRatio: false }
+  });
+
+  // Chart 2: Score comparison
+  new Chart(document.getElementById('chartScore'), {
+    type: 'bar',
+    data: {
+      labels: PROVIDERS.map(p => p.charAt(0).toUpperCase() + p.slice(1)),
+      datasets: [
+        { label: 'Baseline', data: PROVIDERS.map(p => getSum(OLD,p).avgDataMatchScore), backgroundColor: PROVIDERS.map(p => PROVIDER_COLORS[p] + '55'), borderColor: PROVIDERS.map(p => PROVIDER_COLORS[p]), borderWidth: 2, borderRadius: 4 },
+        { label: 'Atual', data: PROVIDERS.map(p => getSum(NEW,p).avgDataMatchScore), backgroundColor: PROVIDERS.map(p => PROVIDER_COLORS[p] + 'cc'), borderColor: PROVIDERS.map(p => PROVIDER_COLORS[p]), borderWidth: 2, borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, responsive: true, maintainAspectRatio: false, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, max: 100, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '%' } } } }
+  });
+
+  // Chart 3 & 4: Donut verdicts
+  function makePieData(results) {
+    const counts = { CORRETO: 0, PARCIAL: 0, INCORRETO: 0, ERRO_IA: 0 };
+    results.forEach(r => counts[r.veredito] = (counts[r.veredito] || 0) + 1);
+    return { labels: VERDICTS.map(v => VERD_LABELS[v]), datasets: [{ data: VERDICTS.map(v => counts[v] || 0), backgroundColor: VERDICTS.map(v => VERD_COLORS[v] + 'cc'), borderColor: '#1a1d27', borderWidth: 3, hoverOffset: 8 }] };
+  }
+  const pieOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#8b92a5', font: { size: 12 }, padding: 12 } } } };
+  new Chart(document.getElementById('chartVeredOld'), { type: 'doughnut', data: makePieData(OLD_RESULTS), options: pieOpts });
+  new Chart(document.getElementById('chartVeredNew'), { type: 'doughnut', data: makePieData(NEW_RESULTS), options: pieOpts });
+
+  // Chart 5: Per-question performance (new run)
+  const questions = [...new Set(NEW_RESULTS.map(r => r.questionId))].sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+  const qDatasets = PROVIDERS.map(p => ({
+    label: p.charAt(0).toUpperCase() + p.slice(1),
+    data: questions.map(q => {
+      const r = NEW_RESULTS.find(x => x.questionId === q && x.provider === p);
+      return r ? r.dataMatchScore : 0;
+    }),
+    backgroundColor: PROVIDER_COLORS[p] + '99',
+    borderColor: PROVIDER_COLORS[p],
+    borderWidth: 1,
+    borderRadius: 3
+  }));
+  new Chart(document.getElementById('chartQPerf'), {
+    type: 'bar',
+    data: { labels: questions, datasets: qDatasets },
+    options: { ...chartDefaults, responsive: true, maintainAspectRatio: false, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, max: 100, ticks: { callback: v => v + '%', color: '#8b92a5' } } } }
+  });
+}
+
+// ─── DIFFICULTY GRID ──────────────────────────────────────────────────────────
+function buildDiffGrid() {
+  const diffs = ['facil', 'medio', 'dificil'];
+  const container = document.getElementById('diffGrid');
+  container.innerHTML = diffs.map(d => {
+    const pRows = PROVIDERS.map(p => {
+      const o = getSum(OLD,p).byDificuldade.find(x => x.dificuldade === d);
+      const n = getSum(NEW,p).byDificuldade.find(x => x.dificuldade === d);
+      const dC = n.corretos - o.corretos;
+      const dS = n.avgDataMatchScore - o.avgDataMatchScore;
+      return `
+        <div class="metric-row">
+          <span class="metric-label" style="display:flex;align-items:center;gap:6px;">
+            <span class="provider-dot ${p}-dot"></span>${p}
+          </span>
+          <div class="metric-values">
+            <span class="val-old">${o.corretos}/${o.total}</span>
+            <span>→</span>
+            <span class="val-new ${dC>0?'up':dC<0?'down':'neutral'}">${n.corretos}/${n.total}</span>
+            ${fmtDelta(dC, true)}
+          </div>
+        </div>
+        <div style="padding: 0 0 8px 20px; font-size: 11px; color: var(--muted);">
+          Score: ${o.avgDataMatchScore}% → <strong style="color:${dS>0?'#22c55e':dS<0?'#ef4444':'#8b92a5'}">${n.avgDataMatchScore}%</strong> ${fmtDeltaFloat(dS)}
+        </div>`;
+    }).join('');
+    return `
+      <div class="diff-card">
+        <h4><span class="diff-badge ${d}">${d}</span></h4>
+        ${pRows}
+      </div>`;
+  }).join('');
+}
+
+// ─── QUESTION TABLE ───────────────────────────────────────────────────────────
+function buildQTable() {
+  const questions = [...new Set([...OLD_RESULTS, ...NEW_RESULTS].map(r => r.questionId))];
+  questions.sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+
+  const oldMap = {};
+  OLD_RESULTS.forEach(r => { oldMap[r.questionId + '_' + r.provider] = r; });
+  const newMap = {};
+  NEW_RESULTS.forEach(r => { newMap[r.questionId + '_' + r.provider] = r; });
+
+  const tbody = document.getElementById('qTableBody');
+  tbody.innerHTML = questions.map(qid => {
+    const sample = OLD_RESULTS.find(r => r.questionId === qid) || NEW_RESULTS.find(r => r.questionId === qid);
+    const dif = sample.dificuldade;
+    const pergunta = sample.pergunta;
+
+    const cells = PROVIDERS.map(p => {
+      const o = oldMap[qid+'_'+p];
+      const n = newMap[qid+'_'+p];
+      const ov = o ? o.veredito : undefined;
+      const nv = n ? n.veredito : undefined;
+      return `
+        <td><span class="veredito-pill ${veredictoClass(ov)}">${veredictoLabel(ov)}</span></td>
+        <td><span class="veredito-pill ${veredictoClass(nv)}">${veredictoLabel(nv)}</span></td>
+        <td>${changeIcon(ov, nv)}</td>`;
+    }).join('');
+
+    return `<tr>
+      <td class="q-id">${qid}</td>
+      <td class="q-text" title="${pergunta}">${pergunta}</td>
+      <td><span class="diff-badge ${dif}">${dif}</span></td>
+      ${cells}
+    </tr>`;
+  }).join('');
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+let chartsBuilt = false;
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'charts' && !chartsBuilt) { buildCharts(); chartsBuilt = true; }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildStrip();
+buildCards();
+buildDiffGrid();
+buildQTable();
+</script>
+</body>
+</html>

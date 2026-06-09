@@ -1,8 +1,8 @@
 {
   "metadata": {
     "timestamp": "2026-05-28T16:00:00.000Z",
-    "totalPerguntas": 23,
-    "totalResultados": 69,
+    "totalPerguntas": 21,
+    "totalResultados": 63,
     "generatedAt": "2026-05-29T17:52:00.312Z",
     "lastRun": "2026-05-29T17:52:00.313Z",
     "groqRetryAt": "2026-05-29T17:52:00.313Z"
@@ -817,75 +817,6 @@
     {
       "questionId": "P11",
       "dificuldade": "medio",
-      "pergunta": "Qual a média da nota CPC contínua dos cursos de Direito, agrupada por estado?",
-      "provider": "gemini",
-      "model": "gemini-2.5-flash-lite",
-      "sqlGerado": "SELECT\n  cib.sg_uf_ies AS estado,\n  ROUND(AVG(dc.cpc_continuo)::numeric, 2) AS media_cpc_continuo\nFROM inep.dados_cpc AS dc\nJOIN inep.censo_cursos AS cc\n  ON dc.co_curso = cc.cod_curso\nJOIN inep.censo_ies_bruto AS cib\n  ON dc.co_ies = cib.co_ies\nWHERE\n  cc.nome_curso ILIKE '%Direito%'\nGROUP BY\n  cib.sg_uf_ies\nORDER BY\n  media_cpc_continuo DESC\nLIMIT 50",
-      "geracaoSucesso": true,
-      "geracaoErro": "",
-      "execucaoIASucesso": true,
-      "execucaoIARowCount": 27,
-      "execucaoIARowCountSemLimit": 27,
-      "temLimit": true,
-      "execucaoIAErro": "",
-      "execucaoGabaritoSucesso": true,
-      "execucaoGabaritoRowCount": 27,
-      "execucaoGabaritoErro": "",
-      "rowCountMatch": true,
-      "rowCountDiff": 0,
-      "columnOverlap": 50,
-      "dataMatchScore": 0,
-      "veredito": "INCORRETO"
-    },
-    {
-      "questionId": "P11",
-      "dificuldade": "medio",
-      "pergunta": "Qual a média da nota CPC contínua dos cursos de Direito, agrupada por estado?",
-      "provider": "groq",
-      "model": "llama-3.3-70b-versatile",
-      "sqlGerado": "",
-      "geracaoSucesso": false,
-      "geracaoErro": "SQL inválido: A coluna 'nu_ano_censo' não existe na tabela 'censo_cursos'. Tente uma destas: cod_curso, nome_curso, cod_ies, cod_municipio, id_grau_academico.",
-      "execucaoIASucesso": false,
-      "execucaoIARowCount": 0,
-      "execucaoIARowCountSemLimit": 0,
-      "temLimit": false,
-      "execucaoIAErro": "",
-      "execucaoGabaritoSucesso": true,
-      "execucaoGabaritoRowCount": 27,
-      "execucaoGabaritoErro": "",
-      "rowCountMatch": false,
-      "rowCountDiff": 27,
-      "columnOverlap": 0,
-      "dataMatchScore": 0,
-      "veredito": "ERRO_IA"
-    },
-    {
-      "questionId": "P11",
-      "dificuldade": "medio",
-      "pergunta": "Qual a média da nota CPC contínua dos cursos de Direito, agrupada por estado?",
-      "provider": "deepseek",
-      "model": "deepseek-v3",
-      "sqlGerado": "SELECT b.sg_uf_ies AS estado,\n       ROUND(AVG(dc.cpc_continuo)::numeric, 2) AS media_cpc\nFROM inep.dados_cpc dc\nJOIN inep.censo_cursos cc ON dc.co_curso = cc.cod_curso\nJOIN inep.censo_ies_bruto b ON dc.co_ies = b.co_ies\nWHERE cc.nome_curso ILIKE '%Direito%'\nGROUP BY b.sg_uf_ies\nORDER BY media_cpc DESC",
-      "geracaoSucesso": true,
-      "geracaoErro": "",
-      "execucaoIASucesso": true,
-      "execucaoIARowCount": 27,
-      "execucaoIARowCountSemLimit": 27,
-      "temLimit": false,
-      "execucaoIAErro": "",
-      "execucaoGabaritoSucesso": true,
-      "execucaoGabaritoRowCount": 27,
-      "execucaoGabaritoErro": "",
-      "rowCountMatch": true,
-      "rowCountDiff": 0,
-      "columnOverlap": 50,
-      "dataMatchScore": 0,
-      "veredito": "INCORRETO"
-    },
-    {
-      "questionId": "P12",
-      "dificuldade": "medio",
       "pergunta": "Quais estados formaram mais profissionais de Enfermagem em 2022?",
       "provider": "gemini",
       "model": "gemini-2.5-flash-lite",
@@ -907,7 +838,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P12",
+      "questionId": "P11",
       "dificuldade": "medio",
       "pergunta": "Quais estados formaram mais profissionais de Enfermagem em 2022?",
       "provider": "groq",
@@ -930,7 +861,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P12",
+      "questionId": "P11",
       "dificuldade": "medio",
       "pergunta": "Quais estados formaram mais profissionais de Enfermagem em 2022?",
       "provider": "deepseek",
@@ -953,7 +884,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P13",
+      "questionId": "P12",
       "dificuldade": "medio",
       "pergunta": "Qual é a evolução do número total de vagas em EAD de 2018 a 2022?",
       "provider": "gemini",
@@ -976,7 +907,7 @@
       "veredito": "CORRETO"
     },
     {
-      "questionId": "P13",
+      "questionId": "P12",
       "dificuldade": "medio",
       "pergunta": "Qual é a evolução do número total de vagas em EAD de 2018 a 2022?",
       "provider": "groq",
@@ -999,7 +930,7 @@
       "veredito": "CORRETO"
     },
     {
-      "questionId": "P13",
+      "questionId": "P12",
       "dificuldade": "medio",
       "pergunta": "Qual é a evolução do número total de vagas em EAD de 2018 a 2022?",
       "provider": "deepseek",
@@ -1022,7 +953,7 @@
       "veredito": "CORRETO"
     },
     {
-      "questionId": "P14",
+      "questionId": "P13",
       "dificuldade": "medio",
       "pergunta": "Qual é a taxa de evasão média dos cursos de Administração em universidades públicas federais?",
       "provider": "gemini",
@@ -1045,7 +976,7 @@
       "veredito": "CORRETO"
     },
     {
-      "questionId": "P14",
+      "questionId": "P13",
       "dificuldade": "medio",
       "pergunta": "Qual é a taxa de evasão média dos cursos de Administração em universidades públicas federais?",
       "provider": "groq",
@@ -1068,7 +999,7 @@
       "veredito": "ERRO_IA"
     },
     {
-      "questionId": "P14",
+      "questionId": "P13",
       "dificuldade": "medio",
       "pergunta": "Qual é a taxa de evasão média dos cursos de Administração em universidades públicas federais?",
       "provider": "deepseek",
@@ -1091,7 +1022,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P15",
+      "questionId": "P14",
       "dificuldade": "medio",
       "pergunta": "Quantos docentes com doutorado existem em cada estado no último censo?",
       "provider": "gemini",
@@ -1114,7 +1045,7 @@
       "veredito": "CORRETO"
     },
     {
-      "questionId": "P15",
+      "questionId": "P14",
       "dificuldade": "medio",
       "pergunta": "Quantos docentes com doutorado existem em cada estado no último censo?",
       "provider": "groq",
@@ -1137,7 +1068,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P15",
+      "questionId": "P14",
       "dificuldade": "medio",
       "pergunta": "Quantos docentes com doutorado existem em cada estado no último censo?",
       "provider": "deepseek",
@@ -1160,7 +1091,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P16",
+      "questionId": "P15",
       "dificuldade": "dificil",
       "pergunta": "Qual é a taxa de concorrência para Sistemas de Informação no Rio Grande do Sul?",
       "provider": "gemini",
@@ -1183,7 +1114,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P16",
+      "questionId": "P15",
       "dificuldade": "dificil",
       "pergunta": "Qual é a taxa de concorrência para Sistemas de Informação no Rio Grande do Sul?",
       "provider": "groq",
@@ -1206,7 +1137,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P16",
+      "questionId": "P15",
       "dificuldade": "dificil",
       "pergunta": "Qual é a taxa de concorrência para Sistemas de Informação no Rio Grande do Sul?",
       "provider": "deepseek",
@@ -1229,7 +1160,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P17",
+      "questionId": "P16",
       "dificuldade": "dificil",
       "pergunta": "Quais cursos de Ciência da Computação tiveram nota no ENADE acima da média nacional nesse mesmo curso?",
       "provider": "gemini",
@@ -1252,7 +1183,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P17",
+      "questionId": "P16",
       "dificuldade": "dificil",
       "pergunta": "Quais cursos de Ciência da Computação tiveram nota no ENADE acima da média nacional nesse mesmo curso?",
       "provider": "groq",
@@ -1275,7 +1206,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P17",
+      "questionId": "P16",
       "dificuldade": "dificil",
       "pergunta": "Quais cursos de Ciência da Computação tiveram nota no ENADE acima da média nacional nesse mesmo curso?",
       "provider": "deepseek",
@@ -1298,7 +1229,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P18",
+      "questionId": "P17",
       "dificuldade": "dificil",
       "pergunta": "Quais são as 10 cidades com o maior número de instituições de ensino superior e qual o IDHM médio dessas cidades?",
       "provider": "gemini",
@@ -1321,7 +1252,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P18",
+      "questionId": "P17",
       "dificuldade": "dificil",
       "pergunta": "Quais são as 10 cidades com o maior número de instituições de ensino superior e qual o IDHM médio dessas cidades?",
       "provider": "groq",
@@ -1344,7 +1275,7 @@
       "veredito": "ERRO_IA"
     },
     {
-      "questionId": "P18",
+      "questionId": "P17",
       "dificuldade": "dificil",
       "pergunta": "Quais são as 10 cidades com o maior número de instituições de ensino superior e qual o IDHM médio dessas cidades?",
       "provider": "deepseek",
@@ -1367,7 +1298,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P19",
+      "questionId": "P18",
       "dificuldade": "dificil",
       "pergunta": "Comparando universidades públicas e privadas, qual tipo tem a melhor nota média no IGC contínuo nos últimos 3 anos disponíveis?",
       "provider": "gemini",
@@ -1390,7 +1321,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P19",
+      "questionId": "P18",
       "dificuldade": "dificil",
       "pergunta": "Comparando universidades públicas e privadas, qual tipo tem a melhor nota média no IGC contínuo nos últimos 3 anos disponíveis?",
       "provider": "groq",
@@ -1413,7 +1344,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P19",
+      "questionId": "P18",
       "dificuldade": "dificil",
       "pergunta": "Comparando universidades públicas e privadas, qual tipo tem a melhor nota média no IGC contínuo nos últimos 3 anos disponíveis?",
       "provider": "deepseek",
@@ -1436,7 +1367,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P20",
+      "questionId": "P19",
       "dificuldade": "dificil",
       "pergunta": "Qual é a relação entre o percentual de doutores no corpo docente e a nota CPC dos cursos de Pedagogia?",
       "provider": "gemini",
@@ -1459,7 +1390,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P20",
+      "questionId": "P19",
       "dificuldade": "dificil",
       "pergunta": "Qual é a relação entre o percentual de doutores no corpo docente e a nota CPC dos cursos de Pedagogia?",
       "provider": "groq",
@@ -1482,7 +1413,7 @@
       "veredito": "ERRO_IA"
     },
     {
-      "questionId": "P20",
+      "questionId": "P19",
       "dificuldade": "dificil",
       "pergunta": "Qual é a relação entre o percentual de doutores no corpo docente e a nota CPC dos cursos de Pedagogia?",
       "provider": "deepseek",
@@ -1505,7 +1436,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P21",
+      "questionId": "P20",
       "dificuldade": "dificil",
       "pergunta": "Qual a taxa de conclusão acumulada média dos cursos de Medicina versus Enfermagem por região?",
       "provider": "gemini",
@@ -1528,7 +1459,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P21",
+      "questionId": "P20",
       "dificuldade": "dificil",
       "pergunta": "Qual a taxa de conclusão acumulada média dos cursos de Medicina versus Enfermagem por região?",
       "provider": "groq",
@@ -1551,7 +1482,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P21",
+      "questionId": "P20",
       "dificuldade": "dificil",
       "pergunta": "Qual a taxa de conclusão acumulada média dos cursos de Medicina versus Enfermagem por região?",
       "provider": "deepseek",
@@ -1574,76 +1505,7 @@
       "veredito": "INCORRETO"
     },
     {
-      "questionId": "P22",
-      "dificuldade": "dificil",
-      "pergunta": "Quais instituições do Sul do Brasil possuem programas de pós-graduação com conceito CAPES igual ou superior a 6?",
-      "provider": "gemini",
-      "model": "gemini-2.5-flash-lite",
-      "sqlGerado": "SELECT DISTINCT\n  nm_entidade_ensino,\n  nm_regiao,\n  sg_uf_programa,\n  nm_municipio_programa_ies,\n  nm_programa_ies,\n  cd_conceito_curso\nFROM inep.capes_cursos_bruto\nWHERE\n  nm_regiao = 'Sul' AND cd_conceito_curso >= 6\nORDER BY\n  nm_regiao,\n  sg_uf_programa,\n  nm_municipio_programa_ies,\n  nm_entidade_ensino,\n  nm_programa_ies LIMIT 100",
-      "geracaoSucesso": true,
-      "geracaoErro": "",
-      "execucaoIASucesso": true,
-      "execucaoIARowCount": 0,
-      "execucaoIARowCountSemLimit": 0,
-      "temLimit": true,
-      "execucaoIAErro": "",
-      "execucaoGabaritoSucesso": false,
-      "execucaoGabaritoRowCount": 0,
-      "execucaoGabaritoErro": "for SELECT DISTINCT, ORDER BY expressions must appear in select list",
-      "rowCountMatch": false,
-      "rowCountDiff": 0,
-      "columnOverlap": 0,
-      "dataMatchScore": 0,
-      "veredito": "ERRO_GABARITO"
-    },
-    {
-      "questionId": "P22",
-      "dificuldade": "dificil",
-      "pergunta": "Quais instituições do Sul do Brasil possuem programas de pós-graduação com conceito CAPES igual ou superior a 6?",
-      "provider": "groq",
-      "model": "llama-3.3-70b-versatile",
-      "sqlGerado": "SELECT DISTINCT cp.nm_entidade_ensino\nFROM inep.capes_programas_bruto cp\nJOIN inep.censo_ies_bruto c ON cp.cd_entidade_emec = c.co_ies\nWHERE cp.nm_regiao = 'Sul' AND cp.cd_conceito_programa >= 6 LIMIT 100",
-      "geracaoSucesso": true,
-      "geracaoErro": "",
-      "execucaoIASucesso": false,
-      "execucaoIARowCount": 0,
-      "execucaoIARowCountSemLimit": 0,
-      "temLimit": true,
-      "execucaoIAErro": "operator does not exist: character varying = integer",
-      "execucaoGabaritoSucesso": false,
-      "execucaoGabaritoRowCount": 0,
-      "execucaoGabaritoErro": "for SELECT DISTINCT, ORDER BY expressions must appear in select list",
-      "rowCountMatch": false,
-      "rowCountDiff": 0,
-      "columnOverlap": 0,
-      "dataMatchScore": 0,
-      "veredito": "ERRO_GABARITO"
-    },
-    {
-      "questionId": "P22",
-      "dificuldade": "dificil",
-      "pergunta": "Quais instituições do Sul do Brasil possuem programas de pós-graduação com conceito CAPES igual ou superior a 6?",
-      "provider": "deepseek",
-      "model": "deepseek-v3",
-      "sqlGerado": "SELECT DISTINCT p.nm_entidade_ensino AS instituicao, p.sg_uf_programa AS uf\nFROM inep.capes_programas_bruto p\nWHERE p.nm_regiao = 'Sul'\n  AND p.cd_conceito_programa::int >= 6\n  AND p.an_base = (SELECT MAX(an_base) FROM inep.capes_programas_bruto)\nORDER BY p.sg_uf_programa, p.nm_entidade_ensino",
-      "geracaoSucesso": true,
-      "geracaoErro": "",
-      "execucaoIASucesso": true,
-      "execucaoIARowCount": 0,
-      "execucaoIARowCountSemLimit": 0,
-      "temLimit": false,
-      "execucaoIAErro": "",
-      "execucaoGabaritoSucesso": false,
-      "execucaoGabaritoRowCount": 0,
-      "execucaoGabaritoErro": "for SELECT DISTINCT, ORDER BY expressions must appear in select list",
-      "rowCountMatch": false,
-      "rowCountDiff": 0,
-      "columnOverlap": 0,
-      "dataMatchScore": 0,
-      "veredito": "ERRO_GABARITO"
-    },
-    {
-      "questionId": "P23",
+      "questionId": "P21",
       "dificuldade": "dificil",
       "pergunta": "Para as universidades federais, qual é a proporção de alunos que ingressaram por cotas de escola pública em relação ao total de ingressantes em 2022?",
       "provider": "gemini",
@@ -1666,7 +1528,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P23",
+      "questionId": "P21",
       "dificuldade": "dificil",
       "pergunta": "Para as universidades federais, qual é a proporção de alunos que ingressaram por cotas de escola pública em relação ao total de ingressantes em 2022?",
       "provider": "groq",
@@ -1689,7 +1551,7 @@
       "veredito": "PARCIAL"
     },
     {
-      "questionId": "P23",
+      "questionId": "P21",
       "dificuldade": "dificil",
       "pergunta": "Para as universidades federais, qual é a proporção de alunos que ingressaram por cotas de escola pública em relação ao total de ingressantes em 2022?",
       "provider": "deepseek",

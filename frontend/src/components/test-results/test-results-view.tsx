@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { testResultsService, TestResultRecord } from "@/services/test-results-service"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from "recharts"
+import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie, LabelList } from "recharts"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 
@@ -81,6 +81,9 @@ export function TestResultsView() {
 
         const providerStats: Record<string, { provider: string, success: number, error: number }> = {};
         const errorTypeStats: Record<string, { type: string, count: number }> = {};
+        // cumulative successes per provider per question index
+        const cumulativeByProvider: Record<string, number[]> = {};
+        const questionSet = new Set<string>();
 
         data.forEach(curr => {
             const isSuccess = curr['Status Execucao']?.toUpperCase() === 'SUCESSO';
@@ -115,6 +118,22 @@ export function TestResultsView() {
             } else {
                 providerStats[provider].error++;
             }
+
+            questionSet.add(curr.Pergunta);
+        });
+
+        // Build cumulative success series per provider, indexed by question order
+        const questions = Array.from(questionSet);
+        const providers = Object.keys(providerStats);
+        providers.forEach(p => { cumulativeByProvider[p] = []; });
+
+        const successLines = questions.map((q, idx) => {
+            const point: Record<string, number | string> = { q: idx + 1 };
+            providers.forEach(p => {
+                const row = data.find(r => r.Pergunta === q && (r.Provider || 'Desconhecido') === p);
+                point[p] = row && row['Status Execucao']?.toUpperCase() === 'SUCESSO' ? 1 : 0;
+            });
+            return point;
         });
 
         return {
@@ -123,6 +142,8 @@ export function TestResultsView() {
                 { name: 'Erro', value: errorCount }
             ],
             providerStats: Object.values(providerStats),
+            successLines,
+            providers,
             errorTypeStats: Object.values(errorTypeStats).sort((a, b) => b.count - a.count)
         }
     }, [data])
@@ -181,17 +202,44 @@ export function TestResultsView() {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle>Comparações por Provedor</CardTitle>
+                                <CardTitle>Sucessos por Provedor</CardTitle>
+                                <CardDescription>Total de acertos por provedor.</CardDescription>
                             </CardHeader>
                             <CardContent className="h-[300px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartData.providerStats}>
-                                        <XAxis dataKey="provider" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Legend />
-                                        <Bar dataKey="success" name="Sucesso" fill="#22c55e" />
-                                        <Bar dataKey="error" name="Erro" fill="#ef4444" />
+                                    <BarChart
+                                        data={chartData.providerStats}
+                                        layout="vertical"
+                                        margin={{ top: 4, right: 40, left: 8, bottom: 4 }}
+                                        barCategoryGap="28%"
+                                    >
+                                        <XAxis
+                                            type="number"
+                                            allowDecimals={false}
+                                            tick={{ fontSize: 12, fill: "#9ca3af" }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <YAxis
+                                            dataKey="provider"
+                                            type="category"
+                                            width={90}
+                                            tick={{ fontSize: 13, fill: "#374151" }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                                            contentStyle={{ borderRadius: 8, fontSize: 13, border: "1px solid #e5e7eb", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+                                            formatter={(v: number) => [v, "Acertos"]}
+                                        />
+                                        <Bar dataKey="success" name="Acertos" radius={[0, 6, 6, 0]} maxBarSize={28}>
+                                            {chartData.providerStats.map((_, i) => {
+                                                const palette = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444"]
+                                                return <Cell key={i} fill={palette[i % palette.length]} />
+                                            })}
+                                            <LabelList dataKey="success" position="right" style={{ fontSize: 12, fontWeight: 600, fill: "#374151" }} />
+                                        </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
                             </CardContent>
@@ -205,11 +253,39 @@ export function TestResultsView() {
                                 </CardHeader>
                                 <CardContent className="h-[300px]">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={chartData.errorTypeStats} layout="vertical" margin={{ left: 50 }}>
-                                            <XAxis type="number" />
-                                            <YAxis dataKey="type" type="category" width={150} tick={{ fontSize: 12 }} />
-                                            <Tooltip />
-                                            <Bar dataKey="count" name="Ocorrências" fill="#f59e0b" />
+                                        <BarChart
+                                            data={chartData.errorTypeStats}
+                                            layout="vertical"
+                                            margin={{ top: 4, right: 40, left: 8, bottom: 4 }}
+                                            barCategoryGap="28%"
+                                        >
+                                            <XAxis
+                                                type="number"
+                                                allowDecimals={false}
+                                                tick={{ fontSize: 12, fill: "#9ca3af" }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                            />
+                                            <YAxis
+                                                dataKey="type"
+                                                type="category"
+                                                width={165}
+                                                tick={{ fontSize: 12, fill: "#374151" }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                            />
+                                            <Tooltip
+                                                cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                                                contentStyle={{ borderRadius: 8, fontSize: 13, border: "1px solid #e5e7eb", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+                                                formatter={(v: number) => [v, "Ocorrências"]}
+                                            />
+                                            <Bar dataKey="count" name="Ocorrências" radius={[0, 6, 6, 0]} maxBarSize={28}>
+                                                {chartData.errorTypeStats.map((_, i) => {
+                                                    const palette = ["#6366f1","#f59e0b","#ef4444","#22c55e","#3b82f6","#a855f7"]
+                                                    return <Cell key={i} fill={palette[i % palette.length]} />
+                                                })}
+                                                <LabelList dataKey="count" position="right" style={{ fontSize: 12, fontWeight: 600, fill: "#374151" }} />
+                                            </Bar>
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </CardContent>
