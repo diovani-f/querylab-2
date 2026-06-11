@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/stores/app-store"
-import { Send, MessageSquare, ArrowLeft } from "lucide-react"
+import { Send, MessageSquare, ArrowLeft, Brain, Zap, Cpu } from "lucide-react"
 import { MessageBubble } from "./message-bubble"
 import { TypingIndicator, SQLExecutionIndicator } from "./typing-indicator"
 import { MessageSearch } from "./message-search"
@@ -16,6 +16,14 @@ import { apiService } from "@/lib/api"
 import { PulseLoader } from "react-spinners"
 import { useUserSettings } from "@/hooks/use-user-settings"
 import { useErrorHandler } from "@/lib/error-handler"
+import { cn } from "@/lib/utils"
+import type { SQLProvider } from "@/types"
+
+const PROVIDER_META: { id: SQLProvider; label: string; icon: React.ElementType; activeColor: string; activeBg: string }[] = [
+  { id: 'gemini', label: 'Gemini', icon: Brain, activeColor: 'text-blue-600 dark:text-blue-400', activeBg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-700' },
+  { id: 'groq', label: 'Groq', icon: Zap, activeColor: 'text-orange-600 dark:text-orange-400', activeBg: 'bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-700' },
+  { id: 'deepseek', label: 'DeepSeek', icon: Cpu, activeColor: 'text-purple-600 dark:text-purple-400', activeBg: 'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-700' },
+]
 
 export function ChatInterface() {
   const [inputValue, setInputValue] = useState("")
@@ -26,7 +34,7 @@ export function ChatInterface() {
   const [isSavingParallelResult, setIsSavingParallelResult] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { settings } = useUserSettings()
+  const { settings, updateSelectedProviders } = useUserSettings()
   const { handleError } = useErrorHandler()
 
   const {
@@ -462,7 +470,9 @@ export function ChatInterface() {
                 <div className="text-center py-8">
                   <SQLExecutionIndicator />
                   <p className="text-muted-foreground mt-4">
-                    Gerando SQL com 3 modelos simultaneamente...
+                    {(settings.selectedProviders?.length ?? 3) === 1
+                      ? 'Gerando SQL...'
+                      : `Gerando SQL com ${settings.selectedProviders?.length ?? 3} modelos simultaneamente...`}
                   </p>
                 </div>
               ) : (
@@ -549,21 +559,51 @@ export function ChatInterface() {
               )}
             </Button>
           </div>
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-xs text-muted-foreground">
-              Pressione Enter para enviar, Shift+Enter para nova linha
+          <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
+            <p className="hidden sm:block text-xs text-muted-foreground">
+              Enter para enviar, Shift+Enter para nova linha
             </p>
-            {settings.developerMode ? (
-              <div className="flex items-center gap-1 text-xs text-orange-600">
-                <MessageSquare className="h-3 w-3" />
-                <span>Modo Desenvolvedor</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 text-xs text-green-600">
-                <Send className="h-3 w-3" />
-                <span>Modo Automático</span>
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-1.5 ml-auto">
+              {settings.developerMode && (
+                <div className="flex items-center gap-1 text-xs text-orange-600">
+                  <MessageSquare className="h-3 w-3" />
+                  <span>Dev</span>
+                </div>
+              )}
+              <span className="text-xs text-muted-foreground">IAs:</span>
+              {/* Chips de providers diretamente clicáveis */}
+              {PROVIDER_META.map(({ id, label, icon: Icon, activeColor, activeBg }) => {
+                const current: SQLProvider[] = settings.selectedProviders?.length
+                  ? settings.selectedProviders
+                  : ['gemini', 'groq', 'deepseek']
+                const active = current.includes(id)
+                const isLast = active && current.length === 1
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    disabled={isLast}
+                    onClick={() => {
+                      if (active) {
+                        if (current.length === 1) return
+                        updateSelectedProviders(current.filter(p => p !== id))
+                      } else {
+                        updateSelectedProviders([...current, id])
+                      }
+                    }}
+                    title={`${label} — clique para ${active ? 'desativar' : 'ativar'}`}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-all',
+                      active ? `${activeBg} ${activeColor}` : 'border-border text-muted-foreground hover:bg-muted/60',
+                      isLast && 'cursor-not-allowed'
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{label}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>

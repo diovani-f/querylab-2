@@ -87,6 +87,7 @@ export class ChatService {
     userId?: string
     autoExecuteSQL?: boolean
     useParallelMode?: boolean
+    selectedProviders?: import('../types').SQLProvider[]
     io?: Server
     socketSessionId?: string
   }): Promise<{
@@ -97,7 +98,7 @@ export class ChatService {
     error?: string
   }> {
     try {
-      const { sessionId, message, model, userId, useParallelMode, io, socketSessionId } = params
+      const { sessionId, message, model, userId, useParallelMode, selectedProviders, io, socketSessionId } = params
 
       // Verificar se a sessão existe no banco de dados
       let sessionData = await this.sessionService.getSession(sessionId)
@@ -136,7 +137,8 @@ export class ChatService {
         params.autoExecuteSQL,
         useParallelMode,
         io,
-        socketSessionId
+        socketSessionId,
+        selectedProviders
       )
 
     } catch (error) {
@@ -190,7 +192,8 @@ ${contextLines.join('\n')}
     autoExecuteSQL?: boolean,
     useParallelMode?: boolean,
     io?: Server,
-    socketSessionId?: string
+    socketSessionId?: string,
+    selectedProviders?: import('../types').SQLProvider[]
   ): Promise<{
     success: boolean
     userMessage?: Message
@@ -205,6 +208,7 @@ ${contextLines.join('\n')}
         selectedModel,
         autoExecuteSQL,
         useParallelMode,
+        selectedProviders,
         hasIO: !!io,
         socketSessionId
       })
@@ -268,7 +272,7 @@ RESPOSTA:`
         // É uma consulta SQL - verificar se deve usar modo paralelo
         if (useParallelMode && io && socketSessionId) {
           console.log('🚀 Usando MODO PARALELO para gerar SQL')
-          return await this.processSQLQueryParallel(sessionId, message, userMessage, session, selectedModel, autoExecuteSQL, io, socketSessionId)
+          return await this.processSQLQueryParallel(sessionId, message, userMessage, session, selectedModel, autoExecuteSQL, io, socketSessionId, selectedProviders)
         } else {
           console.log('📝 Usando modo NORMAL para gerar SQL')
           return await this.processSQLQueryRefactored(sessionId, message, userMessage, session, selectedModel, autoExecuteSQL)
@@ -442,7 +446,8 @@ RESPOSTA:`
     selectedModel: string,
     autoExecuteSQL?: boolean,
     io?: Server,
-    socketSessionId?: string
+    socketSessionId?: string,
+    selectedProviders?: import('../types').SQLProvider[]
   ): Promise<{
     success: boolean
     userMessage?: Message
@@ -451,12 +456,13 @@ RESPOSTA:`
     error?: string
   }> {
     try {
-      console.log(`🚀 Processando SQL Query em MODO PARALELO (3 IAs)`)
+      const providerCount = selectedProviders?.length ?? 3
+      console.log(`🚀 Processando SQL Query em MODO PARALELO (${providerCount} IA(s))`)
 
       // Emitir evento informando que está gerando em paralelo
       if (io && socketSessionId) {
         io.to(socketSessionId).emit('sql-parallel-generating', {
-          status: 'Gerando SQL com 3 modelos de IA simultaneamente...'
+          status: `Gerando SQL com ${providerCount} modelo(s) de IA simultaneamente...`
         })
       }
 
@@ -465,7 +471,8 @@ RESPOSTA:`
         question,
         model: 'parallel', // Não usado, mas necessário para a interface
         sessionId,
-        conversationHistory: session.mensagens
+        conversationHistory: session.mensagens,
+        providers: selectedProviders
       })
 
       // Emitir resultados parciais via WebSocket

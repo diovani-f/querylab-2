@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { AppState, ChatSession, Message, LLMModel, DatabaseConnection, QueryEvaluation } from '@/types'
+import { useSettingsStore } from './settings-store'
 import { apiService } from '@/lib/api'
 import { websocketService } from '@/lib/websocket'
 import { sanitizeError, logError } from '@/lib/error-handler'
@@ -484,39 +485,19 @@ export const useAppStore = create<AppStore>()(
           // Usar o userId diretamente (já é string)
           const userId = user?.id
 
-          // 3. TERCEIRO: Obter configurações do usuário do localStorage
-          let autoExecuteSQL = true // Default
-          let useParallelMode = true // Default - SEMPRE usar modo paralelo por padrão
+          // 3. TERCEIRO: Obter configurações do usuário do settings store
+          const userSettings = useSettingsStore.getState()
+          const autoExecuteSQL = userSettings.autoExecuteSQL
+          const selectedProviders: string[] = userSettings.selectedProviders.length > 0
+            ? userSettings.selectedProviders
+            : ['gemini', 'groq', 'deepseek']
+          const useParallelMode = selectedProviders.length > 1
 
-          try {
-            const settingsStr = localStorage.getItem('querylab-user-settings')
-
-            if (settingsStr) {
-              const settings = JSON.parse(settingsStr)
-              autoExecuteSQL = settings.autoExecuteSQL !== false
-              useParallelMode = settings.useParallelMode !== false // Default true, só false se explicitamente definido
-
-              console.log('⚙️ Configurações lidas do localStorage:', {
-                autoExecuteSQL,
-                useParallelMode,
-                rawSettings: settings
-              })
-            } else {
-              // Se não existe configuração, criar com defaults
-              console.log('⚠️ Nenhuma configuração encontrada no localStorage - criando com defaults')
-              const defaultSettings = {
-                developerMode: false,
-                autoExecuteSQL: true,
-                useParallelMode: true, // Modo paralelo ATIVADO por padrão
-                theme: 'system',
-                defaultModel: 'groq-llama3-70b'
-              }
-              localStorage.setItem('querylab-user-settings', JSON.stringify(defaultSettings))
-              console.log('✅ Configurações padrão criadas:', defaultSettings)
-            }
-          } catch (error) {
-            console.warn('Erro ao ler configurações do usuário:', error)
-          }
+          console.log('⚙️ Configurações lidas do settings store:', {
+            autoExecuteSQL,
+            selectedProviders,
+            useParallelMode,
+          })
 
           console.log('📤 Enviando mensagem via WebSocket:', {
             sessionId: state.currentSession.id,
@@ -524,7 +505,7 @@ export const useAppStore = create<AppStore>()(
             model: state.selectedModel.id,
             userId,
             autoExecuteSQL,
-            useParallelMode
+            selectedProviders
           })
 
           // 5. QUINTO: Enviar via WebSocket para processar resposta
@@ -534,7 +515,8 @@ export const useAppStore = create<AppStore>()(
             model: state.selectedModel.id,
             userId: userId,
             autoExecuteSQL,
-            useParallelMode
+            useParallelMode,
+            selectedProviders
           } as any)
         } catch (error) {
           console.error('Erro ao enviar mensagem:', error)

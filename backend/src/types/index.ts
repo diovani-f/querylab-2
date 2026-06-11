@@ -83,6 +83,8 @@ export interface ChatSession {
 
 export type LLMProvider = 'gemini' | 'groq' | 'openai' | 'anthropic' | 'local' | 'replicate' | 'cloudflare'
 
+export type SQLProvider = 'gemini' | 'groq' | 'deepseek'
+
 export interface LLMModel {
   id: string
   name: string
@@ -162,7 +164,7 @@ export interface ChatResponse {
 export interface WebSocketEvents {
   // Client to Server
   'join-session': (sessionId: string) => void
-  'send-message': (data: ChatRequest & { useParallelMode?: boolean }) => void
+  'send-message': (data: ChatRequest & { useParallelMode?: boolean; selectedProviders?: SQLProvider[] }) => void
   'execute-query': (data: { messageId: string, sessionId: string }) => void
   'disconnect-session': (sessionId: string) => void
 

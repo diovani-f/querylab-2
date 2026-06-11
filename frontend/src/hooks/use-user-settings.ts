@@ -1,85 +1,32 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+export type { UserSettings } from '@/stores/settings-store'
 
-export interface UserSettings {
-  developerMode: boolean
-  autoExecuteSQL: boolean
-  useParallelMode: boolean
-  theme: 'light' | 'dark' | 'system'
-  defaultModel: string
-}
+import { useSettingsStore } from '@/stores/settings-store'
+import type { UserSettings } from '@/stores/settings-store'
 
-const DEFAULT_SETTINGS: UserSettings = {
-  developerMode: false,
-  autoExecuteSQL: true,
-  useParallelMode: true, // Modo paralelo ATIVADO por padrão - gera com 3 IAs
-  theme: 'system',
-  defaultModel: 'groq-llama3-70b'
-}
-
-const STORAGE_KEY = 'querylab-user-settings'
-
+// Wrapper mantendo a mesma API pública do hook anterior.
+// O estado agora vive no Zustand (global + persistido), então todas as
+// instâncias deste hook compartilham o mesmo estado reativo.
 export function useUserSettings() {
-  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS)
-  const [isLoaded, setIsLoaded] = useState(false)
+  const store = useSettingsStore()
 
-  // Carregar configurações do localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsedSettings = JSON.parse(stored)
-        setSettings({ ...DEFAULT_SETTINGS, ...parsedSettings })
-      }
-    } catch (error) {
-      console.error('Erro ao carregar configurações do usuário:', error)
-    } finally {
-      setIsLoaded(true)
-    }
-  }, [])
-
-  // Salvar configurações no localStorage
-  const updateSettings = (newSettings: Partial<UserSettings>) => {
-    const updatedSettings = { ...settings, ...newSettings }
-    setSettings(updatedSettings)
-
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSettings))
-    } catch (error) {
-      console.error('Erro ao salvar configurações do usuário:', error)
-    }
-  }
-
-  // Resetar configurações para o padrão
-  const resetSettings = () => {
-    setSettings(DEFAULT_SETTINGS)
-    try {
-      localStorage.removeItem(STORAGE_KEY)
-    } catch (error) {
-      console.error('Erro ao resetar configurações do usuário:', error)
-    }
-  }
-
-  // Alternar modo desenvolvedor
-  const toggleDeveloperMode = () => {
-    updateSettings({
-      developerMode: !settings.developerMode,
-      autoExecuteSQL: !settings.developerMode ? false : true // Se ativar dev mode, desativar auto-execute
-    })
-  }
-
-  // Alternar execução automática de SQL
-  const toggleAutoExecuteSQL = () => {
-    updateSettings({ autoExecuteSQL: !settings.autoExecuteSQL })
+  const settings: UserSettings = {
+    developerMode: store.developerMode,
+    autoExecuteSQL: store.autoExecuteSQL,
+    useParallelMode: store.useParallelMode,
+    selectedProviders: store.selectedProviders,
+    theme: store.theme,
+    defaultModel: store.defaultModel,
   }
 
   return {
     settings,
-    isLoaded,
-    updateSettings,
-    resetSettings,
-    toggleDeveloperMode,
-    toggleAutoExecuteSQL
+    isLoaded: true, // Zustand + persist hidrata de forma síncrona
+    updateSettings: store.updateSettings,
+    resetSettings: store.resetSettings,
+    toggleDeveloperMode: store.toggleDeveloperMode,
+    toggleAutoExecuteSQL: store.toggleAutoExecuteSQL,
+    updateSelectedProviders: store.updateSelectedProviders,
   }
 }

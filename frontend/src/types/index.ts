@@ -47,6 +47,8 @@ export interface ChatSession {
 
 export type LLMProvider = 'gemini' | 'groq' | 'openai' | 'anthropic' | 'local' | 'replicate' | 'cloudflare'
 
+export type SQLProvider = 'gemini' | 'groq' | 'deepseek'
+
 export interface LLMModel {
   id: string
   name: string

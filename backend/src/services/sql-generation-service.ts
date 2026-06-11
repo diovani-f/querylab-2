@@ -6,12 +6,14 @@ import { OpenRouterService } from './openrouter-service'
 import { QueryExecutionService } from './query-execution-service'
 import { SmartSchemaReducer } from './smart-schema-reducer'
 import { SchemaEmbeddingService } from './schema-embedding-service'
+import type { SQLProvider } from '../types'
 
 export interface SQLGenerationRequest {
   question: string
   model: string
   sessionId: string
   conversationHistory?: any[]
+  providers?: SQLProvider[]
 }
 
 export interface SQLGenerationResult {
@@ -139,7 +141,7 @@ export class SQLGenerationService {
       }
 
       // 3. Validar e sanitizar SQL
-      const validationResult = await this.validateAndSanitizeSQL(sqlResult.sql!)
+      const validationResult = await this.validateAndSanitizeSQL(sqlResult.sql!, schemaResult.reducedSchema)
       if (!validationResult.isValid) {
         return {
           success: false,
@@ -177,9 +179,12 @@ export class SQLGenerationService {
    */
   async generateSQLParallel(request: SQLGenerationRequest): Promise<ParallelSQLGenerationResult> {
     const startTime = Date.now()
+    const activeProviders: SQLProvider[] = request.providers?.length
+      ? request.providers
+      : ['gemini', 'groq', 'deepseek']
 
     try {
-      console.log(`🚀 Iniciando geração SQL paralela para 3 modelos`)
+      console.log(`🚀 Iniciando geração SQL paralela para ${activeProviders.length} modelo(s): ${activeProviders.join(', ')}`)
 
       // 1. Obter e reduzir schema (uma vez para todos)
       const schemaResult = await this.getReducedSchema(request.question)
@@ -192,39 +197,30 @@ export class SQLGenerationService {
       }
 
       const conversationContext = this.buildConversationContext(request.conversationHistory)
+      const groqSchema = schemaResult.compactSchema ?? schemaResult.reducedSchema!
 
-      // 2. Inicializar resultados
-      const results: ParallelSQLResult[] = [
-        {
-          provider: 'gemini',
-          model: 'gemini-2.5-flash-lite',
-          success: false,
-          status: 'pending',
-          processingTime: 0
-        },
-        {
-          provider: 'groq',
-          model: 'llama-3.3-70b-versatile',
-          success: false,
-          status: 'pending',
-          processingTime: 0
-        },
-        {
-          provider: 'deepseek',
-          model: 'deepseek-v3',
-          success: false,
-          status: 'pending',
-          processingTime: 0
-        }
-      ]
+      const providerDefaults: Record<SQLProvider, { model: string }> = {
+        gemini: { model: 'gemini-2.5-flash-lite' },
+        groq: { model: 'llama-3.3-70b-versatile' },
+        deepseek: { model: 'deepseek-v3' }
+      }
+
+      // 2. Inicializar resultados apenas para providers selecionados
+      const results: ParallelSQLResult[] = activeProviders.map(provider => ({
+        provider,
+        model: providerDefaults[provider].model,
+        success: false,
+        status: 'pending' as const,
+        processingTime: 0
+      }))
 
       // 3. Gerar SQL em paralelo com Promise.allSettled
-      const groqSchema = schemaResult.compactSchema ?? schemaResult.reducedSchema!
-      const promises = [
-        this.generateWithGemini(request.question, schemaResult.reducedSchema!, conversationContext),
-        this.generateWithGroq(request.question, groqSchema, conversationContext),
-        this.generateWithDeepSeek(request.question, schemaResult.reducedSchema!, conversationContext)
-      ]
+      const providerFnMap: Record<SQLProvider, () => Promise<any>> = {
+        gemini: () => this.generateWithGemini(request.question, schemaResult.reducedSchema!, conversationContext),
+        groq: () => this.generateWithGroq(request.question, groqSchema, conversationContext),
+        deepseek: () => this.generateWithDeepSeek(request.question, schemaResult.reducedSchema!, conversationContext)
+      }
+      const promises = activeProviders.map(p => providerFnMap[p]())
 
       const settledResults = await Promise.allSettled(promises)
 
@@ -624,7 +620,7 @@ ${contextLines.join('\n')}
 
       const sql = this.extractSQL(result.content || '')
 
-      const validation = await this.validateAndSanitizeSQL(sql)
+      const validation = await this.validateAndSanitizeSQL(sql, reducedSchema)
 
       if (!validation.isValid) {
         return {
@@ -805,6 +801,22 @@ ${!isGroq ? `❌ ANTI-PADRÃO 3 — SALTO NA CADEIA GEOGRÁFICA:
             (filtrar b.nu_ano_censo separadamente se necessário para o contexto de IES)
    CONTEXTO: dados_igc, dados_cpc e dados_enade têm anos próprios que NÃO coincidem necessariamente com nu_ano_censo do censo. O join por ano elimina silenciosamente instituições válidas cujo ano de avaliação não tem entrada no censo do mesmo ano.
    REGRA: Para pegar nome/tipo/UF de IES via censo_ies_bruto ao usar tabelas de métricas, faça JOIN somente por co_ies — sem AND de ano. Para IGC especificamente, prefira usar \`igc_bruto\` diretamente (já tem nome, sigla e UF da IES embutidos, sem necessidade de JOIN).` : ''}
+
+❌ ANTI-PADRÃO 9 — "ANO MAIS RECENTE" DO ENADE CALCULADO GLOBALMENTE:
+   ERRADO:  WHERE de.ano = (SELECT MAX(ano) FROM inep.dados_enade)
+   CORRETO: WHERE de.ano = (
+              SELECT MAX(e2.ano) FROM inep.dados_enade e2
+              JOIN inep.censo_cursos c2 ON e2.co_curso = c2.cod_curso
+              WHERE c2.nome_curso ILIKE '%<mesmo curso da pergunta>%' AND e2.enade_continuo IS NOT NULL
+            )
+   CONSEQUÊNCIA: o ENADE avalia áreas em ciclos trienais — o ano mais recente avaliado varia por curso/área. MAX(ano) global pode escolher um ano em que o curso da pergunta NÃO foi avaliado, retornando 0 linhas ou comparando com o ano errado.
+   REGRA: para "nota/conceito mais recente" do ENADE de um curso/área específico, calcule o MAX(ano) FILTRANDO pelo mesmo curso/área e enade_continuo IS NOT NULL.
+
+❌ ANTI-PADRÃO 10 — idhms / pibs_per_capita / variaveis_pib_municipios_ibge SEM FILTRO DE ANO:
+   ERRADO:  JOIN inep.idhms idh ON m.cod_ibge = idh.cod_ibge_mun
+   CORRETO: JOIN inep.idhms idh ON m.cod_ibge = idh.cod_ibge_mun AND idh.ano = (SELECT MAX(ano) FROM inep.idhms)
+   CONSEQUÊNCIA: essas tabelas têm um registro POR ANO/CENSO para cada município (ex: 1991, 2000, 2010). Sem filtro de ano, o JOIN multiplica linhas e qualquer AVG()/SUM() mistura valores de décadas diferentes.
+   REGRA: ao usar idhms/pibs_per_capita/variaveis_pib_municipios_ibge, sempre filtre pelo ano mais recente disponível (ou o ano pedido na pergunta).
 
 💡 EXEMPLOS PRÁTICOS ESPERADOS:
 ${this.getDynamicExamples(question, maxExamples)}
@@ -1196,7 +1208,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
       const sql = this.extractSQL(result.content || '')
 
       // Validar SQL
-      const validation = await this.validateAndSanitizeSQL(sql)
+      const validation = await this.validateAndSanitizeSQL(sql, reducedSchema)
 
       if (!validation.isValid) {
         return {
@@ -1257,7 +1269,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
     }
 
     try {
-      const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext, 0, true)
+      const prompt = this.buildSQLGenerationPrompt(question, reducedSchema, conversationContext, 1, true)
 
       const result = await this.groqService.generateResponse({
         prompt,
@@ -1278,7 +1290,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
       const sql = this.extractSQL(result.content || '')
 
       // Validar SQL
-      const validation = await this.validateAndSanitizeSQL(sql)
+      const validation = await this.validateAndSanitizeSQL(sql, reducedSchema)
 
       if (!validation.isValid) {
         return {
@@ -1447,7 +1459,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
   /**
    * Valida e sanitiza SQL de forma robusta, aplicando Auto-Correção e Validação de Colunas
    */
-  private async validateAndSanitizeSQL(sql: string): Promise<SQLValidationResult> {
+  private async validateAndSanitizeSQL(sql: string, reducedSchemaText?: string): Promise<SQLValidationResult> {
     const errors: string[] = []
     const warnings: string[] = []
 
@@ -1480,7 +1492,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
       warnings.push(...tableValidation.warnings)
 
       // 5. Validar colunas contra o schema e tentar corrigir com Fuzzy Match
-      const columnValidation = await this.validateColumnsAgainstSchema(cleanSQL)
+      const columnValidation = await this.validateColumnsAgainstSchema(cleanSQL, reducedSchemaText)
       warnings.push(...columnValidation.warnings)
 
       // Aplicar correções de Fuzzy Matching se houver
@@ -1526,7 +1538,7 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
     }
   }
 
-  private async validateColumnsAgainstSchema(sql: string): Promise<{
+  private async validateColumnsAgainstSchema(sql: string, reducedSchemaText?: string): Promise<{
     errors: string[]
     warnings: string[]
     fixedSQL: string
@@ -1591,17 +1603,26 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
         let columnExists = false
         let tableFound = false
         let availableCols: string[] = []
+        let matchedTableName = ''
 
         for (const [tableName, columns] of schemaMap.entries()) {
           // Check exact match or suffix (for 'inep.' prefix)
           if (tableName === actualTableName || tableName.endsWith('_' + actualTableName) || tableName.endsWith(actualTableName)) {
             tableFound = true
             availableCols = Array.from(columns)
+            matchedTableName = tableName
             if (columns.has(columnName)) {
               columnExists = true
               break
             }
           }
+        }
+
+        // Tabela existe no schema completo e a coluna está correta, mas a tabela pode não
+        // ter sido incluída no schema REDUZIDO que foi de fato enviado ao modelo nesta consulta.
+        if (tableFound && columnExists && reducedSchemaText && !reducedSchemaText.includes(`.${matchedTableName}\``)) {
+          const warnMsg = `⚠️ Tabela '${matchedTableName}' não constava no schema reduzido enviado ao modelo nesta consulta — revise se os dados retornados fazem sentido.`
+          if (!warnings.includes(warnMsg)) warnings.push(warnMsg)
         }
 
         if (tableFound && !columnExists) {
@@ -1734,8 +1755,8 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
     if (tableReferences) {
       for (const ref of tableReferences) {
         const tableName = ref.split(/\s+/)[1]
-        // Verificar se a tabela não tem prefixo inep. e não é um alias
-        if (!tableName.startsWith('inep.') && !tableName.includes(' AS ') && tableName.length > 3) {
+        // Verificar se a tabela não tem prefixo inep./cesta. e não é um alias
+        if (!tableName.startsWith('inep.') && !tableName.startsWith('cesta.') && !tableName.includes(' AS ') && tableName.length > 3) {
           warnings.push(`Tabela '${tableName}' deveria ter prefixo 'inep.'`)
         }
       }
@@ -1918,6 +1939,11 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
       'qt_ing':        '[int — ingressantes — SOMENTE em censo_curso_vagas_bruto]',
       'qt_vg_total':   '[int — vagas totais — SOMENTE em censo_curso_vagas_bruto]',
       'qt_conc':       '[int — concluintes — em censo_curso_vagas_bruto]',
+      // Docentes vs técnicos administrativos com doutorado (NÃO confundir!)
+      'qt_doc_ex_dout':       '[int — em censo_ies_bruto: DOCENTES (corpo docente) com doutorado. Para "% de doutores no corpo docente" use qt_doc_ex_dout / NULLIF(qt_doc_exe,0)]',
+      'qt_doc_exe':           '[int — em censo_ies_bruto: total de docentes em exercício — denominador para percentuais de qt_doc_ex_*]',
+      'qt_tec_doutorado_fem': '[int — em censo_ies_bruto: TÉCNICOS ADMINISTRATIVOS (não-docentes) do sexo feminino com doutorado — NÃO use para perguntas sobre "professores/docentes"]',
+      'qt_tec_doutorado_masc':'[int — em censo_ies_bruto: TÉCNICOS ADMINISTRATIVOS (não-docentes) do sexo masculino com doutorado — NÃO use para perguntas sobre "professores/docentes"]',
       // Taxas de fluxo (fluxo_tda) — valores entre 0 e 1
       'tda':  '[numeric 0–1 — Taxa de Desistência Acumulada — em fluxo_tda]',
       'tca':  '[numeric 0–1 — Taxa de Conclusão Acumulada — em fluxo_tda]',
@@ -1931,8 +1957,12 @@ Aplique o diagnóstico acima, corrija APENAS o problema identificado e forneça 
       'cpc_continuo':   '[numeric 0–5 — nota CPC contínua — em dados_cpc]',
       'enade_continuo': '[numeric 0–5 — nota ENADE — em dados_cpc]',
       'enade_faixa':    '[int — em dados_cpc: 1=Muito Fraco, 2=Fraco, 3=Regular, 4=Bom, 5=Muito Bom]',
-      'igc_faixa':      '[int — em dados_igc: 1=Muito Fraco, 2=Fraco, 3=Regular, 4=Bom, 5=Muito Bom]',
-      'igc_continuo':   '[numeric 0–5 — IGC contínuo — em dados_igc]',
+      'igc_faixa':      '[em dados_igc: int (1=Muito Fraco...5=Muito Bom); em igc_bruto: varchar (ex: "Faixa 4")]',
+      'igc_continuo':   '[numeric 0–5 — IGC contínuo — em dados_igc e igc_bruto]',
+      'dependencia_adm':'[varchar — em igc_bruto: categoria administrativa por extenso, ex: "Pública Federal", "Privada com fins lucrativos" — use para comparar público vs privado no IGC]',
+      // Componentes do CPC (dados_cpc_brutos) — desnormalizado por curso/área/UF
+      'nota_bruta_doutores': '[numeric — em dados_cpc_brutos: indicador (0-100) de % de docentes doutores no curso, componente do CPC]',
+      'nota_bruta_mestres':  '[numeric — em dados_cpc_brutos: indicador (0-100) de % de docentes mestres no curso, componente do CPC]',
       // uf_ibge — pertence ao schema cesta (SEMPRE use cesta.uf_ibge)
       'co_uf_ibge':  '[int PK — em cesta.uf_ibge — FK de mesoregioes_ibge.cod_uf_ibge]',
       'no_uf_ibge':  '[varchar — nome do estado — em cesta.uf_ibge — ex: "São Paulo", "Rio Grande do Sul"]',

@@ -387,7 +387,10 @@ export class SmartSchemaReducer {
       'microregioes_ibge',
       'mesoregioes_ibge',
       'uf_ibge',
-      'regioes_ibge'
+      'regioes_ibge',
+      'emec_instituicoes',     // dados de contato/IGC/CI da IES (REGRA DE OURO 1)
+      'igc_bruto',             // IGC desnormalizado por IES (REGRA DE OURO 3)
+      'dados_cpc_brutos'       // CPC desnormalizado por curso/área/UF (REGRA DE OURO 3)
     ];
 
     coreTables.forEach(t => selectedTableNames.add(t));

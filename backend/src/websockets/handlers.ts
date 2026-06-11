@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io'
-import { WebSocketEvents, ChatRequest } from '../types'
+import { WebSocketEvents, ChatRequest, SQLProvider } from '../types'
 import { ChatService } from '../services/chat-service'
 
 export function setupWebSocketHandlers(io: Server) {
@@ -13,9 +13,16 @@ export function setupWebSocketHandlers(io: Server) {
     })
 
     // Processar mensagem de chat
-    socket.on('send-message', async (data: ChatRequest & { userId?: string, autoExecuteSQL?: boolean, useParallelMode?: boolean }) => {
+    socket.on('send-message', async (data: ChatRequest & { userId?: string, autoExecuteSQL?: boolean, useParallelMode?: boolean, selectedProviders?: SQLProvider[] }) => {
       try {
-        const { sessionId, message, model, userId, autoExecuteSQL, useParallelMode } = data
+        const { sessionId, message, model, userId, autoExecuteSQL, useParallelMode, selectedProviders } = data
+
+        // Resolver providers: campo novo tem prioridade; fallback para comportamento legado
+        const resolvedProviders: SQLProvider[] = selectedProviders?.length
+          ? selectedProviders
+          : useParallelMode !== false
+            ? ['gemini', 'groq', 'deepseek']
+            : ['gemini']
 
         console.log('📨 Mensagem recebida via WebSocket:', {
           sessionId,
@@ -23,7 +30,8 @@ export function setupWebSocketHandlers(io: Server) {
           model,
           userId,
           autoExecuteSQL,
-          useParallelMode
+          useParallelMode,
+          resolvedProviders
         })
 
         // Notificar que a mensagem está sendo processada
@@ -36,7 +44,8 @@ export function setupWebSocketHandlers(io: Server) {
           model,
           userId,
           autoExecuteSQL: autoExecuteSQL !== undefined ? autoExecuteSQL : true, // Default true
-          useParallelMode,
+          useParallelMode: resolvedProviders.length > 1,
+          selectedProviders: resolvedProviders,
           io, // Passar io para emitir eventos durante processamento
           socketSessionId: sessionId // ID da sessão para emitir eventos
         })

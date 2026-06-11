@@ -55,6 +55,7 @@ const providerConfig = {
 
 export function ParallelResultsPreview({ results, onSelectResult, onClose }: ParallelResultsPreviewProps) {
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null)
+  const isSingleMode = results.length === 1
 
   const toggleExpand = (provider: string) => {
     setExpandedProvider(expandedProvider === provider ? null : provider)
@@ -96,13 +97,30 @@ export function ParallelResultsPreview({ results, onSelectResult, onClose }: Par
     )
   }
 
+  const gridClass: Record<number, string> = {
+    1: 'grid-cols-1 max-w-xl mx-auto',
+    2: 'grid-cols-1 md:grid-cols-2',
+    3: 'grid-cols-1 md:grid-cols-3'
+  }
+  const gridCols = gridClass[results.length] ?? 'grid-cols-1 md:grid-cols-3'
+
+  const headerLabel = results.length === 1
+    ? null
+    : results.length === 2
+      ? 'Comparando 2 IAs'
+      : 'Modo Paralelo — 3 IAs'
+
   return (
     <div className="w-full space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Zap className="h-4 w-4 text-yellow-500" />
-          Modo Paralelo - 3 IAs gerando simultaneamente
-        </div>
+        {headerLabel ? (
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Zap className="h-4 w-4 text-yellow-500" />
+            {headerLabel}
+          </div>
+        ) : (
+          <div />
+        )}
         {onClose && (
           <Button
             variant="ghost"
@@ -116,8 +134,8 @@ export function ParallelResultsPreview({ results, onSelectResult, onClose }: Par
         )}
       </div>
 
-      {/* Grid com 3 colunas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Grid adaptativo: 1, 2 ou 3 colunas */}
+      <div className={`grid ${gridCols} gap-3`}>
         {results.map((result) => {
           const config = providerConfig[result.provider]
           const Icon = config.icon
@@ -215,7 +233,7 @@ export function ParallelResultsPreview({ results, onSelectResult, onClose }: Par
                     size="sm"
                   >
                     <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                    Usar Resultado
+                    {isSingleMode ? 'Usar este Resultado' : 'Usar Resultado'}
                   </Button>
                 </CardContent>
               )}
