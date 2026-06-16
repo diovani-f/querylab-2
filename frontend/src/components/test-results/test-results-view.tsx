@@ -110,7 +110,8 @@ export function TestResultsView() {
                 errorTypeStats[errorCat].count++;
             }
 
-            const provider = curr.Provider || 'Desconhecido';
+            const rawProvider = curr.Provider || 'Desconhecido';
+            const provider = rawProvider.toLowerCase() === 'cloudflare' ? 'SQLCoder' : rawProvider;
             if (!providerStats[provider]) providerStats[provider] = { provider, success: 0, error: 0 };
 
             if (isSuccess) {
